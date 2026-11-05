@@ -1,4 +1,4 @@
-// node android/songServerTest.mjs
+// node server/songServerTest.mjs
 import { strictEqual as eq, deepStrictEqual as same } from 'node:assert'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
