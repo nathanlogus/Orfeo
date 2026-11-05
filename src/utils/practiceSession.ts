@@ -5,7 +5,7 @@
 import { useStore } from '../store'
 import { accuracy, afterPhrase, mastery, phraseOf, phraseStarts, type PhraseProgress, type Press, type ScoredStep } from './practiceScore'
 
-const WINDOW_SEC = 0.25
+export const WINDOW_SEC = 0.25
 const FIRST_AUTO_LEVEL = 1
 // A loop that goes back near a phrase's end has played it
 const NEARLY_DONE = 0.9

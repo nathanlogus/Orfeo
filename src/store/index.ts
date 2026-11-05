@@ -1,3 +1,4 @@
+import type { LessonStep } from '../lessons/session'
 import { create } from 'zustand'
 import type {
   ParsedMidi, ParsedTrack, PlaybackState, TrackState,
@@ -229,6 +230,9 @@ interface OrfeoStore {
   // Quick Settings' gear icons / Open settings button / Ctrl + , ──────────
   // Home page: shown over the app while no song is open, or when asked for
   homeOpen: boolean
+  // The lesson being taken, and the lessons passed (lessons/session.ts)
+  lessonRun: { id: string; step: LessonStep; percent: number | null; clean: number } | null
+  lessonPassed: string[]
   setHomeOpen: (open: boolean) => void
   // A song to open the way a Library click does (SettingsPanel owns that path)
   songToOpen: string | null
@@ -891,6 +895,8 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   keepDrumCountIn: true,
   setKeepDrumCountIn: (keepDrumCountIn) => set({ keepDrumCountIn }),
   homeOpen: false,
+  lessonRun: null,
+  lessonPassed: [],
   setHomeOpen: (homeOpen) => set({ homeOpen }),
   songToOpen: null,
   openSong: (songToOpen) => set({ songToOpen, presentationMode: false }),

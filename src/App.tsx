@@ -11,6 +11,8 @@ import SettingsWindow from './components/Settings/SettingsWindow'
 import { useUpdateService } from './hooks/useUpdateCheck'
 import { useSoundfontService } from './hooks/useSoundfonts'
 import HomePage from './components/Home/HomePage'
+import LessonBanner from './components/Lessons/LessonBanner'
+import LessonPanel from './components/Lessons/LessonPanel'
 import { useStore } from './store'
 import FloatingKeyboard from './components/Keyboard/FloatingKeyboard'
 import ChordExplorer from './components/ChordExplorer'
@@ -64,6 +66,7 @@ export default function App() {
   useSupportNoteService()
   const midi = useStore((s) => s.midi)
   const homeOpen = useStore((s) => s.homeOpen)
+  const lessonActive = useStore((s) => !!s.lessonRun)
   const keyboardMode = useStore((s) => s.keyboardMode)
   const appTheme = useStore((s) => s.appTheme)
   // A theme switch repaints everything at once: nothing eases through it
@@ -567,6 +570,7 @@ export default function App() {
       >
         {!presentationMode && <SettingsPanel />}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          {lessonActive && <LessonBanner />}
           <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', paddingTop: 6, display: 'flex', flexDirection: 'column' }}>
             {showScore && <ScoreView bytes={scoreBytes} style={{ flex: showRoll ? '0 0 50%' : 1 }} />}
             {showRoll && midi && <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div>}
@@ -577,6 +581,7 @@ export default function App() {
         </div>
         {!presentationMode && <TrackPanel />}
         {(!midi || homeOpen) && <HomePage />}
+        {lessonActive && <LessonPanel />}
 
         {/* ── Drag-over highlight overlay — pointer-events none so it doesn't ─
             block any child interaction; visible only while dragging ── */}

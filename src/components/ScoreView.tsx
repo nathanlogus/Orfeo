@@ -166,6 +166,7 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       <style>{`
         [data-score-view] .at-cursor-bar { background: rgba(245, 158, 11, 0.12); }
         [data-score-view] .at-cursor-beat { background: rgba(217, 119, 6, 0.85); width: 3px; }
+        .lesson-hide-bar [data-score-view] .at-cursor-bar { background: #fff; opacity: 1 !important; }
       `}</style>
       <div ref={hostRef} />
       {failed && (
