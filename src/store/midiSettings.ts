@@ -31,6 +31,8 @@ export interface MidiPrefs {
   duplicateFilterMs: number       // 0 = off; a repeat of the same key within this window is dropped
   controls: Record<ControlKind, boolean>
   gmOutput: string                // '' = Orfeo's built-in General MIDI synth, else a MIDI output port name
+  liveProgram: number             // General MIDI instrument (0-127) your own playing sounds with; 0 = piano
+  followProgramChange: boolean    // a keyboard's own sound buttons (Program Change) pick that instrument
   seenDevices: string[]           // keyboards that already got their first-connection Settings pop-up
   lastDevice: string              // last keyboard actually played
 }
@@ -54,6 +56,8 @@ export const MIDI_DEFAULTS: MidiPrefs = {
     channelPressure: true, polyPressure: true, expression: true, volume: false,
   },
   gmOutput: '',
+  liveProgram: 0,
+  followProgramChange: true,
   seenDevices: [],
   lastDevice: '',
 }
@@ -150,6 +154,12 @@ export function shapeVelocity(raw: number, s: Pick<MidiPrefs, 'velocityCurve' | 
     v = Math.round(Math.pow(x, exp) * 127)
   }
   return Math.max(1, Math.min(s.maxVelocity, v))
+}
+
+// ── The instrument your own playing sounds with — always a whole GM program
+export function liveProgram(): number {
+  const p = useMidiSettings.getState().liveProgram
+  return Number.isFinite(p) ? Math.max(0, Math.min(127, Math.round(p))) : 0
 }
 
 // ── Manual alignment added to every measured output delay (visuals, count-in,

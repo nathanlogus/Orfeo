@@ -17,6 +17,13 @@ import {
 
 const PAGE = 120 // cards added each time the grid scrolls near its end
 
+export const HANDS_LABEL: Record<string, () => string> = {
+  named: () => t`Named hand tracks`,
+  split: () => t`Two hand tracks`,
+  'one-stream': () => t`One piano part`,
+  none: () => t`No piano part`,
+}
+
 export const ARRANGEMENT_LABEL: Record<string, () => string> = {
   'solo-piano': () => t`Solo piano`,
   'piano-led': () => t`Piano-led`,
@@ -222,6 +229,7 @@ export function SongBrowser({ onOpen, onClose }: { onOpen: (path: string) => voi
           <FilterSelect title={t`Arrangement`} all={t`All arrangements`} value={filters.arrangement} options={options.arrangements} onChange={arrangement => set({ arrangement })} label={v => ARRANGEMENT_LABEL[v]?.() ?? v} />
           <FilterSelect title={t`Difficulty`} all={t`Any difficulty`} value={filters.difficulty} options={options.difficulties} onChange={difficulty => set({ difficulty })} label={v => t`Difficulty ${v} of 5`} />
           <FilterSelect title={t`Key`} all={t`Any key`} value={filters.key} options={options.keys} onChange={key => set({ key })} />
+          <FilterSelect title={t`Hand tracks`} all={t`Any hand layout`} value={filters.hands} options={options.hands} onChange={hands => set({ hands })} label={v => HANDS_LABEL[v]?.() ?? v} />
           <div style={{ width: 150, flexShrink: 0 }}>
             <SettingsDropdown value={sort} options={sortOptions} onChange={setSort} title={t`Sort songs`} />
           </div>

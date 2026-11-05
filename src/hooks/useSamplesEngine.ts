@@ -15,7 +15,7 @@ import { liveHandColor } from '../audio/liveHandColor'
 import { NES } from '../utils/noteEditorState'
 import { programTimeline, programAt } from '../audio/programTimeline'
 import { volumeAt, expressionAt, valueAt, volumeRatio } from '../audio/songVolume'
-import { useMidiSettings, latencyOffsetSec, midiPrefsReady } from '../store/midiSettings'
+import { useMidiSettings, latencyOffsetSec, midiPrefsReady, liveProgram } from '../store/midiSettings'
 import { isShown } from '../utils/trackShown'
 
 // ── Live edit-buffer awareness — mirrors useAudioEngine.ts's activeMidiData().
@@ -177,8 +177,10 @@ let _liveGainNode: GainNode | null = null
 let _liveFilterNode: BiquadFilterNode | null = null
 let _liveClipNode: WaveShaperNode | null = null
 let _liveRoutedDirect: boolean | null = null
-// Set when song playback reprograms channel 15; the next live note restores piano
+// Set when song playback or a preview reprograms channel 15, or the Keyboard
+// sound setting changes; the next live note puts the chosen instrument back
 let _liveProgramDirty = true
+useMidiSettings.subscribe((s, prev) => { if (s.liveProgram !== prev.liveProgram) _liveProgramDirty = true })
 
 // Linear up to 0.8, then a smooth knee that never exceeds 1.0 — transparent
 // at normal playing levels, only shapes a hard 10-finger chord's peaks.
@@ -229,7 +231,7 @@ export function getSamplesBufferSec(): number {
 
 function ensureLiveChannel() {
   if (!_synth || !_liveProgramDirty) return
-  try { _synth.programChange(LIVE_CH, 0) } catch {}
+  try { _synth.programChange(LIVE_CH, liveProgram()) } catch {}
   _liveProgramDirty = false
 }
 
@@ -397,7 +399,8 @@ function clearSchedule() {
 // send. ─────────────────────────────────────────────────────────────────
 function ensureHwChannel() {
   if (!_synth) return
-  _liveProgramDirty = false
+  // Previews always play piano; the next live key restores the Keyboard sound
+  _liveProgramDirty = liveProgram() !== 0
   try {
     _synth.programChange(15, 0)
     ;(_synth as any).controllerChange(15, 7, 127)

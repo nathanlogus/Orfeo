@@ -93,12 +93,16 @@ export function nativeMeasuredLatencySec(): number {
 const LIVE_CH = 15
 let _liveChDirty = false
 let _songUsesLiveCh = false
-export function nativeLivePiano() {
-  if (!_liveChDirty) return
-  nativeCall('midi', 0xc0 | LIVE_CH, 0, 0)
+let _liveChProgram = 0
+// Live keys play the Keyboard sound (Settings › MIDI Keyboard); previews piano
+export function nativeLiveProgram(program: number) {
+  if (!_liveChDirty && program === _liveChProgram) return
+  nativeCall('midi', 0xc0 | LIVE_CH, program, 0)
+  _liveChProgram = program
   // the current song can set it again when it plays or jumps
   _liveChDirty = _songUsesLiveCh
 }
+export function nativeLivePiano() { nativeLiveProgram(0) }
 
 // ── Song → one flat, time-sorted event list for the engine ──────────────────
 function sendSong() {
@@ -129,6 +133,8 @@ function sendSong() {
   // Each channel's instrument, switching where one of its tracks takes over
   // (a file track that changes instrument is split into one track per instrument)
   _songUsesLiveCh = false
+  // A new song or a restarted engine: don't trust what channel 16 holds now
+  _liveChDirty = true
   for (const [ch, switches] of programTimeline(midi, tracks)) {
     for (const sw of switches) ev.push([sw.time, 1, sw.track, 0xc0 | ch, sw.program, 0])
     if (ch === LIVE_CH) _songUsesLiveCh = _liveChDirty = true

@@ -24,6 +24,7 @@ export function deviceSongs(files: LibraryFile[], libraryFolder: string | null, 
       size: 0, local: true, art: c.art, people: c.people.length ? c.people : undefined, genres: c.genres.length ? c.genres : undefined,
       key: c.key ?? undefined, bpm: c.bpm ?? undefined, meter: c.meter ?? undefined, duration: c.duration ?? undefined,
       arrangement: c.arrangement ?? undefined, difficulty: c.difficulty ?? undefined, busyness: c.busyness ?? undefined, classic: c.classic,
+      hands: c.hands ?? undefined,
     }
   }).sort((a, b) => a.title.localeCompare(b.title))
 }
@@ -36,18 +37,18 @@ export function songCard(s: SongServerSong): SongCard {
     genres: s.genres ?? (s.genre ? [{ name: s.genre, guessed: false }] : []),
     art: s.art ?? null, key: s.key ?? null, bpm: s.bpm ?? null, meter: s.meter ?? null,
     duration: s.duration ?? null, arrangement: s.arrangement ?? null, difficulty: s.difficulty ?? null,
-    busyness: s.busyness ?? null, classic: !!s.classic, soloLine: s.arrangement === 'solo-line',
+    busyness: s.busyness ?? null, hands: s.hands ?? null, classic: !!s.classic, soloLine: s.arrangement === 'solo-line',
     folder: s.genre || null, search: '',
   }
 }
 
 // ── The filters the home server applies, for the songs on this device ───────
-export interface SongFilters { q: string; genre: string; artist: string; arrangement: string; difficulty: string; key: string; classic: boolean }
-type Filter = 'genre' | 'artist' | 'arrangement' | 'difficulty' | 'key'
+export interface SongFilters { q: string; genre: string; artist: string; arrangement: string; difficulty: string; key: string; hands: string; classic: boolean }
+type Filter = 'genre' | 'artist' | 'arrangement' | 'difficulty' | 'key' | 'hands'
 
 const peopleOf = (s: SongServerSong) => s.people ?? (s.artist ? [s.artist] : [])
 const FILTER_VALUES: Record<Filter, (s: SongServerSong) => (string | number | undefined)[]> = {
-  genre: s => [s.genre], artist: peopleOf, arrangement: s => [s.arrangement], difficulty: s => [s.difficulty], key: s => [s.key],
+  genre: s => [s.genre], artist: peopleOf, arrangement: s => [s.arrangement], difficulty: s => [s.difficulty], key: s => [s.key], hands: s => [s.hands],
 }
 
 export function filterSongs(songs: SongServerSong[], f: SongFilters, leaveOut?: Filter): SongServerSong[] {
@@ -67,7 +68,7 @@ export function songFacets(songs: SongServerSong[], f: SongFilters) {
     return [...seen].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name))
   }
   return {
-    genres: list('genre'), artists: list('artist'), arrangements: list('arrangement'), difficulties: list('difficulty'), keys: list('key'),
+    genres: list('genre'), artists: list('artist'), arrangements: list('arrangement'), difficulties: list('difficulty'), keys: list('key'), hands: list('hands'),
     classics: songs.filter(s => s.classic).length,
   }
 }

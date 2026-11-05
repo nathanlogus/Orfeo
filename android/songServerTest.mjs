@@ -24,7 +24,7 @@ add('Jazz/Weimar Solos/Catalogued.mid')
 mkdirSync(join(lib, '.art')); writeFileSync(join(lib, '.art', 'c.jpg'), 'jpeg'); writeFileSync(join(lib, '.art', 'c.txt'), 'x')
 writeFileSync(join(lib, 'catalog.json'), JSON.stringify({ songs: { 'Jazz/Weimar Solos/Catalogued.mid': {
   title: 'Real Title', composers: ['Cole Porter'], performer: null, genres: [{ name: 'swing', guessed: true }],
-  key: 'C major', bpm: null, difficulty: 3, art: { url: '.art/c.jpg' }, arrangement: 'solo-piano', classic: true, duration: 90,
+  key: 'C major', bpm: null, difficulty: 3, art: { url: '.art/c.jpg' }, hands: 'named', arrangement: 'solo-piano', classic: true, duration: 90,
 }, 'Mozart - Rondo.mid': {
   title: 'Rondo', composers: ['Mozart', 'Haydn'], performer: null, genres: [], key: 'A minor', bpm: 140, difficulty: 1, arrangement: 'band', duration: 200,
 } } }))
@@ -49,6 +49,7 @@ try {
   same(titles(await list('q=cole')), ['Real Title'])
 
   same(titles(await list('arrangement=band')), ['Rondo'])
+  same(titles(await list('hands=named')), ['Real Title'])
   same(titles(await list('difficulty=3')), ['Real Title'])
   same(titles(await list('key=C%20major')), ['Real Title'])
   same(titles(await list('classic=1')), ['Real Title'])

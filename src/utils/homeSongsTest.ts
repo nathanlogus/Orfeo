@@ -17,7 +17,7 @@ export function runHomeSongsTest(): number {
   eq('folders', songs.map(s => [s.genre, s.artist]), [['', ''], ['Jazz', ''], ['', ''], ['Classical', 'Mozart']])
   eq('path is untouched', songs[3].path, 'C:\\Music\\Classical\\Mozart\\Rondo.mid')
   eq('no library', deviceSongs([{ name: 'A.mid', path: '/x/A.mid' }], null)[0].genre, '')
-  const none: SongFilters = { q: '', genre: '', artist: '', arrangement: '', difficulty: '', key: '', classic: false }
+  const none: SongFilters = { q: '', genre: '', artist: '', arrangement: '', difficulty: '', key: '', hands: '', classic: false }
   eq('folders are the genres', songFacets(songs, none).genres, [{ name: 'Classical', count: 1 }, { name: 'Jazz', count: 1 }])
 
   const lib = [{ name: 'a.mid', path: 'C:/M/Jazz/a.mid' }, { name: 'b.mid', path: 'C:/M/Jazz/b.mid' }, { name: 'c.mid', path: 'C:/M/Pop/c.mid' }]

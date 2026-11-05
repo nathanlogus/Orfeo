@@ -19,6 +19,7 @@
 - **New version dot.** Mac, Linux and portable copies can't update themselves, so a blinking dot on the update button now tells you when a new version is out. Click it to open the download page.
 - **Copy bars from another version.** If your Library has a better copy of a song, *File Info* can use its bars and tempo for this one. Orfeo compares the notes, lines the two files up, and lets you listen before you keep it. Your files aren't changed.
 - **Type a tempo.** Double-click the BPM number, type the tempo you want and press *Enter*.
+- **Keyboard sound.** Your MIDI keyboard no longer has to sound like a piano: *Settings › MIDI Keyboard › Keyboard sound* (also in Quick Settings) plays it as any of the 128 General MIDI instruments — strings, organs, electric pianos, guitars, synths and more — in every sound engine. Songs keep their own instruments. If your keyboard has its own sound buttons, choosing a sound there switches Orfeo too (*Follow my keyboard's sound buttons*).
 - **Two meters for two hands.** With *Hand Assignment* on, a single piano track played by both hands shows a blue and a pink meter side by side in the Tracks panel, each following its own hand.
 
 ### Fixed

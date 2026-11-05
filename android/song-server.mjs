@@ -51,7 +51,7 @@ function fromCatalog(e) {
   const fields = {
     title: e.title, artist: people[0], genre: e.genres?.[0]?.name, people, genres: e.genres,
     key: e.key, bpm: e.bpm, meter: e.meter, duration: e.duration, arrangement: e.arrangement,
-    difficulty: e.difficulty, busyness: e.busyness, classic: e.classic,
+    difficulty: e.difficulty, busyness: e.busyness, classic: e.classic, hands: e.hands,
     art: e.art?.url && `/api/art?path=${encodeURIComponent(e.art.url)}`,
   }
   return Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined && v !== null))
@@ -115,6 +115,7 @@ const FILTERS = {
   arrangement: { matches: (s, v) => s.arrangement === v, pick: (s) => [s.arrangement] },
   difficulty: { matches: (s, v) => String(s.difficulty) === v, pick: (s) => [s.difficulty] },
   key: { matches: (s, v) => s.key === v, pick: (s) => [s.key] },
+  hands: { matches: (s, v) => s.hands === v, pick: (s) => [s.hands] },
 }
 
 // Songs missing the value go last, however it's sorted
@@ -147,6 +148,7 @@ function query(params) {
     arrangements: counts(allBut('arrangement'), FILTERS.arrangement.pick),
     difficulties: counts(allBut('difficulty'), FILTERS.difficulty.pick),
     keys: counts(allBut('key'), FILTERS.key.pick),
+    hands: counts(allBut('hands'), FILTERS.hands.pick),
     classics: found.filter(s => s.classic).length,
   }
 }

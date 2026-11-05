@@ -5,7 +5,7 @@ import { useMidiFile } from '../../hooks/useMidiFile'
 import { t } from '../../utils/i18n'
 import { deviceSongs, filterSongs, matchesSearch, songCard, songFacets, sortSongs, type FilterOption } from '../../utils/homeSongs'
 import { genreLabel, type SongSort } from '../../utils/songCatalog'
-import { ARRANGEMENT_LABEL, Card, FilterSelect, Toggle, songSortOptions } from '../SongBrowser/SongBrowser'
+import { ARRANGEMENT_LABEL, HANDS_LABEL, Card, FilterSelect, Toggle, songSortOptions } from '../SongBrowser/SongBrowser'
 import { SettingsDropdown } from '../Settings/controls'
 import { songKey } from '../../utils/practiceSession'
 import FaceTheMusicMark from '../FaceTheMusicMark'
@@ -38,10 +38,11 @@ export default function HomePage() {
   const [arrangement, setArrangement] = useState('')
   const [difficulty, setDifficulty] = useState('')
   const [songKeyFilter, setSongKeyFilter] = useState('')
+  const [handsFilter, setHandsFilter] = useState('')
   const [classicOnly, setClassicOnly] = useState(false)
   const [sort, setSort] = useState<SongSort>('title')
   const [catalog, setCatalog] = useState<unknown>(null)
-  const [facets, setFacets] = useState<Pick<SongServerList, 'arrangements' | 'difficulties' | 'keys' | 'classics'>>({ arrangements: [], difficulties: [], keys: [], classics: 0 })
+  const [facets, setFacets] = useState<Pick<SongServerList, 'arrangements' | 'difficulties' | 'keys' | 'hands' | 'classics'>>({ arrangements: [], difficulties: [], keys: [], hands: [], classics: 0 })
 
   const [address, setAddress] = useState('')
   const [connected, setConnected] = useState(false)
@@ -93,7 +94,7 @@ export default function HomePage() {
     setLoading(true)
     try {
       const r = await window.electronAPI.songServerQuery(address, {
-        q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter,
+        q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter, hands: handsFilter,
         classic: classicOnly ? 1 : '', sort, offset, limit: PAGE,
       })
       if (id !== latestQuery.current) return
@@ -113,7 +114,7 @@ export default function HomePage() {
       if (!moved || moved === address) setError(t`Can't reach the server. Check the address and that it's running.`)
     }
     setLoading(false)
-  }, [address, q, genre, artist, arrangement, difficulty, songKeyFilter, classicOnly, sort, findServer])
+  }, [address, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort, findServer])
 
   useEffect(() => {
     if (source === 'server' && !connected && !address && !lookedForServer.current) void findServer()
@@ -130,8 +131,8 @@ export default function HomePage() {
     const library = hideDemoFolder ? libraryFiles.filter(f => !/[\\/]Demo[\\/]/.test(f.path)) : libraryFiles
     return deviceSongs(library.length || hideDemoFolder ? library : demoFiles, libraryFolder, catalog)
   }, [libraryFiles, demoFiles, hideDemoFolder, libraryFolder, catalog])
-  const deviceFilters = useMemo(() => ({ q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter, classic: classicOnly }),
-    [q, genre, artist, arrangement, difficulty, songKeyFilter, classicOnly])
+  const deviceFilters = useMemo(() => ({ q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter, hands: handsFilter, classic: classicOnly }),
+    [q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly])
   const filteredDevice = useMemo(() => sortSongs(filterSongs(allDevice, deviceFilters), sort), [allDevice, deviceFilters, sort])
   const deviceFacets = useMemo(() => songFacets(allDevice, deviceFilters), [allDevice, deviceFilters])
 
@@ -154,12 +155,12 @@ export default function HomePage() {
   }
 
   const clearFilters = () => {
-    setGenre(null); setArtist(null); setArrangement(''); setDifficulty(''); setSongKeyFilter(''); setClassicOnly(false); setSort('title')
+    setGenre(null); setArtist(null); setArrangement(''); setDifficulty(''); setSongKeyFilter(''); setHandsFilter(''); setClassicOnly(false); setSort('title')
   }
   const switchSource = (next: Source) => {
     setSource(next); clearFilters(); setError(''); setDeviceShown(PAGE)
   }
-  const filtered = !!(genre || artist || arrangement || difficulty || songKeyFilter || classicOnly || sort !== 'title')
+  const filtered = !!(genre || artist || arrangement || difficulty || songKeyFilter || handsFilter || classicOnly || sort !== 'title')
   const asFacet = (list: { name: string; count: number }[]) => list.map(o => ({ value: o.name, count: o.count }))
 
   const open = async (song: SongServerSong) => {
@@ -252,6 +253,7 @@ export default function HomePage() {
                 <FilterSelect title={t`Arrangement`} all={t`All arrangements`} value={arrangement} options={asFacet(shownFacets.arrangements)} onChange={setArrangement} label={v => ARRANGEMENT_LABEL[v]?.() ?? v} />
                 <FilterSelect title={t`Difficulty`} all={t`Any difficulty`} value={difficulty} options={asFacet(shownFacets.difficulties)} onChange={setDifficulty} label={v => t`Difficulty ${v}`} />
                 <FilterSelect title={t`Key`} all={t`Any key`} value={songKeyFilter} options={asFacet(shownFacets.keys)} onChange={setSongKeyFilter} />
+                <FilterSelect title={t`Hand tracks`} all={t`Any hand layout`} value={handsFilter} options={asFacet(shownFacets.hands ?? [])} onChange={setHandsFilter} label={v => HANDS_LABEL[v]?.() ?? v} />
                 <div style={{ width: 150, flexShrink: 0 }}>
                   <SettingsDropdown value={sort} options={songSortOptions()} onChange={setSort} title={t`Sort songs`} />
                 </div>

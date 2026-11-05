@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
-import { KeyboardMusic, Zap, Timer, Speaker, Feather, Copy, Footprints, Stethoscope, Wrench, RefreshCw, FileDown, Plug } from 'lucide-react'
+import { KeyboardMusic, Zap, Timer, Speaker, Feather, Copy, Footprints, Stethoscope, Wrench, RefreshCw, FileDown, Plug, Music } from 'lucide-react'
 import { useStore } from '../../../store'
 import { t } from '../../../utils/i18n'
 import { OptionBtn, Switch, SettingsDropdown, HelpText, GlanceLine, ZoomStepBtn } from '../controls'
@@ -13,6 +13,7 @@ import { sim, simAvailable } from '../../../utils/midiSimulator'
 import { confirmDialog } from '../../../utils/confirmController'
 import { useNativeAudio } from '../../../audio/nativeClient'
 import { NATIVE_AVAILABLE } from './audio'
+import { GM_GROUPS, GM_NAMES } from '../../../utils/gmInstruments'
 import type { SettingDef } from '../types'
 
 const set = (p: Parameters<ReturnType<typeof useMidiSettings.getState>['set']>[0]) => useMidiSettings.getState().set(p)
@@ -287,6 +288,35 @@ function GmOutputControl() {
   )
 }
 
+// ── Keyboard sound — the instrument your own playing sounds with ────────────
+const SOUND_FAMILIES = Object.entries(GM_GROUPS).filter(([k]) => k !== 'drums')
+const familyOf = (p: number) => SOUND_FAMILIES.find(([, g]) => g.programs.includes(p))?.[0] ?? 'piano'
+function KeyboardSoundControl() {
+  const program = useMidiSettings(s => s.liveProgram)
+  const family = familyOf(program)
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)', gap: 6 }}>
+      <SettingsDropdown title={t`Instrument family`} value={family}
+        options={SOUND_FAMILIES.map(([k, g]) => ({ value: k, label: g.label }))}
+        onChange={(k) => set({ liveProgram: GM_GROUPS[k].programs[0] })} />
+      <SettingsDropdown title={t`Instrument`} value={String(program)}
+        options={GM_GROUPS[family].programs.map(p => ({ value: String(p), label: GM_NAMES[p] ?? `${p + 1}` }))}
+        onChange={(v) => set({ liveProgram: Number(v) })} />
+    </div>
+  )
+}
+function KeyboardSoundExtra() {
+  const follow = useMidiSettings(s => s.followProgramChange)
+  const program = useMidiSettings(s => s.liveProgram)
+  return (
+    <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+      <SwitchRow label={t`Follow my keyboard's sound buttons`} value={follow} onChange={v => set({ followProgramChange: v })} />
+      <HelpText>{t`When you pick a sound on your keyboard, it tells Orfeo the instrument number and Orfeo switches to it. Turn this off if your keyboard picks odd instruments.`}</HelpText>
+      {program !== 0 && <ActionBtn onClick={() => set({ liveProgram: 0 })}>{t`Back to piano`}</ActionBtn>}
+    </div>
+  )
+}
+
 // ── Touch response ───────────────────────────────────────────────────────────
 const CURVES: { v: VelocityCurve; label: string }[] = [
   { v: 'soft', label: t`Soft` }, { v: 'normal', label: t`Normal` }, { v: 'hard', label: t`Hard` }, { v: 'fixed', label: t`Fixed` },
@@ -443,6 +473,7 @@ export const MIDI_DEFS: SettingDef[] = [
   { id: 'liveResponse', icon: Zap, kind: 'choice', Control: LiveResponseControl, notice: true },
   { id: 'latencyOffset', icon: Timer, kind: 'choice', Control: LatencyOffsetControl, Glance: LatencyOffsetGlance },
   { id: 'gmOutput', icon: Speaker, kind: 'choice', Control: GmOutputControl },
+  { id: 'keyboardSound', icon: Music, kind: 'choice', Control: KeyboardSoundControl, Extra: KeyboardSoundExtra },
   { id: 'touchResponse', icon: Feather, kind: 'choice', Control: TouchControl, Extra: TouchExtra },
   { id: 'duplicateFilter', icon: Copy, kind: 'choice', Control: DuplicateControl, Glance: DuplicateGlance },
   { id: 'pedalsControls', icon: Footprints, kind: 'choice', Control: PedalsControl, Extra: PedalsExtra },

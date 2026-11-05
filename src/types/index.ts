@@ -164,6 +164,7 @@ export interface SongServerSong {
   difficulty?: number
   busyness?: number
   classic?: boolean
+  hands?: string
   art?: string | null
 }
 
@@ -175,6 +176,7 @@ export interface SongServerList {
   arrangements: { name: string; count: number }[]
   difficulties: { name: string; count: number }[]
   keys: { name: string; count: number }[]
+  hands: { name: string; count: number }[]
   classics: number
 }
 
