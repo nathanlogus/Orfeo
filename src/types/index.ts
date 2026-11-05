@@ -236,6 +236,7 @@ declare global {
       showItemInFolder:    (filePath: string) => Promise<void>
       // Library folder management — create/rename/delete/move, scoped to libraryFolder
       listLibraryFolders:  (libraryFolder: string) => Promise<string[]>
+      readSongCatalog:     (libraryFolder: string) => Promise<unknown>
       createLibraryFolder: (libraryFolder: string, name: string) => Promise<string>
       renameLibraryFolder: (libraryFolder: string, oldName: string, newName: string) => Promise<{ ok: boolean; reason?: string; name?: string; pairs?: { oldPath: string; newPath: string }[] }>
       deleteLibraryFolder: (libraryFolder: string, name: string) => Promise<{ ok: boolean; reason?: string }>
