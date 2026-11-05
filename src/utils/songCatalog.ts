@@ -19,6 +19,7 @@ export interface SongCard {
   arrangement: string | null
   difficulty: number | null
   busyness: number | null
+  hands: string | null      // how the file lays out the two hands
   classic: boolean
   soloLine: boolean
   folder: string | null
@@ -32,13 +33,14 @@ export interface SongFilters {
   arrangement: string
   difficulty: string
   key: string
+  hands: string
   classicOnly: boolean
   includeGuessed: boolean
   showSoloLines: boolean
 }
 
 export const NO_FILTERS: SongFilters = {
-  query: '', genre: '', person: '', arrangement: '', difficulty: '', key: '',
+  query: '', genre: '', person: '', arrangement: '', difficulty: '', key: '', hands: '',
   classicOnly: false, includeGuessed: true, showSoloLines: false,
 }
 
@@ -90,7 +92,7 @@ export function buildCards(files: LibraryFile[], libraryFolder: string | null, c
       path: file.path, title, people, genres,
       art: artSource(e.art?.url, libraryFolder),
       key: str(e.key), bpm: num(e.bpm), meter: str(e.meter), duration: num(e.duration),
-      arrangement: str(e.arrangement), difficulty: num(e.difficulty), busyness: num(e.busyness),
+      arrangement: str(e.arrangement), difficulty: num(e.difficulty), busyness: num(e.busyness), hands: str(e.hands),
       classic: e.classic === true, soloLine: e.arrangement === 'solo-line',
       folder: parts.length > 1 ? parts[0] : null,
       search: fold([title, file.name, ...people, ...(performer ? [performer] : []), ...genres.map(g => g.name)].join(' ')),
@@ -107,6 +109,7 @@ export function filterCards(cards: SongCard[], f: SongFilters): SongCard[] {
     (!f.arrangement || c.arrangement === f.arrangement) &&
     (!f.difficulty || String(c.difficulty) === f.difficulty) &&
     (!f.key || c.key === f.key) &&
+    (!f.hands || c.hands === f.hands) &&
     (!f.genre || c.genres.some(g => g.name === f.genre && (f.includeGuessed || !g.guessed))) &&
     words.every(w => c.search.includes(w)))
 }
@@ -148,6 +151,7 @@ export function facets(cards: SongCard[], f: SongFilters) {
     arrangements: tally({ arrangement: '' }, c => [c.arrangement]).sort(byCount),
     difficulties: tally({ difficulty: '' }, c => [c.difficulty]).sort(byName),
     keys: tally({ key: '' }, c => [c.key]).sort(byName),
+    hands: tally({ hands: '' }, c => [c.hands]).sort(byCount),
   }
 }
 

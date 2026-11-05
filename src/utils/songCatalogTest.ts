@@ -19,7 +19,7 @@ export function runSongCatalogTest(): number {
         art: { url: 'https://img.example/a.jpg' },
       },
       'Brazilian/Kauffmann/carinhoso.mid': {
-        title: 'Carinhoso', composers: ['Pixinguinha'], key: 'F major', bpm: 220, arrangement: 'solo-piano',
+        title: 'Carinhoso', composers: ['Pixinguinha'], key: 'F major', bpm: 220, arrangement: 'solo-piano', hands: 'named',
         difficulty: 2, busyness: 2, classic: true, genres: [{ name: 'choro', guessed: true }], art: { url: '_art/c.jpg' },
       },
       'Jazz/Weimar/solo.mid': { title: 'Solo', performer: 'Art Pepper', arrangement: 'solo-line', genres: [{ name: 'jazz', guessed: false }] },
@@ -57,6 +57,9 @@ export function runSongCatalogTest(): number {
   check(titles(filterCards(cards, { ...NO_FILTERS, classicOnly: true })) === 'Carinhoso', 'classic filter')
   check(titles(filterCards(cards, { ...NO_FILTERS, difficulty: '4' })) === 'Satin Doll', 'difficulty filter')
   check(titles(filterCards(cards, { ...NO_FILTERS, key: 'F major', arrangement: 'solo-piano' })) === 'Carinhoso', 'filters combine')
+
+  check(titles(filterCards(cards, { ...NO_FILTERS, hands: 'named' })) === 'Carinhoso', 'hand layout filter')
+  check(facets(cards, NO_FILTERS).hands.map(h => `${h.value}:${h.count}`).join() === 'named:1', 'hand layouts are offered with counts')
 
   // sorting leaves songs without the value at the end
   check(sortCards(cards, 'easiest')[0].title === 'Carinhoso', 'easiest first')
