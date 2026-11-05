@@ -1080,7 +1080,7 @@ ipcMain.handle('editor:save', async (_e, payload: {
     const existingMeta = (midi.header as any).meta ?? []
     ;(midi.header as any).meta = existingMeta.filter((m: any) =>
       !(typeof m.text === 'string' && (
-        m.text.startsWith('ORFEO_TRACK_NAME:') || m.text.startsWith('ORFEO_TRACK_COLOR:') ||
+        m.text.startsWith('ORFEO_TRACK_NAME:') || m.text.startsWith('ORFEO_TRACK_COLOR:') || m.text.startsWith('ORFEO_TRACK_HAND:') ||
         m.text.startsWith('ORFEO_TRACK_VISIBLE:') || m.text.startsWith('ORFEO_TRACK_KEYBOARD:')
       ))
     )

@@ -95,6 +95,22 @@ export function targetStep(list: Step[], barStarts: number[], now: number, dir: 
   return i >= 0 ? list[i] : null
 }
 
+// ── Wait for notes: where the song moves once `held` covers the step it's waiting
+// on, null while it isn't. Keys are compared as the score and roll show them. ─
+export function nextWaitTime(list: Step[], now: number, held: Set<number>, transpose: number, end: number): number | null {
+  const i = indexAtOrAfter(list, now - EPS)
+  const step = list[i]
+  if (!step || !step.notes.every(n => held.has(n.midi + transpose))) return null
+  return list[i + 1]?.time ?? end
+}
+
+export function advanceIfPlayed(): void {
+  const s = useStore.getState()
+  if (!s.waitForNotes || !s.midi || s.playbackState === 'playing') return
+  const next = nextWaitTime(steps(), s.currentTime, s.midiHeldKeys, s.detectedKey?.transpose ?? 0, s.midi.duration)
+  if (next !== null) useStore.setState({ currentTime: next })
+}
+
 // ── Prepare General MIDI's track instruments once per song (Samples sets
 // each channel's instrument itself on the first note) ─────────────────────
 let _warmedFor: unknown = null

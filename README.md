@@ -48,6 +48,11 @@ telemetry; MIDI files are processed entirely on your device.
 - **Tempo control** — slow down or speed up without changing pitch; long-press
   the BPM arrows to glide to a target
 - **Change key** — transpose the whole piece by semitones
+- **Score view** — sheet music for MusicXML, Guitar Pro and Capella files, on its
+  own for reading practice or above the piano roll, with a cursor that follows
+  playback. Click a note to jump there.
+- **Wait for notes** — the song holds still until you play the next note or chord
+  on your MIDI keyboard.
 - **Loop region** — draw a loop directly on the waterfall and drill any section
 - **Metronome** — follows the file's embedded tempo map through mid-song changes;
   right-click for volume and count-in
