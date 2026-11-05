@@ -8,12 +8,14 @@ import { genreLabel } from '../../utils/songCatalog'
 import { Card } from '../SongBrowser/SongBrowser'
 import { songKey } from '../../utils/practiceSession'
 import FaceTheMusicMark from '../FaceTheMusicMark'
+import LearnHome from '../Lessons/LearnHome'
 import type { SongServerSong } from '../../types'
 
 const PAGE = 100
 const SEARCH_DELAY_MS = 200
 
 type Source = 'device' | 'server'
+type Section = 'learn' | 'library'
 
 // ── Where every session starts: find a song, on this device or the home server ──
 export default function HomePage() {
@@ -24,6 +26,7 @@ export default function HomePage() {
   const demoFiles = useStore(s => s.demoFiles)
   const hideDemoFolder = useStore(s => s.hideDemoFolder)
 
+  const [section, setSection] = useState<Section>('library')
   const [source, setSource] = useState<Source>('device')
   const [view, setView] = useState<'cards' | 'list'>('cards')
   const [progress, setProgress] = useState<Record<string, { mastery?: number }>>({})
@@ -60,6 +63,8 @@ export default function HomePage() {
     void window.electronAPI.getPrefs().then(p => {
       if (p.homeView === 'list') setView('list')
       setProgress(p.practiceProgress ?? {})
+      useStore.setState({ lessonPassed: p.lessonPassed ?? [] })
+      if (p.homeSection === 'learn') setSection('learn')
       if (!p.songServerUrl) return
       setAddress(p.songServerUrl)
       setConnected(true)
@@ -122,6 +127,11 @@ export default function HomePage() {
     void window.electronAPI.setPrefs({ homeView: next })
   }
 
+  const changeSection = (next: Section) => {
+    setSection(next)
+    void window.electronAPI.setPrefs({ homeSection: next })
+  }
+
   const switchSource = (next: Source) => {
     setSource(next); setGenre(null); setArtist(null); setError(''); setDeviceShown(PAGE)
   }
@@ -151,21 +161,26 @@ export default function HomePage() {
     <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', background: 'var(--bg-modal-header)', color: 'var(--text-default)' }}>
       <header className="orfeo-rise-in" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', borderBottom: '1px solid var(--border2)' }}>
         <FaceTheMusicMark width={150} fill="var(--text-amber)" />
-        <label className="home-search">
+        <div role="tablist" aria-label={t`Sections`} className="home-tabs">
+          <button role="tab" aria-selected={section === 'learn'} className="home-tab" onClick={() => changeSection('learn')}>{t`Learn`}</button>
+          <button role="tab" aria-selected={section === 'library'} className="home-tab" onClick={() => changeSection('library')}>{t`Library`}</button>
+        </div>
+        {section === 'learn' && <span style={{ flex: 1 }} />}
+        {section === 'library' && <label className="home-search">
           <Search size={15} aria-hidden />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder={t`Search songs and artists`} aria-label={t`Search songs and artists`} />
           {q && <button onClick={() => setQ('')} aria-label={t`Clear search`}><X size={14} /></button>}
-        </label>
-        <div role="tablist" className="home-tabs">
+        </label>}
+        {section === 'library' && <div role="tablist" aria-label={t`Song source`} className="home-tabs">
           <button role="tab" aria-selected={!isServer} className="home-tab" onClick={() => switchSource('device')}>{t`This device`}</button>
           <button role="tab" aria-selected={isServer} className="home-tab" onClick={() => switchSource('server')}>{t`Home server`}</button>
-        </div>
+        </div>}
         <button className="home-action" onClick={openFile}><FolderOpen size={14} aria-hidden />{t`Open file`}</button>
         <button className="home-icon" onClick={() => useStore.getState().openSettingsWindow()} aria-label={t`Settings`}><Settings size={16} /></button>
         {hasSong && <button className="home-action home-primary" onClick={() => useStore.getState().setHomeOpen(false)}><ArrowLeft size={14} aria-hidden />{t`Back to song`}</button>}
       </header>
 
-      {showConnect ? (
+      {section === 'learn' ? <LearnHome /> : showConnect ? (
         <form className="home-connect" onSubmit={e => { e.preventDefault(); if (address.trim()) { setConnected(true); setError('') } }}>
           <h2>{searching ? t`Looking for a home server…` : t`Connect a home server`}</h2>
           <p>{t`Browse a big song collection from your computer. Songs download when you open them, and stay on this device.`}</p>

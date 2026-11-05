@@ -63,6 +63,10 @@ export function buildSteps(
   return steps
 }
 
+export function playableSteps(): Step[] {
+  return steps()
+}
+
 function steps(): Step[] {
   const midi = activeMidi()
   const sig = shownSignature()

@@ -114,6 +114,7 @@ src/               Renderer process — everything the user sees
 public/            Bundled at build time — worklet, demo files, fonts, app icon
 scripts/           Build helpers (license generation, hand-engine version check)
 docs/              This documentation
+src/lessons/       The Learn course: course.md is the lessons, session.ts runs one
 build/             NSIS installer assets and script
 ```
 

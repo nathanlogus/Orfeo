@@ -958,3 +958,24 @@ textarea:focus-visible,
   /* Native selects and inputs in windows */
   [role='dialog'] select { min-height: 40px; }
 }
+
+/* ── Lessons ───────────────────────────────────────────────────────────── */
+.lesson-banner { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--border2); background: var(--bg-tile); color: var(--text-default); font-size: var(--text-base); flex-shrink: 0; }
+.lesson-body { align-self: center; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; width: min(720px, 100%); padding: 28px 20px; box-sizing: border-box; font-size: var(--text-md); line-height: 1.55; }
+.lesson-body p { margin: 0; }
+.lesson-goal { color: var(--text-muted); font-size: var(--text-base); }
+.lesson-big { color: var(--text-amber); font-size: 32px; font-weight: 600; }
+.lesson-drill { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; text-align: center; }
+.lesson-progress { width: 100%; height: 4px; border-radius: 999px; background: var(--bg-tile); overflow: hidden; }
+.lesson-progress span { display: block; height: 100%; background: var(--text-amber); transition: width 0.2s; }
+.lesson-options { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.lesson-right { color: var(--text-amber); }
+.lesson-wrong { color: var(--text-default); }
+.lesson-row { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 8px; border: none; border-bottom: 1px solid var(--border); background: none; color: var(--text-muted); font-family: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; transition: background-color 0.1s; }
+.lesson-row:disabled { cursor: default; opacity: 0.55; }
+.lesson-row:focus-visible { outline: 2px solid var(--text-amber); outline-offset: -2px; }
+.lesson-row-id { width: 46px; flex-shrink: 0; font-family: var(--font-mono); font-size: var(--text-xs); }
+.lesson-row-title { flex: 0 1 280px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-active); font-size: var(--text-md); }
+.lesson-row-goal { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (hover: hover) { .lesson-row:hover:not(:disabled) { background-color: var(--bg-tile); } }
+.lesson-banner .home-action:disabled { opacity: 0.45; cursor: default; }
