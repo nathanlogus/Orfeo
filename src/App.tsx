@@ -632,7 +632,7 @@ export default function App() {
             if (dropErrorTimer.current) clearTimeout(dropErrorTimer.current)
             setDropError(null)
           }}
-          className="o-toast" style={{ cursor: 'pointer' }}>
+          style={{ cursor: 'pointer' }}>
           <span className="o-dot o-dot-alert" />{dropError}
         </div>
         </Tooltip>
