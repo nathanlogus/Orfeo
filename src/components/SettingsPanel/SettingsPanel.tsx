@@ -725,6 +725,13 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
     }
   }, [])
 
+  const songToOpen = useStore(s => s.songToOpen)
+  useEffect(() => {
+    if (!songToOpen) return
+    useStore.setState({ songToOpen: null })
+    void handleLoadFile(songToOpen)
+  }, [songToOpen, handleLoadFile])
+
   // File Info's tempo tools work on the open song: close File Info and open
   // that one first. False if a save prompt was declined or it wouldn't open.
   const openForTempo = useCallback(async (path: string): Promise<boolean> => {

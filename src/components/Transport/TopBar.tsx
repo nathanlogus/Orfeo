@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect, useState } from 'react'
 import {
   Play, Pause, SkipBack, SkipForward, Repeat,
   FolderOpen, RotateCcw, ChevronUp, ChevronDown,
-  Rewind, FastForward,
+  Rewind, FastForward, Home,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
@@ -292,6 +292,16 @@ export default function TopBar() {
             </span>
           </Tooltip>
         </div>
+        {midi && <Tooltip title="Home" description={"Find another song.\nYour open song stays as it is."} placement="bottom">
+          <button
+            onClick={() => useStore.getState().setHomeOpen(true)}
+            aria-label="Home"
+            className="app-no-drag"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--text-amber)' }}
+          >
+            <Home size={18} strokeWidth={1.5} />
+          </button>
+        </Tooltip>}
         <Tooltip title="Open a file (Ctrl+O)" description={"Loads a supported file from\ndisk to start a new session."} placement="bottom">
           <button
             onClick={openFile}

@@ -213,6 +213,13 @@ interface OrfeoStore {
   setCountInEnabled: (v: boolean) => void
   // ── Settings window (session only) — which group it shows; opened from
   // Quick Settings' gear icons / Open settings button / Ctrl + , ──────────
+  // Home page: shown over the app while no song is open, or when asked for
+  homeOpen: boolean
+  setHomeOpen: (open: boolean) => void
+  // A song to open the way a Library click does (SettingsPanel owns that path)
+  songToOpen: string | null
+  openSong: (path: string) => void
+
   settingsWindowOpen: boolean
   settingsWindowGroup: SettingsGroupId
   openSettingsWindow: (group?: SettingsGroupId) => void
@@ -859,6 +866,11 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   setSkipEmptyBars: (skipEmptyBars) => set(skipEmptyBars ? { skipEmptyBars, chordTranscriptionEnabled: false } : { skipEmptyBars }),
   keepDrumCountIn: true,
   setKeepDrumCountIn: (keepDrumCountIn) => set({ keepDrumCountIn }),
+  homeOpen: false,
+  setHomeOpen: (homeOpen) => set({ homeOpen }),
+  songToOpen: null,
+  openSong: (songToOpen) => set({ songToOpen, presentationMode: false }),
+
   settingsWindowOpen: false,
   settingsWindowGroup: 'audio',
   openSettingsWindow: (group) => set((s) => ({ settingsWindowOpen: true, settingsWindowGroup: group ?? s.settingsWindowGroup })),

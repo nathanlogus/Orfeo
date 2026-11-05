@@ -112,6 +112,9 @@ npm run dev
 | `npm run build` | Compile main + preload + renderer | `out/` |
 | `npm run preview` | Run the last `build` output without packaging | — |
 | `npm run typecheck` | `tsc --noEmit` — type-check only | — |
+| `npm run android:web` | Builds the web app for Android (needs no Android tools) | `android/app/src/main/assets/web/` |
+| `npm run android:debug` | `android:web`, then a debug APK (JDK 17+, Android SDK 36) | `android/app/build/outputs/apk/debug/` |
+| `npm run android:songs -- <folder>` | Serves a song folder to the home page on the home network | — |
 | `npm test` | Runs every `*Test.ts` in `src/` and `electron/`, one file per process | — |
 | `npm run dist` | `build`, then the Windows installer, portable app and Store package | `release/` |
 | `npm run dist:portable` | Windows portable `.exe` only (no installer), for a quick local test | `release/` |
@@ -174,6 +177,20 @@ docker run --rm -v "$PWD:/w" -w /w node:22 npm test
 
 `npm run typecheck` covers the same files, so run both — the tests say a rule is
 right, the typecheck says the call sites still fit.
+
+---
+
+## Android
+
+`android/` wraps the same renderer in a WebView. `electron/main.ts` and `electron/preload.ts` run unchanged inside the page: `android/vite.config.ts` swaps `electron`, `fs` and `path` for `android/web/`, and `MainActivity.java` supplies the files, pickers, sharing and downloads a page can't do itself. A change to `main.ts` that uses a new Electron or Node call needs that call added there.
+
+Web MIDI and Web Audio come with the WebView. The Native sound engine isn't available on Android.
+
+## Home song server
+
+`npm run android:songs -- <folder>` (`android/song-server.mjs`) serves a folder of songs to the home page on desktop and Android. It only needs Node, so the one file can run on any computer. It is plain HTTP with no login, read-only, and answers private network addresses only.
+
+Genre, artist and title come from `Genre/Artist/Title.mid` paths. A `metadata.json` in the folder overrides them, keyed by path; the format is at the top of the file. The app finds the server by a UDP broadcast on port 8765, or takes a typed address. Songs download to `<library>/Home Server` when opened and stay there. The filtering API (`/api/songs`) is documented in the same place.
 
 ---
 
