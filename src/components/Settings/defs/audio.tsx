@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Volume2, Library, Gauge, Upload, FileAudio } from 'lucide-react'
+import { Volume2, Library, Gauge, Plus, Trash2, FileAudio } from 'lucide-react'
 import { useStore } from '../../../store'
 import { t } from '../../../utils/i18n'
-import { OptionBtn, Switch, SettingsDropdown, SoundfontActionLink, HelpText } from '../controls'
+import { OptionBtn, OptionGroup, Switch, HelpText, SubLabel, useSurface } from '../controls'
 import { getSamplesSampleRate, getSamplesBufferSec } from '../../../hooks/useSamplesEngine'
 import { MarqueeText } from '../../MarqueeText'
 import {
@@ -17,15 +17,34 @@ import { useMidiSettings } from '../../../store/midiSettings'
 // Native engine (beta): Windows only for now
 export const NATIVE_AVAILABLE = navigator.userAgent.includes('Windows')
 
+const pickGm = async () => { if (useStore.getState().audioEngine === 'native') await stopNative(); useStore.getState().setAudioEngine('gm') }
+const pickNative = () => useStore.getState().setAudioEngine('native')
+
+// Window: three big tiles, each filled with its own colour once chosen. Setup: the pill.
 function SoundEngineControl() {
   const audioEngine = useStore((s) => s.audioEngine)
+  const surface = useSurface()
+  if (surface === 'window') {
+    const tile = (id: string, name: string, tag: string, what: string, onPick: () => void) => (
+      <button key={id} className="set-engine" data-engine={id} aria-pressed={audioEngine === id} onClick={onPick}>
+        <span className="set-engine-head"><span>{name}</span><span className="o-tag">{tag}</span></span>
+        <span className="set-engine-what">{what}</span>
+      </button>
+    )
+    return (
+      <div role="group" aria-label={t`Sound engine`} className="set-engines">
+        {tile('gm', 'GM', t`Built in`, t`Generic — sounds like a 1996 Nokia phone`, () => void pickGm())}
+        {tile('samples', t`Studio`, t`Sound fonts`, t`Perfect for listening — real recorded instruments`, chooseSamplesFromQuick)}
+        {NATIVE_AVAILABLE && tile('native', t`Native`, t`Beta`, t`Ideal for playing along on a connected keyboard`, pickNative)}
+      </div>
+    )
+  }
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-      <OptionBtn active={audioEngine === 'gm'} title={t`Generic — sounds like a 1996 Nokia phone`} oneLine
-        onClick={async () => { if (useStore.getState().audioEngine === 'native') await stopNative(); useStore.getState().setAudioEngine('gm') }}>GM</OptionBtn>
+    <OptionGroup label={t`Sound engine`}>
+      <OptionBtn active={audioEngine === 'gm'} title={t`Generic — sounds like a 1996 Nokia phone`} oneLine onClick={() => void pickGm()}>GM</OptionBtn>
       <OptionBtn active={audioEngine === 'samples'} title={t`Perfect for listening — real recorded instruments`} oneLine onClick={chooseSamplesFromQuick}>{t`Studio`}</OptionBtn>
-      {NATIVE_AVAILABLE && <OptionBtn active={audioEngine === 'native'} title={t`Ideal for playing along on a connected keyboard`} oneLine onClick={() => useStore.getState().setAudioEngine('native')}>{t`Native`}</OptionBtn>}
-    </div>
+      {NATIVE_AVAILABLE && <OptionBtn active={audioEngine === 'native'} title={t`Ideal for playing along on a connected keyboard`} oneLine onClick={pickNative}>{t`Native`}</OptionBtn>}
+    </OptionGroup>
   )
 }
 
@@ -47,28 +66,28 @@ function useDefaultOutputName(): string {
 }
 
 const rowStyle = { display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', columnGap: 10, alignItems: 'baseline', marginTop: 4,
-  fontSize: 10, fontFamily: 'var(--font-ui)', lineHeight: 1.4 } as const
+  fontSize: 'var(--text-sm)', lineHeight: 1.4 } as const
 // `marquee`: a long name (a sound card's) that scrolls into view on hover when it doesn't fit
 // `marquee`: the row's text (for content with styling, also pass it as children) —
 // when it doesn't fit, it scrolls into view on hover
 function InfoRow({ label, children, marquee }: { label: string; children?: ReactNode; marquee?: string }) {
   return (
     <div style={rowStyle}>
-      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ color: 'var(--ui-text-soft)' }}>{label}</span>
       {marquee !== undefined
-        ? <div style={{ display: 'flex', minWidth: 0, textAlign: 'right' }}><MarqueeText name={marquee} spanStyle={{ color: 'var(--text-default)' }}>{children}</MarqueeText></div>
-        : <span style={{ color: 'var(--text-default)', textAlign: 'right', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{children}</span>}
+        ? <div style={{ display: 'flex', minWidth: 0, textAlign: 'right' }}><MarqueeText name={marquee} spanStyle={{ color: 'var(--ui-text)' }}>{children}</MarqueeText></div>
+        : <span style={{ color: 'var(--ui-text)', textAlign: 'right', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{children}</span>}
     </div>
   )
 }
-const amber = (s: ReactNode) => <span style={{ color: 'var(--text-amber)' }}>{s}</span>
+const amber = (s: ReactNode) => <span style={{ color: 'var(--ui-text)' }}>{s}</span>
 const kHz = (rate: number) => `${Math.round(rate / 100) / 10} kHz`
 const msOf = (sec: number) => `${Math.round(sec * 1000 * 10) / 10} ms`
 
 // Four rows under the engine buttons, Setup and window, framed like a small
 // display: the sound card, how Orfeo uses it, the delay from "play" to
 // "heard", and the sound set playing
-const glanceBox = { marginTop: 6, border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px 6px' } as const
+const glanceBox = { marginTop: 10, background: 'var(--ui-sunken)', borderRadius: 'var(--radius-sm)', padding: '6px 12px 10px' } as const
 function SoundEngineGlance() {
   const audioEngine = useStore((s) => s.audioEngine)
   const samplesStatus = useSoundfontState((s) => s.samplesStatus)
@@ -91,7 +110,7 @@ function SoundEngineGlance() {
   if (audioEngine === 'native') {
     if (phase === 'failed') return <HelpText>{t`Native engine unavailable:`} {error}</HelpText>
     if (phase !== 'running' || !native) return <InfoRow label={t`Sound card`}>{t`starting…`}</InfoRow>
-    if (native.mode === 'none') return <InfoRow label={t`Sound card`}>{t`waiting for a sound card…`}</InfoRow>
+    if (native.mode === 'none') return <div className="set-state"><span className="set-state-title">{t`Native · waiting for a sound card…`}</span></div>
     return (
       <div>
         <div style={glanceBox}>
@@ -131,11 +150,11 @@ function LowLatencyButtons() {
   const exclusive = useMidiSettings((s) => s.nativeExclusive)
   return (
     <>
-      <div style={{ marginTop: 12, marginBottom: 7, fontSize: 'var(--text-xs)', color: 'var(--text-default)', fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>{t`Low latency mode`}</div>
-      <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+      <SubLabel>{t`Low latency mode`}</SubLabel>
+      <OptionGroup label={t`Low latency mode`}>
         <OptionBtn active={!exclusive} onClick={() => setLowLatency(false)}>{t`Shared`}</OptionBtn>
         <OptionBtn active={exclusive} onClick={() => setLowLatency(true)}>{t`Exclusive`}</OptionBtn>
-      </div>
+      </OptionGroup>
     </>
   )
 }
@@ -143,14 +162,16 @@ function LowLatencyMode() {
   const exclusive = useMidiSettings((s) => s.nativeExclusive)
   const autoLow = useMidiSettings((s) => s.autoLowLatency)
   return (
-    <>
-      <LowLatencyButtons />
+    <div className="theme-studio set-strip">
+      <div style={{ flex: 1, minWidth: 220 }}>
       <HelpText>{exclusive
         ? t`Orfeo talks to your sound card directly, past Windows' mixer: the shortest delay from key to sound. Recommended when the delay between pressing a key and hearing it feels uncomfortable.`
         : t`Orfeo shares the sound card with everything else, so you still hear YouTube, video calls and other apps alongside it. Windows adds its usual delay between key and sound.`}</HelpText>
-      {exclusive && <div style={{ marginTop: 6, fontSize: 'var(--text-xs)', color: 'var(--text-amber)', lineHeight: 1.5, fontFamily: 'var(--font-ui)' }}>{t`Orfeo takes over the whole sound card: other apps stay silent while Orfeo is open.`}</div>}
+      {exclusive && <HelpText>{t`Orfeo takes over the whole sound card: other apps stay silent while Orfeo is open.`}</HelpText>}
       {autoLow && <HelpText>{t`Switches to Exclusive by itself when you plug in a keyboard — change that under MIDI Keyboard › Sound & Latency.`}</HelpText>}
-    </>
+      </div>
+      <div><LowLatencyButtons /></div>
+    </div>
   )
 }
 
@@ -178,84 +199,63 @@ function SoundEngineLoading() {
   const samplesStatus = useSoundfontState((s) => s.samplesStatus)
   const samplesProgress = useSoundfontState((s) => s.samplesProgress)
   if (samplesStatus !== 'loading') return null
+  const percent = Math.round(samplesProgress * 100)
   return (
-    <div style={{ marginTop: 7 }}>
-      <div style={{ fontSize: 9, color: 'var(--text-dimmest)', fontFamily: 'var(--font-ui)', marginBottom: 4 }}>
-        Loading soundfont… {Math.round(samplesProgress * 100)}%
-      </div>
-      <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', background: 'var(--text-amber)', borderRadius: 2, width: `${Math.round(samplesProgress * 100)}%`, transition: 'width 0.1s' }} />
-      </div>
+    <div className="set-state">
+      <span className="set-state-title">{t`Loading sound font… ${percent}%`}</span>
+      <span className="o-progress" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label={t`Loading sound font`}><span style={{ width: `${percent}%` }} /></span>
     </div>
   )
 }
 
 // The sound-set library (Samples and Native) — dimmed + inert while General MIDI is active
-function SoundFontsControl() {
-  const audioEngine = useStore((s) => s.audioEngine)
-  const selectedSoundfont = useStore((s) => s.selectedSoundfont)
-  const extra = useSoundfontState((s) => s.extra)
-  const downloads = useSoundfontState((s) => s.downloads)
-  const error = useSoundfontState((s) => s.error)
-  const all = allSoundfonts(extra)
+function SoundFontRow({ sf }: { sf: ReturnType<typeof allSoundfonts>[number] }) {
+  const selected = useStore((s) => s.selectedSoundfont) === sf.id
+  const progress = useSoundfontState((s) => s.downloads[sf.id])
+  const bundled = sf.id === 'generaluser-gs'
+  const percent = Math.round((progress ?? 0) * 100)
   return (
-    <div style={{ opacity: audioEngine !== 'gm' ? 1 : 0.4, pointerEvents: audioEngine !== 'gm' ? 'auto' : 'none', transition: 'opacity 0.15s' }}>
-      <SettingsDropdown
-        value={selectedSoundfont}
-        onChange={(id) => void selectSoundfont(id)}
-        options={all.filter(sf => sf.downloaded).map(sf => ({ value: sf.id, label: `${sf.name} — ${sf.sizeMB} MB` }))}
-      />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', columnGap: 'var(--space-2)', rowGap: 5, alignItems: 'center' }}>
-        {all.map((sf) => {
-          const isActive = selectedSoundfont === sf.id
-          return (
-            <div key={sf.id} style={{ display: 'contents' }}>
-              <span
-                style={{
-                  fontSize: 'var(--text-xs)', fontFamily: 'var(--font-ui)',
-                  color: isActive ? 'var(--text-amber)' : 'var(--text-inactive)', fontWeight: isActive ? 600 : 400,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}
-              >• {sf.name}</span>
-              <span style={{ fontSize: 9, color: 'var(--text-dimmest)', fontFamily: 'var(--font-ui)', textAlign: 'right' }}>{sf.sizeMB} MB</span>
-              {sf.id === 'generaluser-gs' ? (
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-ui)', textAlign: 'right' }}>bundled</span>
-              ) : sf.downloaded ? (
-                <SoundfontActionLink label="remove" color="var(--text-dimmest)" tooltip={sf.custom ? 'Remove imported file' : 'Delete downloaded file'} onClick={() => void deleteSoundfont(sf.id)} />
-              ) : downloads[sf.id] !== undefined ? (
-                <div style={{ width: 60, height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'var(--text-amber)', borderRadius: 2, width: `${Math.round(downloads[sf.id] * 100)}%`, transition: 'width 0.1s' }} />
-                </div>
-              ) : (
-                <SoundfontActionLink label="download" color="var(--text-amber)" tooltip={`Download ${sf.name} (${sf.sizeMB} MB)`} onClick={() => void downloadSoundfont(sf.id)} />
-              )}
-            </div>
-          )
-        })}
-      </div>
-      {error && <div style={{ fontSize: 9, color: 'var(--status-error)', fontFamily: 'var(--font-ui)', marginTop: 5 }}>{error}</div>}
-      <button
-          onClick={() => void importSoundfont()}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, margin: '14px 0 8px', padding: '6px 8px', width: '100%',
-            borderRadius: 4, border: '1px dashed var(--text-muted)', background: 'transparent',
-            color: 'var(--text-default)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-ui)', cursor: 'pointer', justifyContent: 'center',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--text-amber)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-default)'; e.currentTarget.style.borderColor = 'var(--text-muted)' }}
-        >
-          <Upload size={11} strokeWidth={1.5} />
-          Import your own .sf2/.sf3
-        </button>
-      <HelpText>Make sure you have the rights to use imported soundfonts.</HelpText>
+    <div className="set-font" data-on={selected || undefined}>
+      <button role="radio" aria-checked={selected} aria-label={t`Use ${sf.name}`} disabled={!sf.downloaded} onClick={() => void selectSoundfont(sf.id)}><span /></button>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span className="set-font-name">{sf.name}</span>
+        <span className="set-font-meta">{progress !== undefined ? t`Downloading… ${percent}%` : `${sf.sizeMB} MB`}</span>
+        {progress !== undefined && <span className="o-progress" style={{ maxWidth: 260, marginTop: 4 }}><span style={{ width: `${percent}%` }} /></span>}
+      </span>
+      {bundled ? <span className="o-tag">{t`Comes with Orfeo`}</span>
+        : sf.custom ? <span className="o-tag" style={{ background: 'var(--paint-blue)' }}>{t`Imported`}</span>
+        : sf.downloaded ? <span className="o-tag">{t`Downloaded`}</span>
+        : progress === undefined ? <button className="o-btn" onClick={() => void downloadSoundfont(sf.id)}>{t`Download`}</button> : null}
+      {!bundled && sf.downloaded && (
+        <button className="o-icon-quiet" aria-label={sf.custom ? t`Remove imported file ${sf.name}` : t`Delete downloaded file ${sf.name}`} onClick={() => void deleteSoundfont(sf.id)}><Trash2 size={18} strokeWidth={1.8} /></button>
+      )}
     </div>
   )
 }
 
+function SoundFontsControl() {
+  const gm = useStore((s) => s.audioEngine) === 'gm'
+  const extra = useSoundfontState((s) => s.extra)
+  const error = useSoundfontState((s) => s.error)
+  return (
+    <div style={{ opacity: gm ? 0.45 : 1, pointerEvents: gm ? 'none' : 'auto', transition: 'opacity 0.15s' }}>
+      <div role="radiogroup" aria-label={t`Sound font in use`} className="set-fonts">
+        {allSoundfonts(extra).map(sf => <SoundFontRow key={sf.id} sf={sf} />)}
+      </div>
+      {error && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--status-error)', marginTop: 6 }}>{error}</div>}
+      <HelpText>{t`Make sure you have the rights to use imported soundfonts.`}</HelpText>
+    </div>
+  )
+}
+function ImportSoundFont() {
+  const gm = useStore((s) => s.audioEngine) === 'gm'
+  return <button className="o-btn-primary" disabled={gm} onClick={() => void importSoundfont()}><Plus size={16} strokeWidth={2} />{t`Import .sf2 or .sf3`}</button>
+}
+
 export const AUDIO_DEFS: SettingDef[] = [
-  { id: 'soundEngine', icon: Volume2, kind: 'choice', layout: 'controlFirst', Description: SoundEngineDescription,
+  { id: 'soundEngine', icon: Volume2, kind: 'choice', layout: 'controlFirst', wide: true, Description: SoundEngineDescription,
     Control: SoundEngineControl, Glance: SoundEngineGlance, Extra: SoundEngineExtra, QuickExtra: SoundEngineQuickExtra },
-  { id: 'soundFonts', icon: Library, kind: 'choice', Control: SoundFontsControl },
+  { id: 'soundFonts', icon: Library, kind: 'choice', wide: true, Control: SoundFontsControl, HeadAction: ImportSoundFont },
   {
     id: 'autoLevel', icon: Gauge, kind: 'switch',
     Control: () => { const v = useStore(s => s.autoLevelOnLoad); return <Switch value={v} onChange={useStore.getState().setAutoLevelOnLoad} label="Auto-Level on Load" /> },

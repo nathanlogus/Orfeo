@@ -3,22 +3,21 @@
 // file, not just the loaded one: reads it fresh over IPC rather than
 // touching the app's loaded state. Artist/Song are the only editable fields
 // (inline, staged locally); Save commits one real rename on disk.
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ArrowLeftRight, ChevronDown, Save, FolderOpen, Timer, Copy } from 'lucide-react'
+import { X, ArrowUpDown, ChevronDown, Save, FolderOpen, Timer, Copy } from 'lucide-react'
 import { useStore } from '../store'
-import OrfeoMark from './OrfeoMark'
 import Tooltip from './Tooltip'
 import { t } from '../utils/i18n'
 import { likelySameSong, matchSongs, SAME_SONG } from '../utils/copyBars'
 import { base64ToBytes } from '../utils/foreignFormatImport'
 import { parseMidiBuffer } from '../utils/midiParser'
 import { MarqueeText } from './MarqueeText'
-import { PENCIL_CURSOR } from '../utils/cursors'
 import { parseMidiMetadata, buildRenamedFileName, formatKeyOrDash, type MidiFileMetadata } from '../utils/midiMetadata'
-import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import { useFocusTrap } from '../hooks/useFocusTrap'
-import { useDraggableDialog, dialogFitsScreen } from '../hooks/useDraggableDialog'
+import { useDraggableDialog } from '../hooks/useDraggableDialog'
+import { MODAL_MAX_HEIGHT } from '../utils/modalDrag'
+import '../styles/redesign-settings.css'
 
 interface FileLogEvent { type: string; timestamp: number; summary: string }
 interface FileVersion { name: string; path: string; version: number; mtime: number }
@@ -31,9 +30,6 @@ function formatLogDate(ts: number): string {
 }
 function formatLogTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-}
-function formatLogTimestamp(ts: number): string {
-  return `${formatLogDate(ts)}\n${formatLogTime(ts)}`
 }
 
 function base64ToBuffer(base64: string): ArrayBuffer {
@@ -118,15 +114,6 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
 
   const [artistDraft, setArtistDraft] = useState('')
   const [songDraft, setSongDraft] = useState('')
-  // ── Double-click-to-edit — same pattern as track renaming in the Playback
-  // Editor: a plain label until double-clicked, then an inline input; blur
-  // or Enter commits into the draft, Escape discards the in-progress edit.
-  const [editingArtist, setEditingArtist] = useState(false)
-  const [artistEditValue, setArtistEditValue] = useState('')
-  const [editingSong, setEditingSong] = useState(false)
-  const [songEditValue, setSongEditValue] = useState('')
-  const artistInputRef = useRef<HTMLInputElement>(null)
-  const songInputRef = useRef<HTMLInputElement>(null)
   const [log, setLog] = useState<FileLogEvent[] | null>(null)
   const [versions, setVersions] = useState<FileVersion[] | null>(null)
   const [versionsOpen, setVersionsOpen] = useState(false)
@@ -135,6 +122,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
   // ── Draggable — starts centered (backdrop flex-centers it); once dragged,
   // switches to an explicit fixed position that escapes that centering. ────
   const panelRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
   const { onDragStart, placed } = useDraggableDialog(panelRef)
   // ── Only rendered while a file-info target is set (see SettingsPanel) —
   // always active while this component exists. ─────────────────────────────
@@ -194,16 +182,6 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
   const dirty = !!meta && (artistDraft !== (meta.artist ?? '') || songDraft !== (meta.song ?? ''))
   const swapDrafts = () => { setArtistDraft(songDraft); setSongDraft(artistDraft) }
 
-  const startEditArtist = () => { setArtistEditValue(artistDraft); setEditingArtist(true) }
-  const commitArtist = () => { setArtistDraft(artistEditValue.trim()); setEditingArtist(false) }
-  const cancelArtist = () => setEditingArtist(false)
-  const startEditSong = () => { setSongEditValue(songDraft); setEditingSong(true) }
-  const commitSong = () => { setSongDraft(songEditValue.trim()); setEditingSong(false) }
-  const cancelSong = () => setEditingSong(false)
-
-  useEffect(() => { if (editingArtist) artistInputRef.current?.select() }, [editingArtist])
-  useEffect(() => { if (editingSong) songInputRef.current?.select() }, [editingSong])
-
   // ── Save — the only point that actually touches disk. Artist/Song are
   // staged in local state (and the swap icon just swaps those two staged
   // values) so a run of edits produces one real rename, not one per
@@ -247,350 +225,153 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
     { label: 'Copyright', value: meta.copyright ?? '—' },
   ] : []
 
+  const tiles = ['var(--paint-lime)', 'var(--paint-yellow)', 'var(--sand)', 'var(--sand)', 'var(--sand)']
+
   return createPortal(
-    <div
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 99999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
-    >
+    <div className="o-scrim" style={{ zIndex: 99999 }} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="File info"
-        className="orfeo-modal-glow app-no-drag"
-        style={{
-          background: 'var(--bg-modal)', border: '1px solid var(--border2)',
-          borderRadius: 'var(--radius-lg)', padding: '16px 18px', width: 360,
-          '--_modal-shadow': 'var(--elevation-modal)',
-          ...dialogFitsScreen, ...placed,
-        } as CSSProperties}
+        aria-labelledby={titleId}
+        className="orfeo-modal-glow app-no-drag theme-paper o-window fi-window"
+        style={{ width: 'min(1040px, calc(100vw - 32px))', height: `min(704px, ${MODAL_MAX_HEIGHT})`, boxSizing: 'border-box', ...placed }}
         onMouseDown={e => e.stopPropagation()}
       >
-        <div onPointerDown={onDragStart} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, cursor: 'grab', touchAction: 'none' }}>
-          <OrfeoMark height={22} />
-          <span style={{
-            flex: 1, minWidth: 0, fontFamily: 'var(--font-mono)', fontSize: 14,
-            color: 'var(--text-amber)', letterSpacing: '0.08em', textTransform: 'uppercase',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            File info
-          </span>
-          <button
-            data-no-drag onClick={onClose}
-            style={modalCloseButtonStyle}
-            onMouseEnter={e => e.currentTarget.style.color = modalCloseButtonHoverColor}
-            onMouseLeave={e => e.currentTarget.style.color = modalCloseButtonIdleColor}
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <MarqueeText name={currentName} spanStyle={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }} />
-          {versions && versions.length > 1 && (
-            <div ref={versionsRef} style={{ position: 'relative', flexShrink: 0 }}>
-              <button
-                onClick={() => setVersionsOpen(o => !o)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 3, padding: '3px 6px', borderRadius: 4,
-                  border: `1px solid ${versionsOpen ? 'var(--accent-amber-strong)' : 'var(--border2)'}`,
-                  background: versionsOpen ? 'var(--accent-amber-subtle)' : 'transparent',
-                  color: 'var(--text-amber)', fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer',
-                }}
-              >
-                {currentVersionLabel ?? '—'} <ChevronDown size={10} style={{ transform: versionsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-              </button>
-              {versionsOpen && (
-                <div style={{
-                  position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 1,
-                  background: 'var(--bg-modal-header)', border: '1px solid var(--border2)', borderRadius: 4,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.5)', minWidth: 90, overflow: 'hidden',
-                }}>
-                  {versions.map(v => (
-                    <button
-                      key={v.path}
-                      onClick={() => openVersion(v)}
-                      style={{
-                        display: 'block', width: '100%', textAlign: 'left', padding: '5px 10px',
-                        background: v.path === currentPath ? 'var(--accent-amber-subtle)' : 'transparent',
-                        border: 'none', color: v.path === currentPath ? 'var(--text-amber)' : 'var(--text-default)',
-                        fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer',
-                      }}
-                      onMouseEnter={e => { if (v.path !== currentPath) e.currentTarget.style.background = 'var(--bg-tile)' }}
-                      onMouseLeave={e => { if (v.path !== currentPath) e.currentTarget.style.background = 'transparent' }}
-                    >
-                      {v.version === 0 ? 'Original' : `v${v.version}`}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {error && (
-          <div style={{ fontSize: 11, color: 'var(--status-error-banner-text)', marginBottom: 10 }}>{error}</div>
-        )}
-
-        {!meta && !error && (
-          <div style={{ fontSize: 11, color: 'var(--text-inactive)', padding: '8px 0' }}>Reading file…</div>
-        )}
-
-        {meta && (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* ── Artist/Song — double-click to edit, same interaction as track
-                renaming in the Playback Editor. Staged in local state; a real
-                file rename only happens on Save below, never per keystroke. ── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', minHeight: 24, boxSizing: 'border-box' }}>
-              <span style={{ width: 70, flexShrink: 0, fontSize: 10, lineHeight: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent-amber-icon-dim)' }}>
-                Artist
-              </span>
-              {editingArtist ? (
-                <input
-                  ref={artistInputRef}
-                  value={artistEditValue}
-                  onChange={e => setArtistEditValue(e.target.value)}
-                  onBlur={commitArtist}
-                  onKeyDown={e => { if (e.key === 'Enter') commitArtist(); if (e.key === 'Escape') cancelArtist() }}
-                  style={{
-                    flex: 1, minWidth: 0, fontSize: 'var(--text-sm)', fontWeight: 500, fontFamily: 'var(--font-ui)',
-                    color: 'var(--text-active)', background: 'var(--bg-row)',
-                    border: '1px solid var(--accent-amber-strong)', borderRadius: 3,
-                    padding: '1px 5px', outline: 'none',
-                  }}
-                />
-              ) : (
-                <span
-                  onDoubleClick={startEditArtist}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-default)' }}
-                  style={{
-                    flex: 1, minWidth: 0, fontSize: 10, lineHeight: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-default)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    cursor: PENCIL_CURSOR, transition: 'color 0.12s',
-                  }}
-                >
-                  {artistDraft || '—'}
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', minHeight: 24, boxSizing: 'border-box', borderTop: '1px solid var(--border-row)' }}>
-              <span style={{ width: 70, flexShrink: 0, fontSize: 10, lineHeight: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent-amber-icon-dim)' }}>
-                Song
-              </span>
-              {editingSong ? (
-                <input
-                  ref={songInputRef}
-                  value={songEditValue}
-                  onChange={e => setSongEditValue(e.target.value)}
-                  onBlur={commitSong}
-                  onKeyDown={e => { if (e.key === 'Enter') commitSong(); if (e.key === 'Escape') cancelSong() }}
-                  style={{
-                    flex: 1, minWidth: 0, fontSize: 'var(--text-sm)', fontWeight: 500, fontFamily: 'var(--font-ui)',
-                    color: 'var(--text-active)', background: 'var(--bg-row)',
-                    border: '1px solid var(--accent-amber-strong)', borderRadius: 3,
-                    padding: '1px 5px', outline: 'none',
-                  }}
-                />
-              ) : (
-                <span
-                  onDoubleClick={startEditSong}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-default)' }}
-                  style={{
-                    flex: 1, minWidth: 0, fontSize: 10, lineHeight: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-default)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    cursor: PENCIL_CURSOR, transition: 'color 0.12s',
-                  }}
-                >
-                  {songDraft || '—'}
-                </span>
-              )}
-              <button
-                onClick={swapDrafts}
-                style={{
-                  flexShrink: 0, background: 'none', border: '1px solid var(--border2)', borderRadius: 4,
-                  padding: '3px 5px', display: 'flex', alignItems: 'center',
-                  color: 'var(--text-dim-control)', cursor: 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim-control)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
-              >
-                <ArrowLeftRight size={11} />
-              </button>
-            </div>
-
-            {rows.map(row => (
-              <div key={row.label} style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', minHeight: 24, boxSizing: 'border-box',
-                borderTop: '1px solid var(--border-row)',
-              }}>
-                <span style={{ width: 70, flexShrink: 0, fontSize: 10, lineHeight: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent-amber-icon-dim)' }}>
-                  {row.label}
-                </span>
-                <span style={{
-                  flex: 1, minWidth: 0, fontSize: 10, lineHeight: '11px', fontFamily: 'var(--font-mono)',
-                  color: row.value === '—' ? 'var(--text-inactive)' : 'var(--text-default)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {row.value}
-                </span>
-              </div>
-            ))}
-
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button
-                onClick={handleSaveRename}
-                disabled={!dirty || saving}
-                style={{
-                  flex: 1, padding: '6px 0', borderRadius: 'var(--radius-md)',
-                  background: dirty ? 'var(--text-amber)' : 'var(--bg-tile)',
-                  border: 'none', color: dirty ? 'var(--text-near-black)' : 'var(--text-inactive)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: dirty && !saving ? 'pointer' : 'default',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-              >
-                <Save size={13} /> {saving ? 'Saving…' : 'Save changes'}
-              </button>
-              <button
-                onClick={() => window.electronAPI.showItemInFolder(currentPath)}
-                style={{
-                  flex: 1, padding: '6px 0', borderRadius: 'var(--radius-md)',
-                  background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
-              >
-                <FolderOpen size={13} /> Show in folder
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <Tooltip
-              title={t`Rebuild tempo`}
-              description={noteEditorActive
-                ? t`Close the Note Editor first.`
-                : t`For songs with the wrong tempo or bar lines.\nPlays from the start so you can tap the beat.\nNothing changes until you press Keep.`}
-              placement="top"
-              wrapperStyle={{ display: 'block', flex: 1 }}
-            >
-              <button
-                onClick={() => onRebuildTempo(currentPath)}
-                disabled={noteEditorActive}
-                style={{
-                  width: '100%', padding: '6px 0', borderRadius: 'var(--radius-md)',
-                  background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: noteEditorActive ? 'default' : 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
-                  opacity: noteEditorActive ? 0.4 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-                onMouseEnter={e => { if (noteEditorActive) return; e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
-              >
-                <Timer size={13} /> {t`Rebuild tempo`}
-              </button>
-            </Tooltip>
-            <Tooltip
-              title={t`Copy bars`}
-              description={noteEditorActive
-                ? t`Close the Note Editor first.`
-                : t`For a song with a better copy in your Library.\nUses that file's bars and tempo for this one.\nNothing changes until you press Keep.`}
-              placement="top"
-              wrapperStyle={{ display: 'block', flex: 1 }}
-            >
-              <button
-                onClick={() => { if (otherVersions === null) findVersions(); else setOtherVersions(null) }}
-                disabled={noteEditorActive}
-                style={{
-                  width: '100%', padding: '6px 0', borderRadius: 'var(--radius-md)',
-                  background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: noteEditorActive ? 'default' : 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
-                  opacity: noteEditorActive ? 0.4 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-                onMouseEnter={e => { if (noteEditorActive) return; e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
-              >
-                <Copy size={13} /> {t`Copy bars`}
-              </button>
-            </Tooltip>
-            </div>
-
-            {otherVersions !== null && (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {otherVersions === 'checking' ? (
-                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-inactive)' }}>{t`Comparing notes…`}</span>
-                ) : otherVersions.length === 0 ? (
-                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-inactive)' }}>{t`No other version of this song found in your Library.`}</span>
-                ) : (
-                  <div style={{ maxHeight: 96, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {otherVersions.map(v => (
-                      <button
-                        key={v.name}
-                        onClick={() => onCopyBars(currentPath, { bytes: v.bytes, name: v.name })}
-                        style={{
-                          display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 8px', textAlign: 'left', flexShrink: 0,
-                          background: 'var(--bg-tile)', border: '1px solid transparent', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent' }}
-                      >
-                        <span style={{ fontSize: 10, color: 'var(--text-default)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{v.name}</span>
-                        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{v.bars} · {t`${Math.round(v.share * 100)}% same notes`}</span>
+        <div onPointerDown={onDragStart} className="o-window-head fi-head">
+          <h2 id={titleId} className="o-title-lg">File info</h2>
+          <div className="fi-file">
+            <MarqueeText name={currentName} spanStyle={{ fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)', fontFamily: 'var(--font-code)' }} />
+            {versions && versions.length > 1 && (
+              <div ref={versionsRef} data-no-drag style={{ position: 'relative', flexShrink: 0 }}>
+                <button className="o-btn fi-version" aria-haspopup="menu" aria-expanded={versionsOpen} onClick={() => setVersionsOpen(o => !o)}>
+                  {currentVersionLabel ?? '—'} <ChevronDown size={14} style={{ transform: versionsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                </button>
+                {versionsOpen && (
+                  <div role="menu" className="o-select-list" style={{ left: 'auto', minWidth: 110 }}>
+                    {versions.map(v => (
+                      <button key={v.path} role="menuitem" className="o-menu-item" aria-current={v.path === currentPath || undefined} onClick={() => openVersion(v)}>
+                        {v.version === 0 ? 'Original' : `v${v.version}`}
                       </button>
                     ))}
                   </div>
                 )}
-                {copyNote && <span style={{ fontSize: 10, color: 'var(--text-amber)' }}>{copyNote}</span>}
-                {otherVersions !== 'checking' && (
-                  <button
-                    onClick={chooseVersion}
-                    style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 10, color: 'var(--text-amber)' }}
-                  >
-                    {t`Choose another file…`}
-                  </button>
-                )}
               </div>
             )}
           </div>
-        )}
+          <button data-no-drag onClick={onClose} aria-label={t`Close`} className="o-close"><X size={18} /></button>
+        </div>
 
-        {/* ── Orfeo History — real edits (Playback Editor, Note Editor, tempo/
-            key, mixer saves) are embedded directly in the .mid file as
-            ORFEO_HISTORY text meta-events, so they travel with the file
-            across installs/copies. Renames/moves stay in a local sidecar
-            JSON (electron/main.ts) since they don't rewrite the file's
-            bytes; fileinfo:getLog merges both. Fixed height (~2 entries) so
-            the popup's own height never grows with a longer history — extra
-            entries scroll inside it instead. ── */}
-        {meta && (
-          <div style={{ marginTop: 12, borderTop: '1px solid var(--border-row)', paddingTop: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent-amber-icon-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-              Orfeo History
-            </div>
-            <div style={{ height: 52, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {log === null ? (
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-inactive)' }}>Loading…</div>
-              ) : log.length === 0 ? (
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-inactive)' }}>No recorded changes yet.</div>
-              ) : (
-                [...log].reverse().map((ev, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, fontSize: 10, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
-                    <span style={{ flexShrink: 0, color: 'var(--text-inactive)', whiteSpace: 'nowrap', display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
-                      <span>{formatLogDate(ev.timestamp)}</span>
-                      <span>{formatLogTime(ev.timestamp)}</span>
-                    </span>
-                    <span style={{ color: 'var(--text-default)' }}>{ev.summary}</span>
+        <div className="fi-body">
+          <section className="fi-left">
+            {error && <div role="alert" style={{ fontSize: 'var(--text-base)', color: 'var(--status-error)' }}>{error}</div>}
+            {!meta && !error && <div className="o-note">Reading file…</div>}
+            {meta && (
+              <>
+                {/* Artist/Song are staged here; the real file rename only happens on
+                    Save changes, never per keystroke or swap. */}
+                <div className="fi-names">
+                  <div className="fi-name-fields">
+                    <label className="fi-field">Artist
+                      <input value={artistDraft} onChange={e => setArtistDraft(e.target.value)} onBlur={() => setArtistDraft(v => v.trim())} />
+                    </label>
+                    <label className="fi-field">Song
+                      <input value={songDraft} onChange={e => setSongDraft(e.target.value)} onBlur={() => setSongDraft(v => v.trim())} />
+                    </label>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+                  <button className="fi-swap" aria-label={t`Swap artist and song`} onClick={swapDrafts}><ArrowUpDown size={18} strokeWidth={1.8} /></button>
+                </div>
+                <div className="fi-meta">
+                  {rows.map((row, i) => (
+                    <div key={row.label} className="fi-meta-tile" title={row.value} style={{ background: tiles[i], gridColumn: row.label === 'Copyright' ? '1 / -1' : undefined }}>
+                      <span>{row.label}</span>
+                      <span>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="fi-left-actions">
+                  <Tooltip
+                    title={t`Rebuild tempo`}
+                    description={noteEditorActive
+                      ? t`Close the Note Editor first.`
+                      : t`For songs with the wrong tempo or bar lines.\nPlays from the start so you can tap the beat.\nNothing changes until you press Keep.`}
+                    placement="top"
+                  >
+                    <button className="o-btn" onClick={() => onRebuildTempo(currentPath)} disabled={noteEditorActive}><Timer size={16} strokeWidth={1.8} /> {t`Rebuild tempo`}</button>
+                  </Tooltip>
+                  <button className="o-btn" onClick={() => window.electronAPI.showItemInFolder(currentPath)}><FolderOpen size={16} strokeWidth={1.8} /> Show in folder</button>
+                </div>
+              </>
+            )}
+          </section>
+
+          {meta && (
+            <section className="fi-right">
+              {/* Orfeo History — real edits (Playback Editor, Note Editor, tempo/key,
+                  mixer saves) are embedded in the .mid file as ORFEO_HISTORY text
+                  meta-events, so they travel with the file across installs/copies.
+                  Renames/moves stay in a local sidecar JSON (electron/main.ts) since
+                  they don't rewrite the file's bytes; fileinfo:getLog merges both. */}
+              <div className="fi-history">
+                <div className="x-label">Edit history</div>
+                {log === null ? (
+                  <div className="o-note">Loading…</div>
+                ) : log.length === 0 ? (
+                  <div className="o-note">No recorded changes yet.</div>
+                ) : (
+                  <ol>
+                    {[...log].reverse().map((ev, i) => (
+                      <li key={i}>
+                        <span className="o-tag">{formatLogDate(ev.timestamp)}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{ev.summary}</span>
+                        <span className="o-note">{formatLogTime(ev.timestamp)}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+
+              <div className="theme-studio fi-copy">
+                <div className="fi-copy-head">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="x-label" style={{ margin: 0 }}>Copy bars from another version</div>
+                    <div className="o-note">{t`For a song with a better copy in your Library. Uses that file's bars and tempo for this one. Nothing changes until you press Keep.`}</div>
+                  </div>
+                  <Tooltip title={t`Copy bars`} description={noteEditorActive ? t`Close the Note Editor first.` : undefined} placement="top">
+                    <button className="o-btn" aria-expanded={otherVersions !== null} onClick={() => { if (otherVersions === null) findVersions(); else setOtherVersions(null) }} disabled={noteEditorActive}>
+                      <Copy size={16} strokeWidth={1.8} /> {t`Copy bars`}
+                    </button>
+                  </Tooltip>
+                </div>
+                {otherVersions !== null && (
+                  <>
+                    {otherVersions === 'checking' ? (
+                      <div className="o-note">{t`Comparing notes…`}</div>
+                    ) : otherVersions.length === 0 ? (
+                      <div className="o-note">{t`No other version of this song found in your Library.`}</div>
+                    ) : otherVersions.map(v => (
+                      <div key={v.name} className="fi-copy-row">
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span className="fi-copy-name">{v.name}</span>
+                          <span className="o-note" style={{ display: 'block' }}>{v.bars} · {t`${Math.round(v.share * 100)}% same notes`}</span>
+                        </span>
+                        <button className="o-btn-primary" aria-label={t`Copy bars from ${v.name}`} onClick={() => onCopyBars(currentPath, { bytes: v.bytes, name: v.name })}>{t`Copy bars`}</button>
+                      </div>
+                    ))}
+                    {copyNote && <div className="o-note" style={{ color: 'var(--ui-text)' }}>{copyNote}</div>}
+                    {otherVersions !== 'checking' && <button className="o-link" style={{ alignSelf: 'flex-start', fontSize: 'var(--text-base)' }} onClick={chooseVersion}>{t`Choose another file…`}</button>}
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <div className="o-window-actions" style={{ marginTop: 0 }}>
+          <span className="o-spacer" />
+          <button className="o-btn o-btn-lg" onClick={onClose}>{t`Cancel`}</button>
+          <button className="o-btn-primary o-btn-lg" onClick={handleSaveRename} disabled={!dirty || saving}><Save size={16} /> {saving ? 'Saving…' : 'Save changes'}</button>
+        </div>
       </div>
     </div>,
     document.body

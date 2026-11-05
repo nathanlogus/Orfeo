@@ -61,7 +61,10 @@ export function ConfirmDialogHost() {
           {state.message}
         </div>
         {state.detail && <div className="o-note" style={{ fontSize: 'var(--text-md)', whiteSpace: 'pre-line' }}>{state.detail}</div>}
-        <div className="o-window-actions" style={{ justifyContent: 'flex-end' }}>
+        {/* Drawn as [Discard] <spacer> [Cancel] [Save], but kept in caller order in the
+            DOM: focus and Enter still land on button 0, as callers expect */}
+        <div className="o-window-actions">
+          <span className="o-spacer" style={{ order: 1 }} />
           {state.buttons.map((label, i) => {
             const isPrimary     = i === 0
             const isDestructive = i === state.destructiveIndex
@@ -70,7 +73,7 @@ export function ConfirmDialogHost() {
                 key={i}
                 onClick={() => state.resolve(i)}
                 className={isPrimary ? 'o-btn-primary o-btn-lg' : isDestructive ? 'o-btn-quiet' : 'o-btn o-btn-lg'}
-                style={isDestructive && !isPrimary ? { color: 'var(--color-input-error)' } : undefined}
+                style={{ order: isPrimary ? 3 : isDestructive ? 0 : 2 }}
               >
                 {label}
               </button>

@@ -13,12 +13,10 @@ export interface GroupTab {
   ids: SettingId[]
   columns?: 2 | 3           // cards across (default 2); 3 = one row of equal-height cards
   wide?: SettingId[]        // full-width cards under the others
-  stack?: SettingId[][]     // explicit columns, top to bottom; every column ends at the same line
+  side?: SettingId          // of `ids`: the dark panel beside the others (Delay check)
   aside?: string            // id of a small live readout at the right of the tab row (defs/midi.tsx TAB_ASIDES)
 }
-// `stack`: explicit columns for an untabbed group (top to bottom); every column ends at the same line
-// `looseFirst`: with `stack`, the first column grows on its own when its card opens up
-export interface GroupInfo { id: SettingsGroupId; name: string; intro: string; manualUrl: string; tabs?: GroupTab[]; stack?: SettingId[][]; looseFirst?: boolean }
+export interface GroupInfo { id: SettingsGroupId; name: string; intro: string; manualUrl: string; tabs?: GroupTab[] }
 
 export type SettingId =
   | 'soundEngine' | 'soundFonts' | 'autoLevel' | 'exportAudio'
@@ -28,7 +26,7 @@ export type SettingId =
   | 'displaySystem' | 'accidentals' | 'chordTracking' | 'chordReading' | 'chordNaming'
   | 'keyRange' | 'showOctaves' | 'showNoteNames' | 'reflectPianoRoll' | 'preciseScrubTime' | 'explorerPause'
   | 'rollZoom' | 'barNumbers' | 'playbar' | 'visualEffects'
-  | 'theme' | 'handColors' | 'appZoom' | 'tooltips' | 'supportNote' | 'starmap'
+  | 'handColors' | 'appZoom' | 'tooltips' | 'supportNote' | 'starmap'
   | 'midiKeyboards' | 'midiReconnect' | 'liveResponse' | 'latencyOffset' | 'gmOutput' | 'keyboardSound' | 'touchResponse' | 'duplicateFilter'
   | 'pedalsControls' | 'delayCheck' | 'midiTools'
 
@@ -46,19 +44,16 @@ export const GROUPS: GroupInfo[] = [
   { id: 'midi', name: t`MIDI Keyboard`, intro: t`Manage your keyboards`, manualUrl: 'https://orfeo.cc/docs/settings/midi-keyboard-settings',
     tabs: [
       { name: t`Keyboards`, ids: ['midiKeyboards', 'midiTools', 'midiReconnect'], columns: 3, aside: 'noKeyboards' },
-      { name: t`Sound & Latency`, ids: ['keyboardSound', 'delayCheck', 'liveResponse', 'latencyOffset', 'gmOutput'], stack: [['keyboardSound', 'liveResponse'], ['delayCheck'], ['latencyOffset', 'gmOutput']], aside: 'keyToSpeaker' },
-      { name: t`Touch & pedals`, ids: ['touchResponse', 'pedalsControls', 'duplicateFilter'] },
+      { name: t`Sound & Latency`, ids: ['keyboardSound', 'liveResponse', 'latencyOffset', 'gmOutput', 'delayCheck'], side: 'delayCheck', aside: 'keyToSpeaker' },
+      { name: t`Touch & pedals`, ids: ['touchResponse', 'pedalsControls', 'duplicateFilter'], columns: 3 },
     ] },
   { id: 'midi-files-library', name: t`MIDI Files & Library`, intro: t`Organise your library`, manualUrl: 'https://orfeo.cc/docs/managing-midi-files' },
-  { id: 'playback-editing', name: t`Playback`, intro: t`Shape playback`, manualUrl: 'https://orfeo.cc/docs/playing-midi-files',
-    stack: [['tapTempo', 'loopRegion', 'focusMode'], ['tempoWarnings', 'preciseScrubTime', 'explorerPause'], ['countIn', 'skipEmptyBars']] },
+  { id: 'playback-editing', name: t`Playback`, intro: t`Shape playback`, manualUrl: 'https://orfeo.cc/docs/playing-midi-files' },
   { id: 'practice', name: t`Practice`, intro: t`Tools for practising`, manualUrl: 'https://orfeo.cc/docs/practicing-with-midi-files' },
-  { id: 'editing', name: t`Editing`, intro: t`Edit your songs`, manualUrl: 'https://orfeo.cc/docs/editing-midi-files',
-    stack: [['handAssignment'], ['noteEditor'], ['trackVu']], looseFirst: true },
+  { id: 'editing', name: t`Editing`, intro: t`Edit your songs`, manualUrl: 'https://orfeo.cc/docs/editing-midi-files' },
   { id: 'notation', name: t`Chords & Notation`, intro: t`Read chords and notes`, manualUrl: 'https://orfeo.cc/docs/practicing-with-midi-files/how-orfeo-reads-chords' },
   { id: 'keyboard', name: t`Virtual Keyboard`, intro: t`Set up the keyboard`, manualUrl: 'https://orfeo.cc/docs/playing-midi-files/the-virtual-keyboard' },
-  { id: 'piano-roll', name: t`Piano Roll`, intro: t`Tune the falling notes`, manualUrl: 'https://orfeo.cc/docs/playing-midi-files/the-piano-roll',
-    stack: [['visualEffects'], ['rollZoom'], ['barNumbers', 'playbar']], looseFirst: true },
+  { id: 'piano-roll', name: t`Piano Roll`, intro: t`Tune the falling notes`, manualUrl: 'https://orfeo.cc/docs/playing-midi-files/the-piano-roll' },
   { id: 'appearance', name: t`Appearance`, intro: t`Change the look`, manualUrl: 'https://orfeo.cc/docs/settings/appearance-settings' },
 ]
 
@@ -173,9 +168,6 @@ export const SETTINGS: SettingInfo[] = [
     description: t`An animated flourish when notes hit the playbar during playback. Choose which tracks, the colour, the pattern and the glow.`,
     keywords: 'effects bloom glow particles hit' },
   // ── Appearance
-  { id: 'theme', group: 'appearance', name: t`Theme`, summary: t`Dark today; a warm light theme is coming.`,
-    description: t`Dark today; a warm light theme is in progress.`,
-    keywords: 'dark light colours colors' },
   { id: 'handColors', group: 'appearance', name: t`Hand colours`, summary: t`Pick the colours for your left and right hand.`,
     description: t`The colours that show which hand plays each note, on the piano roll, the keyboard and the split preview. Pick a ready-made pair or your own. Bright, Sky and Mint stay easy to tell apart with colour blindness.`,
     keywords: 'hand colours colors left right palette colour blind colorblind color blindness custom pink blue split' },
