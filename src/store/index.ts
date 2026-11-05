@@ -9,6 +9,7 @@ import type { DetectedKey } from '../utils/keyDetection'
 import type { ForeignFormat } from '../utils/foreignFormatImport'
 import type { ScoreSource } from '../utils/scoreSource'
 import type { ProgressionVoicing } from '../utils/voiceLeading'
+import type { PracticeResult } from '../utils/practiceResult'
 import { detectKeyFromTracks, parseKeySignature } from '../utils/keyDetection'
 import { isKeyboardInstrument } from '../utils/gmInstruments'
 import { parseMidiBuffer } from '../utils/midiParser'
@@ -26,6 +27,8 @@ let _focusSnapshot: Map<number, { muted: boolean; visible: boolean }> | null = n
 
 // Only these groups light up the piano keyboard
 const KEYBOARD_DISPLAY_GROUPS = new Set(['piano', 'chromatic', 'organ'])
+
+export interface SongCoverInfo { art: string | null; people: string[] }
 
 interface OrfeoStore {
   midi: ParsedMidi | null
@@ -173,6 +176,10 @@ interface OrfeoStore {
   setPracticeLevel: (level: number) => void
   phraseLevels: number[]
   phraseResult: { percent: number; level: number; mastery: number } | null
+  // The Results screen: set when a song ends, or by End, if keys were played
+  practiceResult: PracticeResult | null
+  // The Lock-a-Chord hint on the roll
+  lockHintOpen: boolean
   setWaitForNotes: (on: boolean) => void
   setScoreViewMode: (mode: 'roll' | 'both' | 'score') => void
   pendingImportedFile: {
@@ -236,7 +243,9 @@ interface OrfeoStore {
   setHomeOpen: (open: boolean) => void
   // A song to open the way a Library click does (SettingsPanel owns that path)
   songToOpen: string | null
-  openSong: (path: string) => void
+  // `cover`: what the home page knows of a server song; this device doesn't have it
+  openSong: (path: string, cover?: SongCoverInfo) => void
+  songCovers: Record<string, SongCoverInfo>
 
   settingsWindowOpen: boolean
   settingsWindowGroup: SettingsGroupId
@@ -590,7 +599,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
     // metronome a preview may have forced on ─────────────────────────────
     const prevSession = get().tapSession
     const sessionReset = prevSession ? { tapSession: null, metronomeEnabled: prevSession.prevMetronome } : {}
-    if (!midi) { set({ midi: null, tracks: [], mixerBaseline: {}, currentTime: 0, playbackState: 'stopped', trackPanelOpen: false, barStarts: [], chordSequence: [], chordPrompterOpen: false, loopStart: null, loopEnd: null, loopRegionActive: false, songKey: null, currentTrust: null, countIn: null, ...sessionReset }); return }
+    if (!midi) { set({ midi: null, tracks: [], mixerBaseline: {}, currentTime: 0, playbackState: 'stopped', trackPanelOpen: false, barStarts: [], chordSequence: [], chordPrompterOpen: false, loopStart: null, loopEnd: null, loopRegionActive: false, songKey: null, currentTrust: null, countIn: null, practiceResult: null, ...sessionReset }); return }
     // ── …and applies this song's stored beat-grid correction, if any. The
     // song is known by the file's own bytes, whether or not its empty bars
     // are skipped (prepareSong.ts); corrections are kept in the file's own
@@ -622,6 +631,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
     }
     _focusSnapshot = null
     set({
+      practiceResult: null,
       ...sessionReset,
       focusActive: false,
       midi,
@@ -789,6 +799,8 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   setPracticeLevel: (practiceLevel) => set({ practiceLevel }),
   phraseLevels: [],
   phraseResult: null,
+  practiceResult: null,
+  lockHintOpen: false,
   // ── Pending imported file — session-only, not persisted ──────────────────
   // Set when a foreign format (MusicXML, GP) is converted in-memory but not
   // yet saved to disk as a .mid cache file. Cleared on save or discard.
@@ -899,7 +911,8 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   lessonPassed: [],
   setHomeOpen: (homeOpen) => set({ homeOpen }),
   songToOpen: null,
-  openSong: (songToOpen) => set({ songToOpen, presentationMode: false }),
+  openSong: (songToOpen, cover) => set((s) => ({ songToOpen, presentationMode: false, songCovers: cover ? { ...s.songCovers, [songToOpen]: cover } : s.songCovers })),
+  songCovers: {},
 
   settingsWindowOpen: false,
   settingsWindowGroup: 'audio',
@@ -1086,7 +1099,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   showPreciseScrubTime: false,
   setShowPreciseScrubTime: (showPreciseScrubTime) => set({ showPreciseScrubTime }),
 
-  playbarVisible: true,
+  playbarVisible: false,
   setPlaybarVisible: (playbarVisible) => set({ playbarVisible }),
   keyboardTopY: null,
   setKeyboardTopY: (keyboardTopY) => set({ keyboardTopY }),
@@ -1347,7 +1360,8 @@ async function restoreLibraryPrefs() {
     }
     if (Array.isArray(prefs.transcriptHistory)) useStore.setState({ transcriptHistory: prefs.transcriptHistory })
     if (typeof prefs.noteEditorWalkthroughSeen === 'boolean') store.setNoteEditorWalkthroughSeen(prefs.noteEditorWalkthroughSeen)
-    if (typeof prefs.playbarVisible === 'boolean') store.setPlaybarVisible(prefs.playbarVisible)
+    // A new name: every install saved the old default, and the line now sits on the keys
+    if (typeof prefs.rollPlaybar === 'boolean') store.setPlaybarVisible(prefs.rollPlaybar)
     if (typeof prefs.hitEffectsEnabled === 'boolean') store.setHitEffectsEnabled(prefs.hitEffectsEnabled)
     const validPatterns: HitEffectPattern[] = ['glowBloom', 'rippleRing', 'particleBurst', 'smokePlume', 'colorAura', 'starburstNova', 'cometTrail']
     if (validPatterns.includes(prefs.hitEffectPattern)) store.setHitEffectPattern(prefs.hitEffectPattern)
@@ -1740,7 +1754,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
       autoMuteNonKeyboard: state.autoMuteNonKeyboard,
       settingsGroupsCollapsed: state.settingsGroupsCollapsed,
       noteEditorWalkthroughSeen: state.noteEditorWalkthroughSeen,
-      playbarVisible: state.playbarVisible,
+      rollPlaybar: state.playbarVisible,
       hitEffectsEnabled: state.hitEffectsEnabled,
       hitEffectPattern: state.hitEffectPattern,
       hitEffectBloomThreshold: state.hitEffectBloomThreshold,

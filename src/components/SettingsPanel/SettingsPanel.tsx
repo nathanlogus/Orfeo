@@ -26,6 +26,7 @@ import Tooltip, { TooltipBox, useTooltip } from '../Tooltip'
 import { ContextMenu, ContextMenuItem, ContextMenuDivider, ContextMenuLabel } from '../ContextMenu'
 import { UpdateButton, RateButton, DevModeBadge } from '../Settings/controls'
 import QuickSettings from '../Settings/QuickSettings'
+import { pressUpdateButton, useUpdateState } from '../../hooks/useUpdateCheck'
 
 // ── Spin keyframe for transcript loading animation ────────────────────────────
 if (typeof document !== 'undefined' && !document.getElementById('orfeo-transcript-anim')) {
@@ -1559,6 +1560,7 @@ export default function SettingsPanel() {
   const setSettingsPanelOpen = useStore((s) => s.setSettingsPanelOpen)
   const [activeTab, setActiveTab] = useState<DrawerTab>('settings')
   const close = () => setSettingsPanelOpen(false)
+  const newVersion = useUpdateState((s) => (s.status.state === 'available' || s.status.state === 'ready' ? s.status.version : undefined))
 
   // Closed, it only hides: the Library stays mounted from startup, with its
   // scroll, search and folder state.
@@ -1574,15 +1576,17 @@ export default function SettingsPanel() {
           <button className="o-close" aria-label={t`Close`} onClick={close}><X size={18} strokeWidth={2} /></button>
         </div>
 
-        <div className="o-seg" role="group" aria-label={t`Drawer`} style={{ display: 'flex', flexShrink: 0 }}>
-          <button aria-pressed={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>{t`Setup`}</button>
-          <button aria-pressed={activeTab === 'library'} onClick={() => setActiveTab('library')}>{t`Library`}</button>
-        </div>
-
         <div className="pr-setup-body">
           <LibraryPanel hidden={activeTab !== 'library'} />
           {activeTab === 'settings' && <div className="pr-setup-card touch-settings"><QuickSettings /></div>}
         </div>
+
+        {newVersion && (
+          <div role="status" className="pr-update-card">
+            <span><span className="pr-update-title">{t`Orfeo ${newVersion} is out`}</span>{t`Your songs and settings stay as they are.`}</span>
+            <button className="pr-setup-black" onClick={pressUpdateButton}>{t`Get it`}</button>
+          </div>
+        )}
 
         <div className="pr-setup-foot">
           <button className="pr-setup-black" onClick={() => useStore.getState().openSettingsWindow()}>{t`All settings`}</button>
@@ -1592,6 +1596,8 @@ export default function SettingsPanel() {
           <DevModeBadge />
           <RateButton />
           <UpdateButton />
+          <span className="o-spacer" />
+          <button className="o-link" onClick={() => setActiveTab(activeTab === 'settings' ? 'library' : 'settings')}>{activeTab === 'settings' ? t`Library` : t`Setup`}</button>
         </div>
       </aside>
     </>

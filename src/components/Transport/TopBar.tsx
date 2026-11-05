@@ -16,6 +16,10 @@ import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { t } from '../../utils/i18n'
 import { useMidiSettings } from '../../store/midiSettings'
 import { shortName } from '../../utils/midiDeviceNames'
+import { touchScreen } from '../../utils/touchScreen'
+import { SongCoverTile, useSongCover } from './SongCover'
+import { allSoundfonts, useSoundfontState } from '../../hooks/useSoundfonts'
+import { useNativeAudio } from '../../audio/nativeClient'
 
 // NOTE: no more `C` shorthand object — every color below is a literal
 // `var(--token-name)` string written directly at its point of use, so the
@@ -76,12 +80,15 @@ export default function TopBar() {
   const midiDeviceName = useStore((s) => s.midiDeviceName)
   // Model of the keyboard being played, plus any others that are plugged in
   const midiActiveKey = useMidiSettings((s) => s.activeDevice)
+  const midiError = useMidiSettings((s) => s.accessError)
   const midiOthers = useMidiSettings((s) => s.devices.filter(d => d.connected && d.key !== s.activeDevice).map(d => d.name).join(', '))
   const noteNaming = useStore((s) => s.noteNaming)
   const accidentals = useStore((s) => s.accidentals)
   const barStarts = useStore((s) => s.barStarts)
   const chordSequence = useStore((s) => s.chordSequence)
   const presentationMode = useStore((s) => s.presentationMode)
+  const songName = midi?.fileName?.replace(/\.[^.]+$/, '') ?? ''
+  const cover = useSongCover((midi as any)?._filePath)
   const setPresentationMode = useStore((s) => s.setPresentationMode)
 
   const { pause, stop, seek, seekAndPlay } = usePlayback()
@@ -201,9 +208,10 @@ export default function TopBar() {
       {/* The header doubles as the window's drag handle; on desktop its right edge
           stops where the caption buttons start. */}
       <header className="pr-header app-drag-region" style={{ paddingRight: Math.max(overlayInset + 12, 24) }}>
+        {midi && <SongCoverTile art={cover?.art ?? null} title={songName} />}
         <div className="pr-title">
-          <span className="pr-kicker">{midi ? t`Now practising` : t`No file open`}</span>
-          <span className="pr-song">{midi?.fileName?.replace(/\.[^.]+$/, '') ?? ''}</span>
+          <span className="pr-kicker">{midi ? t`Now practising` : t`No file open`}{cover?.people.length ? ` · ${cover.people[0]}` : ''}</span>
+          <span className="pr-song">{songName}</span>
         </div>
 
         <div className="pr-readouts topbar-scroll app-no-drag touch-hit">
@@ -296,19 +304,24 @@ export default function TopBar() {
             </Tooltip>
           </div>
 
+          <SoundStatus />
+
           {/* ── MIDI — the keyboard being played; click opens its settings ── */}
           <div className="pr-group">
             <span className="pr-label">{t`Keyboard`}</span>
             <Tooltip
-              title={midiDeviceConnected ? midiDeviceName : t`No connected keyboards`}
+              title={midiDeviceConnected ? midiDeviceName : midiError ? t`MIDI isn’t available` : t`No connected keyboards`}
               description={midiDeviceConnected
                 ? (midiOthers ? t`Also connected: ${midiOthers}` + '\n' + t`Click for MIDI keyboard settings.` : t`Ready to play. Click for MIDI keyboard settings.`)
+                : touchScreen ? t`Plug your keyboard into the tablet with a USB cable. Most keyboards need a USB-C adapter. You can still play on the screen.`
                 : t`Connect one by USB. Click to \nopen MIDI keyboard settings.`}
               placement="bottom"
             >
               <button className="pr-midi" data-off={!midiDeviceConnected} onClick={() => useStore.getState().openSettingsWindow('midi')} aria-label={t`MIDI keyboard settings`}>
-                <span className={`o-dot ${midiDeviceConnected ? 'o-dot-on' : 'o-dot-off'}`} />
-                <span>{midiDeviceConnected ? shortName(midiActiveKey || midiDeviceName) : t`None`}</span>
+                <span className={`o-dot ${midiDeviceConnected ? 'o-dot-on' : midiError ? 'o-dot-alert' : 'o-dot-off'}`} />
+                {midiDeviceConnected ? <span>{shortName(midiActiveKey || midiDeviceName)}</span>
+                  : midiError ? <span>{t`MIDI unavailable`}</span>
+                  : <span>{t`Connect`}<span className="pr-wide"> {t`a keyboard`}</span></span>}
               </button>
             </Tooltip>
           </div>
@@ -359,6 +372,32 @@ export default function TopBar() {
           onClose={() => setScrubMenu(null)}
         />
       )}
+    </div>
+  )
+}
+
+// ── Only while the sound isn't ready yet: a sound font loading, or the Native
+// engine with no sound card to play on ─────────────────────────────────────
+function SoundStatus() {
+  const loading = useSoundfontState((s) => s.samplesStatus === 'loading')
+  const percent = useSoundfontState((s) => Math.round(s.samplesProgress * 100))
+  const fontName = useSoundfontState((s) => allSoundfonts(s.extra).find(sf => sf.id === useStore.getState().selectedSoundfont)?.name)
+  const noCard = useNativeAudio((s) => s.phase === 'running' && s.status?.mode === 'none') && useStore.getState().audioEngine === 'native'
+  if (!loading && !noCard) return null
+  return (
+    <div className="pr-group">
+      <span className="pr-label">{t`Sound`}</span>
+      <Tooltip
+        title={loading ? t`Loading sound font… ${percent}%` : t`Native · waiting for a sound card…`}
+        description={loading ? t`${fontName ?? ''} · the GM sound plays until it’s ready` : t`Another app has the sound card. Orfeo will pick it up when it’s free, or switch to Shared.`}
+        placement="bottom"
+      >
+        <button className="pr-midi pr-sound" onClick={() => useStore.getState().openSettingsWindow('audio')} aria-label={loading ? t`Loading sound font ${percent}%` : t`Waiting for a sound card`}>
+          {loading
+            ? <><span>{percent}%</span><span className="o-progress" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label={t`Loading sound font`}><span style={{ width: `${percent}%` }} /></span></>
+            : <><span className="o-dot o-dot-warn" /><span>{t`Waiting for a sound card`}</span></>}
+        </button>
+      </Tooltip>
     </div>
   )
 }

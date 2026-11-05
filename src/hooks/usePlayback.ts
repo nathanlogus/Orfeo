@@ -132,6 +132,13 @@ export function usePlayback() {
     }
   }, [stopRaf])
 
+  // Jump to the loop's start when switching it on with a section picked, without forcing playback
+  const toggleLoop = useCallback(() => {
+    const { loopRegionActive, loopStart, setLoopRegionActive } = useStore.getState()
+    setLoopRegionActive(!loopRegionActive)
+    if (!loopRegionActive && loopStart !== null) seek(loopStart)
+  }, [seek])
+
   const seekAndPlay = useCallback((timeSec: number) => {
     const clamped = Math.max(0, timeSec)
     stopRaf()
@@ -171,5 +178,5 @@ export function usePlayback() {
 
   useEffect(() => () => stopRaf(), [stopRaf])
 
-  return { play, pause, stop, seek, seekAndPlay }
+  return { play, pause, stop, seek, seekAndPlay, toggleLoop }
 }
