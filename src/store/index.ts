@@ -634,7 +634,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
       playbackState: 'stopped',
       bpm: midi.bpm,
       originalBpm: midi.bpm,
-      trackPanelOpen: true,   // auto-open drawer when file loads
+      trackPanelOpen: false,  // the panel takes 40% of the roll: it opens from the rail
       barStarts: (midi as any)._barStarts ?? [],
       loopStart: null,
       loopEnd: null,

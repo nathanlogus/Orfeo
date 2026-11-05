@@ -4,14 +4,6 @@ import { SurfaceContext } from './controls'
 import { richText } from './SettingCard'
 
 const always = () => true
-const nameStyle = {
-  fontSize: 'var(--text-xs)', color: 'var(--text-default)', fontWeight: 500,
-  letterSpacing: '0.02em', textTransform: 'uppercase' as const,
-}
-const summaryStyle = {
-  fontSize: 'var(--text-xs)', color: 'var(--text-faint)', lineHeight: 1.5,
-  fontFamily: 'var(--font-ui)', fontStyle: 'italic' as const, marginTop: 3,
-}
 
 // ── One Setup row (the drawer): name + its one-line summary underneath, then
 // its control and at-a-glance line. The full description and follow-up
@@ -21,27 +13,19 @@ export function QuickRow({ id }: { id: SettingId }) {
   const useVisible = def.useVisible ?? always
   if (!useVisible()) return null
   const { Control, Glance, NameSuffix, NameRight, QuickExtra, SummaryEnd } = def
-  const name = <span style={nameStyle}>{info.name}{NameSuffix && <> <NameSuffix /></>}</span>
-  const summary = <div style={summaryStyle}>{richText(info.summary)}{SummaryEnd && <> <SummaryEnd /></>}</div>
+  const name = <span className="pr-setup-name">{info.name}{NameSuffix && <> <NameSuffix /></>}</span>
+  const summary = <div className="pr-setup-sub">{richText(info.summary)}{SummaryEnd && <> <SummaryEnd /></>}</div>
   return (
     <SurfaceContext.Provider value="setup">
-      <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border-row)' }}>
+      <div className="pr-setup-row">
         {def.layout === 'controlFirst' ? (
-          <>
-            <div style={{ marginBottom: 7 }}>{name}</div>
-            <Control />
-          </>
+          <>{name}<Control /></>
         ) : def.kind !== 'choice' ? (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8 }}>{name}<Control /></div>
-            {summary}
-          </>
+          <div className="pr-setup-line"><span>{name}{summary}</span><Control /></div>
         ) : (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8 }}>
-              {name}{NameRight ? <NameRight /> : <span />}
-            </div>
-            <div style={{ ...summaryStyle, marginBottom: 7 }}>{richText(info.summary)}{SummaryEnd && <> <SummaryEnd /></>}</div>
+            <div className="pr-setup-line">{name}{NameRight ? <NameRight /> : <span />}</div>
+            {summary}
             <Control />
           </>
         )}

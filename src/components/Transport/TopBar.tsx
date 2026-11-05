@@ -1,17 +1,10 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
-import {
-  Play, Pause, SkipBack, SkipForward, Repeat,
-  FolderOpen, RotateCcw, ChevronUp, ChevronDown,
-  Rewind, FastForward, Music2, Hourglass, Home,
-} from 'lucide-react'
+import { SkipBack, SkipForward, RotateCcw, Rewind, FastForward, Plus, Minus, Expand, Shrink } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
-import { useMidiFile } from '../../hooks/useMidiFile'
 import { formatTime } from '../../utils/midiParser'
 import { formatKey, transposeDetectedKey } from '../../utils/keyDetection'
 import { buildDebugTimestamp, buildFullSongTable, formatTimeMs } from '../../utils/debugTimestamp'
-import OrfeoLogo from '../OrfeoLogo'
-import MidiIcon from '../MidiIcon'
 import VolumeKnob from '../VolumeKnob'
 import LoopRegionStrip from '../LoopRegionStrip'
 import Tooltip from '../Tooltip'
@@ -19,22 +12,16 @@ import { TapTempoPad } from './TapTempoPad'
 import { TempoWarning } from './TempoWarning'
 import { useCurrentTempoTrust } from '../../hooks/useTempoTrustScan'
 import { stepDisplayedBpm, typedBpm } from '../../utils/bpmStep'
-import { isCountingIn, cancelCountIn } from '../../utils/countInRunner'
-import { ContextMenu, ContextMenuItem, ContextMenuDivider, useMenuDismiss } from '../ContextMenu'
+import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { t } from '../../utils/i18n'
 import { useMidiSettings } from '../../store/midiSettings'
 import { shortName } from '../../utils/midiDeviceNames'
-import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
-import { confirmDiscardDirtyTempoKey } from '../../utils/tempoKeySave'
-import { isScoreFor } from '../../utils/scoreSource'
-import { touchScreen } from '../../utils/touchScreen'
 
 // NOTE: no more `C` shorthand object — every color below is a literal
 // `var(--token-name)` string written directly at its point of use, so the
 // token being referenced is visible right here in the JSX without having to
 // cross-reference a lookup table elsewhere in the file.
 const SKIP_SECS = 5
-const GROUP_PAD = touchScreen ? '0 8px' : '0 14px'
 
 // ── Windows caption-button overlay inset — the real reserved width for the
 // native –/□/× buttons, read live from the Window Controls Overlay API
@@ -82,16 +69,9 @@ export default function TopBar() {
   const loopRegionActive   = useStore((s) => s.loopRegionActive)
   const loopStart          = useStore((s) => s.loopStart)
   const loopEnd            = useStore((s) => s.loopEnd)
-  const setLoopRegionActive = useStore((s) => s.setLoopRegionActive)
   const setBpm = useStore((s) => s.setBpm)
   const resetBpm = useStore((s) => s.resetBpm)
   const detectedKey = useStore((s) => s.detectedKey)
-  const metronomeEnabled = useStore((s) => s.metronomeEnabled)
-  const setMetronomeEnabled = useStore((s) => s.setMetronomeEnabled)
-  const [metroMenu, setMetroMenu] = useState<{ x: number; y: number } | null>(null)
-  const countInEnabled = useStore((s) => s.countInEnabled)
-  const countInBars = useStore((s) => s.countInBars)
-  const closeMetroMenu = useCallback(() => setMetroMenu(null), [])
   const midiDeviceConnected = useStore((s) => s.midiDeviceConnected)
   const midiDeviceName = useStore((s) => s.midiDeviceName)
   // Model of the keyboard being played, plus any others that are plugged in
@@ -99,33 +79,15 @@ export default function TopBar() {
   const midiOthers = useMidiSettings((s) => s.devices.filter(d => d.connected && d.key !== s.activeDevice).map(d => d.name).join(', '))
   const noteNaming = useStore((s) => s.noteNaming)
   const accidentals = useStore((s) => s.accidentals)
-  const chordExplorerOpen = useStore((s) => s.chordExplorerOpen)
-  const explorerPausesPlayback = useStore((s) => s.explorerPausesPlayback)
-  const resetAll = useStore((s) => s.resetAll)
   const barStarts = useStore((s) => s.barStarts)
   const chordSequence = useStore((s) => s.chordSequence)
+  const presentationMode = useStore((s) => s.presentationMode)
+  const setPresentationMode = useStore((s) => s.setPresentationMode)
 
-
-  const { play, pause, stop, seek, seekAndPlay } = usePlayback()
-  const scoreViewMode = useStore((s) => s.scoreViewMode)
-  const waitForNotes = useStore((s) => s.waitForNotes)
+  const { pause, stop, seek, seekAndPlay } = usePlayback()
   const practiceLevel = useStore((s) => s.practiceLevel)
   const phraseResult = useStore((s) => s.phraseResult)
-  const hasScore = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath))
-  const { openFile } = useMidiFile()
   const wasPlayingRef = useRef(false)
-
-  const handlePlayPause = useCallback(() => {
-    if (isCountingIn()) { cancelCountIn(); return }
-    if (playbackState === 'playing') pause(); else play()
-  }, [playbackState, play, pause])
-
-  const handleReset = useCallback(async () => {
-    const proceed = await confirmDiscardDirtyNoteEdits('Save changes before resetting?')
-    if (!proceed) return
-    const proceedTempoKey = await confirmDiscardDirtyTempoKey('Save tempo/key changes before resetting?')
-    if (proceedTempoKey) resetAll()
-  }, [resetAll])
 
   const handleScrubStart = useCallback(() => {
     wasPlayingRef.current = playbackState === 'playing'
@@ -180,7 +142,7 @@ export default function TopBar() {
   // ── Nudge: region selected but loop not yet activated (regardless of strip visibility) ──
   const nudgeLoop = !!midi && loopStart !== null && loopEnd !== null && !loopRegionActive
 
-  // ── Loop button tooltip — context-aware based on region state ─────────────
+  // ── Loop label on the scrub bar ───────────────────────────────────────────
   const loopStartBar = loopStart !== null ? (() => {
     let bar = 1
     for (let i = 0; i < barStarts.length; i++) { if (barStarts[i] <= loopStart) bar = i + 1 }
@@ -192,12 +154,6 @@ export default function TopBar() {
     const pastLastBarStart = barStarts.length === 0 || loopEnd > barStarts[barStarts.length - 1] + 0.001
     return Math.max(loopStartBar, pastLastBarStart ? rawBar : rawBar - 1)
   })() : null
-  const loopTooltipTitle = loopStart !== null
-    ? (loopRegionActive ? `Looping bars ${loopStartBar}–${loopEndBar}` : `Loop bars ${loopStartBar}–${loopEndBar}`)
-    : 'Loop song or section'
-  const loopTooltipDesc = loopStart !== null
-    ? (loopRegionActive ? 'Click to disable looping.' : 'Click to enable looping.')
-    : 'Click to loop the entire song, or Alt+Click & drag mouse on the piano roll to select a specific region.'
 
   // ── Live BPM — reads current tempo from _tempoMap so rubato files update ─
   const rawTempoMap = (midi as any)?._tempoMap as { bpm: number; time: number }[] | undefined
@@ -234,326 +190,162 @@ export default function TopBar() {
     currentBar = lo + 1
   }
 
+  const speedPct = originalBpm > 0 ? Math.round(bpm / originalBpm * 100) : 100
+  const levelName = practiceLevel === 0 ? t`Auto` : t`of 5`
+  const loopBand = duration > 0 && loopStart !== null && loopEnd !== null
+    ? { left: `${loopStart / duration * 100}%`, width: `${(loopEnd - loopStart) / duration * 100}%` }
+    : null
+
   return (
-    <div
-      className="app-drag-region"
-      style={{
-        // ── Height = the extra room this redesign needed: 20px clearance
-        // above the tallest group's own content (center: filename +
-        // transport + scrub, ~87.5px measured) + 20px clearance below it,
-        // before the piano roll. Grown by the same 24px the loop-region
-        // strip adds when present, same as before. ───────────────────────
-        height: loopRegionEnabled ? 152 : 128,
-        background: 'var(--bg-deep)',
-        borderBottom: '1px solid var(--border)',
-        // ── CSS Grid, three real minmax(0,1fr) columns (not 1fr auto 1fr —
-        // see CLAUDE.md's warning: an auto-sized center column combined with
-        // content-driven side columns can still end up unequal width and
-        // drag the center off true center). The center column is then
-        // structurally centered by grid layout itself, not computed via
-        // position:absolute + left:50%/transform math — that math measured
-        // against the bar's full (asymmetrically-padded) width, which is
-        // exactly what let the ~400px-wide center block overlap the side
-        // groups near the 900px documented minimum window width. ──────────
-        // On a touch screen the sides take what they need and the transport the
-        // rest: bigger buttons don't fit thirds at 1280 wide, and the side groups
-        // only scroll when there's truly no room (a 1100 wide phone).
-        display: 'grid',
-        gridTemplateColumns: touchScreen ? 'minmax(0,max-content) minmax(304px,1fr) minmax(0,max-content)' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)',
-        // ── Back to center — left (~39px) and right (~40px) vertically
-        // center in the row like they always did. Only the center column
-        // opts out (see its own `alignSelf:'flex-start'` below): its content
-        // is much taller (~87.5px, it carries the transport row), and
-        // center-aligning it put its own top just 4px from the row's edge.
-        // Giving center its own top anchor + top margin — instead of
-        // top-aligning the whole grid — keeps center's breathing room
-        // without pulling left/right out of their normal centered spot. ──
-        alignItems: 'center',
-        // Symmetric 20px both sides, 0 top/bottom — the button dodge lives
-        // on the right group's own box (see its comment below), not here,
-        // and left/right's own vertical centering needs the grid's full,
-        // unpadded height to center against (an asymmetric top-only pad
-        // would skew their center off the row's true middle). Center's own
-        // top clearance comes from its own margin instead (see below).
-        padding: touchScreen ? '0 12px' : '0 20px',
-        gap: 0,
-        flexShrink: 0,
-      }}
-    >
-      {/* ── LEFT GROUP: logo + BPM + KEY — independent of center, never shifts transport.
-          Measured intrinsic width (~423px) exceeds this column's 1/3 share at the
-          900px documented minimum (~235px content-box thirds) — stretched to the
-          column and given the same internal-horizontal-scroll behavior as the
-          Mixer's channel-strip row rather than letting it spill into the center
-          column, so nothing is hidden/removed, just reachable via scroll at the
-          floor width. `.topbar-scroll` (not `.mixer-scroll` — see index.css)
-          keeps that scrolling but hides the scrollbar itself: app zoom shrinks
-          the logical viewport the same way a narrow window does, so this can
-          trigger at an ordinary window size and zoom level, where a persistent
-          grey bar for a few px of overflow reads as a glitch, not the Mixer
-          row's genuine many-tracks affordance. No effect at normal window
-          widths/zoom, where the column is wide enough that no overflow occurs
-          at all. ── */}
-      <div className="topbar-scroll touch-hit" style={{
-        display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-        justifySelf: 'stretch', minWidth: 0, overflowX: 'auto', overflowY: 'hidden',
-        // room below the row for the tempo-warning dot under the TAP pad —
-        // added inside and taken back outside, so nothing moves
-        paddingBottom: 14, marginBottom: -14,
-        // the whole bar's height, so the scroller doesn't clip tap areas
-        ...(touchScreen ? { alignSelf: 'stretch' } : {}),
-      }}>
-      {/* ── LOGO ── */}
-      <div className="app-no-drag touch-big" style={{ display: 'flex', alignItems: 'center', gap: touchScreen ? 0 : 10, flexShrink: 0, paddingRight: touchScreen ? 0 : 'var(--space-1)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, marginRight: touchScreen ? 4 : 0 }}>
-          <Tooltip title="Reset" description={"Closes the file and resets tempo,\ntranspose, and playback to defaults."} placement="bottom">
-            <span onClick={handleReset} className="app-no-drag" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-              <OrfeoLogo />
-              <span style={{ color: 'var(--text-inactive)', fontSize: 10, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>v{__APP_VERSION__}</span>
-            </span>
-          </Tooltip>
+    <div className="pr-top">
+      {/* The header doubles as the window's drag handle; on desktop its right edge
+          stops where the caption buttons start. */}
+      <header className="pr-header app-drag-region" style={{ paddingRight: Math.max(overlayInset + 12, 24) }}>
+        <div className="pr-title">
+          <span className="pr-kicker">{midi ? t`Now practising` : t`No file open`}</span>
+          <span className="pr-song">{midi?.fileName?.replace(/\.[^.]+$/, '') ?? ''}</span>
         </div>
-        {midi && <Tooltip title="Home" description={"Find another song.\nYour open song stays as it is."} placement="bottom">
-          <button
-            onClick={() => useStore.getState().setHomeOpen(true)}
-            aria-label="Home"
-            className="app-no-drag"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--text-amber)' }}
-          >
-            <Home size={18} strokeWidth={1.5} />
-          </button>
-        </Tooltip>}
-        <Tooltip title="Open a file (Ctrl+O)" description={"Loads a supported file from\ndisk to start a new session."} placement="bottom">
-          <button
-            onClick={openFile}
-            className="app-no-drag"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--button-height)', height: 'var(--button-height)', borderRadius: 'var(--radius-md)', background: 'transparent', border: 'none', color: 'var(--text-default)', cursor: 'pointer', flexShrink: 0, transition: 'color 0.12s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-default)'}
-          >
-            <FolderOpen size={16} strokeWidth={1.5} />
-          </button>
-        </Tooltip>
-      </div>
 
-      {/* ── BPM ── (tighter gap/padding than the other groups: with the TAP pad
-          the left column must still fit at a 1366 px window) */}
-      <div className="app-no-drag topbar-readout" data-instant style={{ gap: 4, paddingLeft: 8, flexShrink: 0 }}>
-        <Tooltip title={`Tempo: ${liveBpm || '—'} BPM`} description={t`The song's current playback tempo,\nscaled by your speed setting.\nDouble-click to type a tempo.`} placement="bottom">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>BPM</span>
-              {!touchScreen && <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>TEMPO</span>}
+        <div className="pr-readouts topbar-scroll app-no-drag touch-hit">
+          {/* ── Tempo ── */}
+          <div className="pr-group" data-instant data-tuck>
+            <span className="pr-label">
+              {t`Tempo`}
+              <TapTempoPad />
+              {isTempoChanged && (
+                <Tooltip title="Reset tempo" description="Restores the original BPM" placement="bottom">
+                  <button className="pr-reset" onClick={resetBpm} aria-label={t`Reset tempo`}><RotateCcw size={13} /></button>
+                </Tooltip>
+              )}
+            </span>
+            {/* ±1 steps the DISPLAYED tempo (file tempo at the playhead, incl. any
+                tap-tempo correction), not the file's first tempo — see liveBpm. */}
+            <div className="pr-steps">
+              <LongPressArrow onStep={() => { const s = useStore.getState(); setBpm(stepDisplayedBpm(s.bpm, s.originalBpm, currentFileBpm, -1)) }} disabled={!midi} title="BPM -1" description={"Nudges playback tempo down\nby one beat per minute."}><Minus size={16} /></LongPressArrow>
+              <Tooltip title={`Tempo: ${liveBpm || '—'} BPM`} description={t`The song's current playback tempo,\nscaled by your speed setting.\nDouble-click to type a tempo.`} placement="bottom">
+                <div className="pr-value" data-changed={isTempoChanged}>
+                  <BpmValue
+                    shown={midi ? String(liveBpm) : '—'}
+                    disabled={!midi}
+                    onType={(text) => {
+                      const s = useStore.getState()
+                      const next = typedBpm(text, s.originalBpm, currentFileBpm)
+                      if (next !== null) setBpm(next)
+                    }}
+                  />
+                  <small>{speedPct}%</small>
+                </div>
+              </Tooltip>
+              <LongPressArrow onStep={() => { const s = useStore.getState(); setBpm(stepDisplayedBpm(s.bpm, s.originalBpm, currentFileBpm, 1)) }} disabled={!midi} title="BPM +1" description={"Nudges playback tempo up\nby one beat per minute."}><Plus size={16} /></LongPressArrow>
             </div>
-            <BpmValue
-              shown={midi ? String(liveBpm) : '—'}
-              changed={isTempoChanged}
-              disabled={!midi}
-              onType={(text) => {
-                const s = useStore.getState()
-                const next = typedBpm(text, s.originalBpm, currentFileBpm)
-                if (next !== null) setBpm(next)
-              }}
-            />
           </div>
-        </Tooltip>
-        {/* ±1 steps the DISPLAYED tempo (file tempo at the playhead, incl. any
-            tap-tempo correction), not the file's first tempo — see liveBpm. */}
-        <div className="topbar-stepper">
-          <LongPressArrow onStep={() => { const s = useStore.getState(); setBpm(stepDisplayedBpm(s.bpm, s.originalBpm, currentFileBpm, 1)) }} disabled={!midi} title="BPM +1" description={"Nudges playback tempo up\nby one beat per minute."}><ChevronUp size={10} /></LongPressArrow>
-          <LongPressArrow onStep={() => { const s = useStore.getState(); setBpm(stepDisplayedBpm(s.bpm, s.originalBpm, currentFileBpm, -1)) }} disabled={!midi} title="BPM -1" description={"Nudges playback tempo down\nby one beat per minute."}><ChevronDown size={10} /></LongPressArrow>
-        </div>
-        {/* ── Reset — space always reserved so its appearance never shifts the transport controls ── */}
-        {/* wrapperStyle carries the same visibility as the button itself — the
-            button's own visibility:hidden alone no longer excludes this area
-            from hit-testing once it's nested inside Tooltip's wrapper div,
-            which would otherwise still show the tooltip over reserved-but-
-            hidden blank space. */}
-        <Tooltip title="Reset tempo" description="Restores the original BPM" placement="bottom"
-          wrapperStyle={{ visibility: isTempoChanged ? 'visible' : 'hidden', flexShrink: 0 }}
-        >
-          <button
-            onClick={resetBpm}
-            disabled={!isTempoChanged}
-            aria-label={t`Reset tempo`}
-            style={{
-              background: 'none', border: 'none', padding: 0, color: 'var(--text-amber)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', ...(touchScreen ? { width: 24, height: 44 } : {}),
-              cursor: isTempoChanged ? 'pointer' : 'default',
-            }}
-          >
-            <RotateCcw size={touchScreen ? 14 : 9} />
-          </button>
-        </Tooltip>
-        <TapTempoPad />
-      </div>
 
-      {/* ── KEY ── (position: relative anchors the tempo-warning badge, which
-          takes no width of its own — this group has no spare room at 1366 px) */}
-      <div className="app-no-drag topbar-readout" data-instant style={{ position: 'relative', paddingLeft: 8, flexShrink: 0 }}>
-        <Tooltip
-          title="Key: "
-          titleValue={`${displayKey}${transpose !== 0 ? ` (${transpose > 0 ? '+' : ''}${transpose} semitones)` : ''}`}
-          description={"The song's detected key, adjusted\nby any transpose applied here."}
-          placement="bottom"
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>KEY</span>
-              {!touchScreen && <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>TRANSPOSE</span>}
+          {/* ── Key ── (position: relative on .pr-group anchors the tempo-warning badge) */}
+          <div className="pr-group" data-instant data-tuck>
+            <span className="pr-label">
+              {t`Key`}
+              {transpose !== 0 && (
+                <Tooltip title="Reset key" description={"Restores the original key"} placement="bottom">
+                  <button className="pr-reset" onClick={() => useStore.setState({ detectedKey: detectedKey ? { ...detectedKey, transpose: 0 } : null })} aria-label={t`Reset key`}><RotateCcw size={13} /></button>
+                </Tooltip>
+              )}
+            </span>
+            <div className="pr-steps">
+              <ArrowBtn onClick={() => handleTranspose(-1)} disabled={!midi || transpose <= -12} title="Transpose down" description={"Shifts the detected key down\nby a semitone (max −12)."}><Minus size={16} /></ArrowBtn>
+              <Tooltip
+                title="Key: "
+                titleValue={`${displayKey}${transpose !== 0 ? ` (${transpose > 0 ? '+' : ''}${transpose} semitones)` : ''}`}
+                description={"The song's detected key, adjusted\nby any transpose applied here."}
+                placement="bottom"
+              >
+                <div className="pr-value" data-changed={transpose !== 0}>
+                  <span>{displayKey}</span>
+                  <small>{transpose === 0 ? '± 0' : `${transpose > 0 ? '+' : '−'} ${Math.abs(transpose)}`}</small>
+                </div>
+              </Tooltip>
+              <ArrowBtn onClick={() => handleTranspose(1)} disabled={!midi || transpose >= 12} title="Transpose up" description={"Shifts the detected key up\nby a semitone (max +12)."}><Plus size={16} /></ArrowBtn>
             </div>
-            <span style={{ color: transpose !== 0 ? 'var(--text-amber)' : 'var(--text-active)', fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, minWidth: 32, textAlign: 'right', lineHeight: 1 }}>
-              {displayKey}
-            </span>
+            <TempoWarning anchor="key" />
           </div>
-        </Tooltip>
-        <div className="topbar-stepper">
-          <ArrowBtn onClick={() => handleTranspose(1)} disabled={!midi || transpose >= 12} title="Transpose up" description={"Shifts the detected key up\nby a semitone (max +12)."}><ChevronUp size={10} /></ArrowBtn>
-          <ArrowBtn onClick={() => handleTranspose(-1)} disabled={!midi || transpose <= -12} title="Transpose down" description={"Shifts the detected key down\nby a semitone (max −12)."}><ChevronDown size={10} /></ArrowBtn>
-        </div>
-        {/* ── Reset — space always reserved so its appearance never shifts the transport controls ── */}
-        <Tooltip title="Reset key" description={"Restores the original key"} placement="bottom"
-          wrapperStyle={{ visibility: transpose !== 0 ? 'visible' : 'hidden', flexShrink: 0 }}
-        >
-          <button
-            onClick={() => useStore.setState({ detectedKey: detectedKey ? { ...detectedKey, transpose: 0 } : null })}
-            disabled={transpose === 0}
-            aria-label={t`Reset key`}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-amber)',
-              background: 'var(--accent-amber-subtle)', border: '1px solid var(--accent-amber-medium)',
-              borderRadius: 4, padding: '1px 5px', fontSize: 9, ...(touchScreen ? { width: 24, height: 44, padding: 0 } : {}),
-              cursor: transpose !== 0 ? 'pointer' : 'default',
-            }}>
-            <RotateCcw size={touchScreen ? 14 : 8} />
-          </button>
-        </Tooltip>
-        <TempoWarning anchor="key" />
-      </div>
 
-      </div>
-
-      {/* ── CENTER: transport + scrub + filename — its own grid column, so it's
-          genuinely centered between the other two regardless of their content
-          width; stretches to fill the (equal, minmax(0,1fr)) column instead of
-          a fixed 400px box, so at the 900px floor it shrinks with the column
-          rather than overflowing into the side groups. alignSelf:'flex-start'
-          + its own marginTop opts this column out of the grid's
-          alignItems:'center' (which left/right use) — center's content is
-          tall enough (~87.5px) that center-aligning it left almost no gap
-          above the transport row; anchoring it to the top with an explicit
-          20px margin instead gives it the same breathing room without
-          moving left/right off their normal centered spot. ── */}
-      <div className="app-no-drag" data-instant style={{
-        justifySelf: 'stretch', minWidth: 0, alignSelf: 'flex-start', marginTop: touchScreen ? 12 : 20,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: touchScreen ? 2 : 5,
-      }}>
-        {/* Filename — moved above the transport row so the center column's
-            topmost line is comparably light (small text) to the left/right
-            groups' top lines, now that all three groups share the same
-            top-aligned start (see the grid's alignItems comment above). */}
-        {midi?.fileName ? (
-          <span style={{ color: 'var(--text-default)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', lineHeight: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 'min(100%, 340px)' }}>
-            {midi.fileName.replace(/\.(mid|midi)$/i, '')}
-          </span>
-        ) : (
-          <span style={{ color: 'var(--text-default)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', lineHeight: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 340 }}>
-            No file open
-          </span>
-        )}
-        {/* Transport */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <TBtn onClick={stop} disabled={!midi} title="Go to start" oneLine><SkipBack size={16} strokeWidth={1.5} /></TBtn>
-          <TBtn onClick={() => handleSkip(-1)} disabled={!midi} title={`Rewind ${SKIP_SECS}s`} oneLine><Rewind size={15} strokeWidth={1.5} /></TBtn>
-          <TBtn onClick={handlePlayPause} disabled={!midi || (chordExplorerOpen && explorerPausesPlayback)} accent title="Play / Pause (Space)" large oneLine>
-            {playbackState === 'playing'
-              ? <Pause size={22} fill="currentColor" strokeWidth={0} />
-              // nudged right: a triangle's visual centre is left of its box's
-              : <Play size={22} fill="currentColor" strokeWidth={0} style={{ marginLeft: 3 }} />}
-          </TBtn>
-          <TBtn onClick={() => handleSkip(1)} disabled={!midi} title={`Forward ${SKIP_SECS}s`} oneLine><FastForward size={15} strokeWidth={1.5} /></TBtn>
-          <TBtn onClick={() => midi && seek(midi.duration)} disabled={!midi} title="Go to end" oneLine><SkipForward size={16} strokeWidth={1.5} /></TBtn>
-          {/* position:relative wrapper so the "click to loop" label can be
-              position:absolute — it used to sit in normal flex flow as the
-              row's last child, so its appearing/disappearing changed the
-              row's total width, which shifted every button's position
-              (the row is horizontally centered as a block, so a width
-              change moves its center point). Absolute positioning removes
-              it from flow entirely — buttons never move regardless of
-              whether the label is showing. ── */}
-          <div style={{ position: 'relative', display: 'flex' }}>
-            <TBtn
-              onClick={() => {
-                const newActive = !loopRegionActive
-                setLoopRegionActive(newActive)
-                // Jump to loop start when activating with a selection, without forcing playback
-                if (newActive && loopStart !== null) seek(loopStart)
-              }}
-              disabled={!midi} active={loopRegionActive} blink={nudgeLoop} title={loopTooltipTitle} description={loopTooltipDesc}
-            ><Repeat size={13} strokeWidth={1.5} /></TBtn>
-            {nudgeLoop && (
-              <span style={{
-                position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
-                marginLeft: 4,
-                color: 'var(--text-amber)', fontSize: 9, fontFamily: 'var(--font-ui)',
-                whiteSpace: 'nowrap', letterSpacing: '0.04em',
-                opacity: 0.85, pointerEvents: 'none', userSelect: 'none',
-              }}>
-                click to loop
-              </span>
-            )}
-          </div>
-        </div>
-        {/* Scrub + loop strip — shared column; width: min(100%, 400px) centers both at
-            the same visual width as the old scrub content (34+6+320+6+34 = 400px).
-            position: relative lets LoopRegionStrip anchor its icon outside this column. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: 'min(100%, 400px)', position: 'relative' }}>
-          {/* Scrub — onContextMenu is a no-op in packaged builds (see handleScrubContextMenu).
-              Left readout switches to millisecond precision when "Show precise
-              scrub time" is on in Settings — always on then (playing, paused, or
-              mid-drag), not just while actively dragging. The visible text is
-              ALWAYS position:absolute (in both modes, not just precise mode) —
-              right-anchored to the same spot and vertically centered via
-              top:50%/translateY(-50%) — so it never itself affects this box's
-              size; an invisible spacer holding the coarse format's width is what
-              actually sizes the box, in every mode. That's what keeps this row's
-              height fixed regardless of mode (a real span here — sized by its own
-              content only when in normal flow — was collapsing to ~0 height in
-              precise mode, since its content had nothing left in flow, which
-              shifted the whole scrub row up) and keeps the digits vertically
-              centered on the slider like the duration readout on the right
-              (which never had this problem — it's still a single plain span). */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onContextMenu={handleScrubContextMenu}>
-            <span style={{ position: 'relative', display: 'inline-block', minWidth: 34, flexShrink: 0 }}>
-              <span aria-hidden style={{ visibility: 'hidden', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-                {formatTime(currentTime)}
-              </span>
-              <span style={{
-                position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
-                whiteSpace: 'nowrap',
-                color: showPreciseScrubTime ? 'var(--text-amber)' : 'var(--text-muted)',
-                fontFamily: 'var(--font-mono)', fontSize: 10,
-              }}>
-                {showPreciseScrubTime ? formatTimeMs(currentTime) : formatTime(currentTime)}
-              </span>
-            </span>
-            <Tooltip title="Scrub position" description="Drag to jump to any point in the song." wrapperStyle={{ flex: 1, maxWidth: 320 }}>
-              <input
-                type="range" min={0} max={duration || 1} step={0.01} value={currentTime}
-                onMouseDown={handleScrubStart} onChange={handleScrubChange} onMouseUp={handleScrubEnd}
-                onTouchStart={handleScrubStart} onTouchEnd={handleScrubTouchEnd}
-                className="scrub-slider" disabled={!midi}
-                style={{ flex: 1, maxWidth: 320, '--fill': `${duration ? Math.min(100, currentTime / duration * 100) : 0}%` } as React.CSSProperties}
-              />
+          {/* ── Bar + time signature ── */}
+          {midi && (
+            <Tooltip title={`Bar ${currentBar} of ${totalBars}`} description={`Time signature: ${currentTimeSig.num}/${currentTimeSig.den}\nBeats in each bar, and which note value counts as one beat.`} placement="bottom">
+              <div className="pr-group">
+                <span className="pr-label">{t`Bar`} · {currentTimeSig.num}/{currentTimeSig.den}</span>
+                <span className="pr-bar">{currentBar}<small>/ {totalBars}</small></span>
+              </div>
             </Tooltip>
-            <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10, minWidth: 34, flexShrink: 0 }}>
-              {formatTime(duration)}
-            </span>
+          )}
+
+          {/* ── Level — how much of the song you're asked to play; a tap moves to the next ── */}
+          <div className="pr-group">
+            <span className="pr-label">{t`Level`}</span>
+            <Tooltip
+              title={practiceLevel === 0 ? t`Auto level` : practiceLevel === 5 ? t`Level 5 of 5: every note` : t`Level ${practiceLevel} of 5`}
+              description={t`1 is the melody on the beats, 2 the whole melody, 3 adds the bass, 4 both hands with simpler chords, 5 everything. A sets each four bars by how you play them: two clean passes go up, a rough one goes down. Tap for the next level.`}
+              placement="bottom"
+            >
+              <button className="pr-level" data-instant disabled={!midi} aria-label={practiceLevel === 0 ? t`Practice level automatic` : t`Practice level ${practiceLevel} of 5`}
+                onClick={() => useStore.getState().setPracticeLevel((practiceLevel + 1) % 6)}>
+                <span className="pr-level-tag">{practiceLevel === 0 ? 'A' : practiceLevel}</span>
+                {phraseResult
+                  ? <span><span className="pr-soft">{t`this phrase`}</span> {phraseResult.percent}%</span>
+                  : <span className="pr-soft">{levelName}</span>}
+              </button>
+            </Tooltip>
           </div>
-          {/* Loop Region Strip — visible only when enabled in Settings */}
-          {loopRegionEnabled && <LoopRegionStrip />}
+
+          {/* ── MIDI — the keyboard being played; click opens its settings ── */}
+          <div className="pr-group">
+            <span className="pr-label">{t`Keyboard`}</span>
+            <Tooltip
+              title={midiDeviceConnected ? midiDeviceName : t`No connected keyboards`}
+              description={midiDeviceConnected
+                ? (midiOthers ? t`Also connected: ${midiOthers}` + '\n' + t`Click for MIDI keyboard settings.` : t`Ready to play. Click for MIDI keyboard settings.`)
+                : t`Connect one by USB. Click to \nopen MIDI keyboard settings.`}
+              placement="bottom"
+            >
+              <button className="pr-midi" data-off={!midiDeviceConnected} onClick={() => useStore.getState().openSettingsWindow('midi')} aria-label={t`MIDI keyboard settings`}>
+                <span className={`o-dot ${midiDeviceConnected ? 'o-dot-on' : 'o-dot-off'}`} />
+                <span>{midiDeviceConnected ? shortName(midiActiveKey || midiDeviceName) : t`None`}</span>
+              </button>
+            </Tooltip>
+          </div>
         </div>
+      </header>
+
+      {/* ── Transport row. Right-click the scrub bar: see handleScrubContextMenu ── */}
+      <div className="pr-transport app-no-drag touch-hit" data-instant>
+        <TBtn onClick={stop} disabled={!midi} title="Go to start"><SkipBack size={20} strokeWidth={1.8} /></TBtn>
+        <TBtn onClick={() => handleSkip(-1)} disabled={!midi} title={`Rewind ${SKIP_SECS}s`}><Rewind size={20} strokeWidth={1.8} /></TBtn>
+        <TBtn onClick={() => handleSkip(1)} disabled={!midi} title={`Forward ${SKIP_SECS}s`}><FastForward size={20} strokeWidth={1.8} /></TBtn>
+        <TBtn onClick={() => midi && seek(midi.duration)} disabled={!midi} title="Go to end"><SkipForward size={20} strokeWidth={1.8} /></TBtn>
+        <span className="pr-time" data-precise={showPreciseScrubTime}>{showPreciseScrubTime ? formatTimeMs(currentTime) : formatTime(currentTime)}</span>
+        <div className="pr-scrub" onContextMenu={handleScrubContextMenu}>
+          <Tooltip title="Scrub position" description="Drag to jump to any point in the song.">
+            <input
+              type="range" min={0} max={duration || 1} step={0.01} value={currentTime}
+              onMouseDown={handleScrubStart} onChange={handleScrubChange} onMouseUp={handleScrubEnd}
+              onTouchStart={handleScrubStart} onTouchEnd={handleScrubTouchEnd}
+              className="scrub-slider" disabled={!midi} aria-label={t`Song position`}
+              aria-valuetext={t`Bar ${currentBar} of ${totalBars}`}
+              style={{ '--fill': `${duration ? Math.min(100, currentTime / duration * 100) : 0}%` } as React.CSSProperties}
+            />
+          </Tooltip>
+          {loopBand && <div className="pr-scrub-loop" data-off={!loopRegionActive} style={loopBand} />}
+          {loopBand && <span className="pr-scrub-label">{t`Loop`} · {t`bars`} {loopStartBar}–{loopEndBar}{nudgeLoop ? ` · ${t`click Loop to start`}` : ''}</span>}
+        </div>
+        <span className="pr-time">{formatTime(duration)}</span>
+        <span className="pr-divider" />
+        <VolumeKnob />
+        <TBtn onClick={() => setPresentationMode(!presentationMode)} title={presentationMode ? 'Exit Presentation Mode' : 'Presentation Mode'} description={presentationMode ? 'Press Esc to leave, or click here.' : 'Distraction-free fullscreen view.\nF11 to open, Esc to close.'}>
+          {presentationMode ? <Shrink size={19} strokeWidth={1.8} /> : <Expand size={19} strokeWidth={1.8} />}
+        </TBtn>
       </div>
+
+      {/* Loop Region Strip — visible only when enabled in Settings */}
+      {loopRegionEnabled && <LoopRegionStrip />}
 
       {scrubMenu && (
         <ScrubDebugMenu
@@ -567,268 +359,7 @@ export default function TopBar() {
           onClose={() => setScrubMenu(null)}
         />
       )}
-
-      {/* ── TIME + METRONOME + MIDI — bottoms aligned. Same overflow treatment as
-          the left group above: intrinsic width (~291px, more with the bar
-          counter once a file's loaded) exceeds this column's ~235px share at
-          the 900px floor, so it scrolls internally rather than spilling into
-          the center column. This group was previously right-anchored
-          (justifySelf:'end', flush against the window's right padding) — a
-          plain overflowX:'auto' would pack content flush *left* instead
-          (LTR overflow only accumulates rightward), visibly relocating the
-          whole group at every window width, and MIDI/volume controls that
-          overflow leftward off a flex-end box aren't reachable by scrolling
-          at all (scrollWidth==clientWidth in that configuration — verified
-          via CDP at 900x608, the Volume knob was invisible and unscrollable).
-          direction:'rtl' on the scroll container + direction:'ltr' on the
-          inner row is the standard fix: default (unscrolled) view still
-          shows the group's right-anchored end (unchanged from before at
-          normal widths), and the overflow that used to spill into the
-          center column is now reachable by scrolling left instead. ── */}
-      <div className="app-no-drag topbar-scroll touch-hit" style={{
-        justifySelf: 'stretch', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', direction: 'rtl',
-        // the whole bar's height, so the scroller doesn't clip tap areas
-        ...(touchScreen ? { alignSelf: 'stretch', display: 'flex', alignItems: 'center' } : {}),
-        // ── Top-aligned like its siblings (inherits the grid's own
-        // alignItems:'flex-start') — stays flush-right against the real Win
-        // overlay button boundary via paddingRight (overlayInset is measured
-        // from the window's true right edge; the grid container itself only
-        // contributes a flat 20px here, so this makes up the rest), not by
-        // ducking below the buttons' 40px zone. Content's right edge lands
-        // exactly where the buttons start, so there's no horizontal overlap
-        // into their hit-region at any vertical position.
-        paddingRight: Math.max(overlayInset - (touchScreen ? 12 : 20), 0),
-      }}>
-      <div className="topbar-right" style={{ display: 'flex', alignItems: 'flex-end', gap: 0, flexShrink: 0, direction: 'ltr', width: 'max-content' }}>
-
-        {/* VOLUME */}
-        <VolumeKnob />
-        {!touchScreen && <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />}
-
-        {/* BAR COUNTER — only when a file is loaded */}
-        {midi && (
-          <>
-            <Tooltip title={`Bar ${currentBar} of ${totalBars}`} description={"Position in the song,\ncounted in bars."} placement="bottom">
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: touchScreen ? GROUP_PAD : '0 var(--space-3)' }}>
-                <div style={{
-                  background: 'var(--bg-tile)', borderRadius: 4, padding: '2px 6px',
-                  display: 'flex', alignItems: 'baseline', gap: 0,
-                }}>
-                  <span style={{ color: 'var(--topbar-bar-number)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontWeight: 700, lineHeight: 1, minWidth: '3ch', textAlign: 'right', display: 'inline-block' }}>
-                    {currentBar}
-                  </span>
-                  <span style={{ color: 'var(--topbar-bar-total)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', lineHeight: 1 }}>
-                    |{totalBars}
-                  </span>
-                </div>
-                <span style={{ color: 'var(--topbar-bar-label)', fontSize: 9, fontFamily: 'var(--font-ui)', textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1, marginTop: 6 }}>
-                  BAR
-                </span>
-              </div>
-            </Tooltip>
-            <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
-          </>
-        )}
-
-        {/* TIME SIGNATURE */}
-        <Tooltip
-          title={midi ? `Time signature: ${currentTimeSig.num}/${currentTimeSig.den}` : 'No file loaded'}
-          description={"Number of beats in each bar,\nand which note value counts as one beat."}
-          placement="bottom"
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: GROUP_PAD }}>
-            {midi ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
-                <span style={{ color: 'var(--text-active)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-base)', fontWeight: 700 }}>
-                  {currentTimeSig.num}
-                </span>
-                <div style={{ width: 14, height: 1, background: 'var(--topbar-timesig-divider)', margin: '2px 0' }} />
-                <span style={{ color: 'var(--text-active)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-base)', fontWeight: 700 }}>
-                  {currentTimeSig.den}
-                </span>
-              </div>
-            ) : (
-              <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>—</span>
-            )}
-            <span style={{ color: 'var(--text-muted)', fontSize: 9, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1, marginTop: 6 }}>TIME</span>
-          </div>
-        </Tooltip>
-
-        <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
-
-        {/* METRONOME */}
-        <Tooltip
-          title={metronomeEnabled ? 'Metronome on' : 'Metronome off'}
-          description={countInEnabled
-            ? t`Click to toggle metronome ON/OFF. Right-click for volume and count-in.`
-            : t`Click to turn it ON, right-click \nfor volume and count-in.`}
-          placement="bottom"
-          disabled={!!metroMenu}
-        >
-          <button
-            onClick={() => setMetronomeEnabled(!metronomeEnabled)}
-            onContextMenu={(e) => { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); setMetroMenu({ x: Math.max(8, r.right - METRO_MENU_WIDTH), y: r.bottom + 6 }) }}
-            style={{
-              position: 'relative',
-              flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              padding: GROUP_PAD, border: 'none', cursor: 'pointer',
-              background: 'transparent', color: metronomeEnabled ? 'var(--topbar-metronome-on)' : 'var(--topbar-metronome-off)', transition: 'color 0.15s',
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 11.4V9.1" />
-              <path d="m12 17 6.59-6.59" />
-              <path d="m15.05 5.7-.218-.691a3 3 0 0 0-5.663 0L4.418 19.695A1 1 0 0 0 5.37 21h13.253a1 1 0 0 0 .951-1.31L18.45 16.2" />
-              <circle cx="20" cy="9" r="2" />
-            </svg>
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>
-              {metronomeEnabled ? 'ON' : 'OFF'}
-            </span>
-            {/* count-in badge: how many bars Play will count in */}
-            {countInEnabled && (
-              <span aria-label={t`Count-in ${countInBars} bars`} style={{
-                // inside the button's box: the row clips anything above it
-                position: 'absolute', top: 0, right: 6, minWidth: 12, height: 12, borderRadius: 6, padding: '0 3px',
-                background: 'var(--text-amber)', color: 'var(--bg-tooltip)', fontSize: 8, fontWeight: 700,
-                fontFamily: 'var(--font-mono)', lineHeight: '12px', textAlign: 'center',
-              }}>{countInBars}</span>
-            )}
-          </button>
-        </Tooltip>
-        {metroMenu && <MetronomeMenu x={metroMenu.x} y={metroMenu.y} onClose={closeMetroMenu} />}
-
-        <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
-
-        {/* SCORE — notation files only, MIDI has no score to draw */}
-        <Tooltip
-          title={!hasScore ? t`No score for this song` : scoreViewMode === 'roll' ? t`Showing: piano roll` : scoreViewMode === 'both' ? t`Showing: score and piano roll` : t`Showing: score`}
-          description={hasScore ? t`Click to switch between the piano roll, the score, or both.` : t`Scores show for MusicXML, Guitar Pro and Capella files, not MIDI or saved edits.`}
-          placement="bottom"
-          wrapperStyle={{ flexShrink: 0 }}
-        >
-          <button className="app-no-drag" disabled={!hasScore} aria-label={t`Score view`}
-            onClick={() => useStore.getState().setScoreViewMode(NEXT_SCORE_MODE[scoreViewMode])}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: GROUP_PAD, background: 'none', border: 'none', cursor: hasScore ? 'pointer' : 'default', opacity: hasScore ? 1 : 0.4, color: hasScore && scoreViewMode !== 'roll' ? 'var(--text-amber)' : 'var(--text-muted)' }}>
-            <Music2 size={24} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>SCORE</span>
-          </button>
-        </Tooltip>
-
-        {/* WAIT — the song moves only as the MIDI keyboard plays it */}
-        <Tooltip
-          title={waitForNotes ? t`Waiting for your notes` : t`Wait for notes`}
-          description={t`The song plays and holds at each note until you play it on your MIDI keyboard. Hide or mute a track to leave its notes out.`}
-          placement="bottom"
-          wrapperStyle={{ flexShrink: 0 }}
-        >
-          <button className="app-no-drag" disabled={!midi} aria-label={t`Wait for notes`} aria-pressed={waitForNotes}
-            onClick={() => useStore.getState().setWaitForNotes(!waitForNotes)}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: GROUP_PAD, background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: waitForNotes ? 'var(--text-amber)' : 'var(--text-muted)' }}>
-            <Hourglass size={24} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>WAIT</span>
-          </button>
-        </Tooltip>
-
-        {/* LEVEL — how much of the song you're asked to play; a tap moves to the next */}
-        <Tooltip
-          title={practiceLevel === 0 ? t`Auto level` : practiceLevel === 5 ? t`Level 5 of 5: every note` : t`Level ${practiceLevel} of 5`}
-          description={t`1 is the melody on the beats, 2 the whole melody, 3 adds the bass, 4 both hands with simpler chords, 5 everything. A sets each four bars by how you play them: two clean passes go up, a rough one goes down. Tap for the next level.`}
-          placement="bottom"
-          wrapperStyle={{ flexShrink: 0 }}
-        >
-          <button className="app-no-drag" disabled={!midi} aria-label={practiceLevel === 0 ? t`Practice level automatic` : t`Practice level ${practiceLevel} of 5`}
-            onClick={() => useStore.getState().setPracticeLevel((practiceLevel + 1) % 6)}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: practiceLevel < 5 ? 'var(--text-amber)' : 'var(--text-muted)' }}>
-            <span style={{ fontSize: 20, lineHeight: '24px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{practiceLevel === 0 ? 'A' : practiceLevel}</span>
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>{phraseResult ? `${phraseResult.percent}%` : 'LEVEL'}</span>
-          </button>
-        </Tooltip>
-
-        <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
-
-        {/* MIDI — the keyboard being played; click opens its settings */}
-        <Tooltip
-          title={midiDeviceConnected ? midiDeviceName : t`No connected keyboards`}
-          description={midiDeviceConnected
-            ? (midiOthers ? t`Also connected: ${midiOthers}` + '\n' + t`Click for MIDI keyboard settings.` : t`Ready to play. Click for MIDI keyboard settings.`)
-            : t`Connect one by USB. Click to \nopen MIDI keyboard settings.`}
-          placement="bottom"
-          wrapperStyle={{ flexShrink: 0 }}
-        >
-          <button className="app-no-drag" onClick={() => useStore.getState().openSettingsWindow('midi')} aria-label={t`MIDI keyboard settings`}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: GROUP_PAD, background: 'none', border: 'none', cursor: 'pointer', color: midiDeviceConnected ? 'var(--topbar-midi-on)' : 'var(--topbar-midi-off)' }}>
-            <MidiIcon size={24} color={midiDeviceConnected ? 'var(--topbar-midi-on)' : 'var(--topbar-midi-off)'} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: midiDeviceConnected ? '0.08em' : '0.05em', color: midiDeviceConnected ? 'var(--topbar-midi-on)' : 'var(--topbar-midi-off)', lineHeight: 1, marginTop: 6, whiteSpace: 'nowrap' }}>
-              {midiDeviceConnected ? shortName(midiActiveKey || midiDeviceName) : 'NO KEYBOARD'}
-            </span>
-          </button>
-        </Tooltip>
-
-
-      </div>
-      </div>
     </div>
-  )
-}
-
-const NEXT_SCORE_MODE = { roll: 'both', both: 'score', score: 'roll' } as const
-
-const METRO_MENU_WIDTH = 150
-
-// ── Metronome right-click — click volume (0–150%) and count-in (on/off +
-// 1–4 bars), both remembered between sessions. ───────────────────────────
-function MetronomeMenu({ x, y, onClose }: { x: number; y: number; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const volume = useStore((s) => s.metronomeVolume)
-  const setVolume = useStore((s) => s.setMetronomeVolume)
-  const countInEnabled = useStore((s) => s.countInEnabled)
-  const setCountInEnabled = useStore((s) => s.setCountInEnabled)
-  const countInBars = useStore((s) => s.countInBars)
-  const setCountInBars = useStore((s) => s.setCountInBars)
-  useMenuDismiss(true, ref, onClose)
-  const head: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }
-  const pill = (on: boolean): React.CSSProperties => ({
-    flex: 1, padding: '2px 0', fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer', borderRadius: 'var(--radius-sm)',
-    background: on ? 'var(--accent-amber-subtle)' : 'none', color: on ? 'var(--text-amber)' : 'var(--text-default)',
-    border: `1px solid ${on ? 'var(--accent-amber-strong)' : 'var(--border)'}`,
-  })
-  return (
-    <ContextMenu ref={ref} x={x} y={y} minWidth={METRO_MENU_WIDTH} ariaLabel={t`Metronome options`} className="app-no-drag">
-      <div style={{ width: METRO_MENU_WIDTH, boxSizing: 'border-box', padding: '4px 10px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={head}>
-          <span>{t`Volume`}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-amber)' }}>{Math.round(volume * 100)}%</span>
-        </div>
-        <input
-          type="range" min={0} max={150} step={5} value={Math.round(volume * 100)}
-          onChange={(e) => setVolume(Number(e.target.value) / 100)}
-          aria-label={t`Metronome volume`}
-          style={{ width: '100%', accentColor: 'var(--text-amber)' }}
-        />
-      </div>
-      <ContextMenuItem onClick={() => setVolume(1)} disabled={volume === 1}>{t`Reset to 100%`}</ContextMenuItem>
-      <ContextMenuDivider />
-      <div style={{ width: METRO_MENU_WIDTH, boxSizing: 'border-box', padding: '4px 10px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={head}>
-          <span>{t`Count-in`}</span>
-          <button
-            role="switch" aria-checked={countInEnabled} aria-label={t`Count-in`}
-            onClick={() => setCountInEnabled(!countInEnabled)}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: countInEnabled ? 'var(--text-amber)' : 'var(--text-muted)' }}
-          >{countInEnabled ? t`ON` : t`OFF`}</button>
-        </div>
-        {countInEnabled && (
-          <>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {[1, 2, 3, 4].map(n => (
-                <button key={n} onClick={() => setCountInBars(n)} aria-label={t`${n} bars`} style={pill(countInBars === n)}>{n}</button>
-              ))}
-            </div>
-            <span style={{ fontSize: 9, color: 'var(--text-faint)', lineHeight: 1.3 }}>{t`Bars of clicks before Play`}</span>
-          </>
-        )}
-      </div>
-    </ContextMenu>
   )
 }
 
@@ -940,14 +471,11 @@ function DebugCopyItem({ idleLabel, logTag, buildText, onDone }: {
 
 // ── The tempo number: double-click to type one, Enter or clicking away sets
 // it, Escape keeps the old one. Same size as the number, so nothing shifts. ──
-function BpmValue({ shown, changed, disabled, onType }: {
-  shown: string; changed: boolean; disabled: boolean; onType: (text: string) => void
+function BpmValue({ shown, disabled, onType }: {
+  shown: string; disabled: boolean; onType: (text: string) => void
 }) {
   const [draft, setDraft] = useState<string | null>(null)
-  const style: React.CSSProperties = {
-    color: changed ? 'var(--text-amber)' : 'var(--text-active)', fontFamily: 'var(--font-mono)',
-    fontSize: 20, fontWeight: 700, minWidth: 36, textAlign: 'right', lineHeight: 1,
-  }
+  const style: React.CSSProperties = { font: 'inherit', color: 'inherit', textAlign: 'center' }
   if (draft === null) {
     return <span onDoubleClick={disabled ? undefined : () => setDraft(shown)} style={style}>{shown}</span>
   }
@@ -970,12 +498,10 @@ function BpmValue({ shown, changed, disabled, onType }: {
         if (e.key === 'Enter') finish(true)
         else if (e.key === 'Escape') finish(false)
       }}
-      style={{ ...style, width: `max(36px, ${shown.length}ch)`, height: 20, padding: 0, border: 'none', outline: 'none', background: 'var(--bg-input, transparent)', boxShadow: '0 1px 0 var(--text-amber)' }}
+      style={{ ...style, width: `max(44px, ${shown.length}ch)`, height: 20, padding: 0, border: 'none', outline: 'none', background: 'none', boxShadow: '0 1px 0 var(--accent)' }}
     />
   )
 }
-
-const STEPPER_SIZE = touchScreen ? { width: 32, height: 24 } : { width: 16, height: 13 }
 
 // Long-press button: single click = +1, hold = accelerating repeat
 function LongPressArrow({ children, onStep, disabled, title, description }: {
@@ -1008,21 +534,7 @@ function LongPressArrow({ children, onStep, disabled, title, description }: {
   useEffect(() => () => stop(), [])
 
   const button = (
-    <button
-      disabled={disabled}
-      onMouseDown={start}
-      onMouseUp={stop}
-      onMouseLeave={stop}
-      style={{
-        ...STEPPER_SIZE, background: 'var(--bg-tile)',
-        color: disabled ? 'var(--text-dim-control)' : 'var(--text-amber)',
-        border: 'none', borderRadius: 'var(--radius-sm)',
-        cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.25 : 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        userSelect: 'none',
-      }}
-    >
+    <button className="pr-step" disabled={disabled} aria-label={title} onMouseDown={start} onMouseUp={stop} onMouseLeave={stop}>
       {children}
     </button>
   )
@@ -1032,46 +544,16 @@ function LongPressArrow({ children, onStep, disabled, title, description }: {
 function ArrowBtn({ children, onClick, disabled, title, description }: {
   children: React.ReactNode; onClick?: () => void; disabled?: boolean; title?: string; description?: string
 }) {
-  const button = (
-    <button onClick={onClick} disabled={disabled}
-      style={{
-        ...STEPPER_SIZE, background: 'var(--bg-tile)',
-        color: disabled ? 'var(--text-dim-control)' : 'var(--text-amber)',
-        border: 'none', borderRadius: 'var(--radius-sm)',
-        cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.25 : 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      {children}
-    </button>
-  )
+  const button = <button className="pr-step" onClick={onClick} disabled={disabled} aria-label={title}>{children}</button>
   return title ? <Tooltip title={title} description={description} placement="bottom">{button}</Tooltip> : button
 }
 
-function TBtn({ children, onClick, disabled, accent, active, blink, title, description, large, oneLine }: {
-  children: React.ReactNode; onClick?: () => void; disabled?: boolean
-  accent?: boolean; active?: boolean; blink?: boolean; title?: string; description?: string; large?: boolean; oneLine?: boolean
+function TBtn({ children, onClick, disabled, title, description }: {
+  children: React.ReactNode; onClick?: () => void; disabled?: boolean; title: string; description?: string
 }) {
-  const sz = touchScreen ? (large ? 52 : 48) : (large ? 44 : 32)
-  const isAmber = active || accent || blink
-  const button = (
-    <button onClick={onClick} disabled={disabled}
-      className={[blink && 'loop-nudge-blink', accent && 'tbtn-play', active && 'tbtn-loop-on'].filter(Boolean).join(' ') || undefined}
-      style={{
-        width: sz, height: sz,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 'var(--radius-md)', border: 'none', background: 'transparent',
-        color: isAmber ? 'var(--text-amber)' : 'var(--text-default)',
-        opacity: disabled ? 0.2 : 1,
-        cursor: disabled ? 'default' : 'pointer',
-        transition: blink ? undefined : 'color 0.1s',
-      }}
-      onMouseEnter={accent ? undefined : e => { if (!disabled) e.currentTarget.style.color = 'var(--text-amber)' }}
-      onMouseLeave={accent ? undefined : e => { e.currentTarget.style.color = isAmber ? 'var(--text-amber)' : 'var(--text-default)' }}
-    >
-      {children}
-    </button>
+  return (
+    <Tooltip title={title} description={description} placement="bottom" oneLine={!description}>
+      <button className="pr-tbtn" onClick={onClick} disabled={disabled} aria-label={title}>{children}</button>
+    </Tooltip>
   )
-  return title ? <Tooltip title={title} description={description} placement="bottom" oneLine={oneLine}>{button}</Tooltip> : button
 }

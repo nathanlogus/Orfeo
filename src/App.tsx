@@ -1,10 +1,13 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
+import './styles/redesign-practice.css'
 import TopBar from './components/Transport/TopBar'
+import PracticeRail from './components/Transport/PracticeRail'
+import PresentationBar from './components/Transport/PresentationBar'
 import PianoRoll from './components/PianoRoll/PianoRoll'
 import ScoreView from './components/ScoreView'
 import { isScoreFor } from './utils/scoreSource'
 import Keyboard from './components/Keyboard/Keyboard'
-import KeyboardControls from './components/Keyboard/KeyboardControls'
+import KeyboardControls, { StepPill } from './components/Keyboard/KeyboardControls'
 import TrackPanel from './components/TrackPanel/TrackPanel'
 import SettingsPanel from './components/SettingsPanel/SettingsPanel'
 import SettingsWindow from './components/Settings/SettingsWindow'
@@ -56,6 +59,7 @@ import { CountInOverlay } from './components/CountInOverlay'
 import { useSupportNoteService } from './hooks/useSupportNote'
 import { isExporting } from './audio/exportAudio'
 import { SupportNote } from './components/SupportNote'
+import { t } from './utils/i18n'
 
 export default function App() {
   // ── Update status + sound-set progress: one listener each for the app's
@@ -84,6 +88,10 @@ export default function App() {
   // the Note Editor draws on the roll, so it always gets it
   const showScore = !!scoreBytes && scoreViewMode !== 'roll' && !noteEditorActive
   const showRoll = !showScore || scoreViewMode === 'both'
+  // Home covers the whole window: the practice rail and bars step aside for it
+  const homeVisible = !midi || homeOpen
+  // With the roll's own playbar hidden, notes land on the keys: this line marks it
+  const playbarVisible = useStore((s) => s.playbarVisible)
   const { openFile } = useMidiFile()
   const { play, pause, stop } = usePlayback()
   useAudioEngine()
@@ -515,12 +523,18 @@ export default function App() {
   useEffect(() => { if (midi) useStore.getState().setHomeOpen(false) }, [midi])
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: 'var(--bg-modal-header)', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-ui)' }}>
+    <div style={{ width: '100vw', height: '100vh', background: 'var(--ui-floor)', overflow: 'hidden', display: 'flex', fontFamily: 'var(--font-ui)' }}>
+
+      {!presentationMode && !homeVisible && <PracticeRail />}
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ── Presentation Mode: TopBar slides in from top on hover ─────────────
-          In normal mode TopBar is in-flow; in PM it becomes a fixed overlay. ── */}
+          In normal mode TopBar is in-flow; in PM it becomes a fixed overlay.
+          On Home it only hides: it carries the tap-tempo and tempo-trust hooks. ── */}
       {presentationMode ? (
         <>
+          <PresentationBar />
           {/* Hover zone — 8px strip at top edge that reveals the header ────── */}
           <div
             style={{
@@ -549,16 +563,10 @@ export default function App() {
             }}
           >
             <TopBar />
-            <div style={{ height: 1, background: 'var(--state-hover-bg)' }} />
           </div>
         </>
       ) : (
-        <>
-          <TopBar />
-          {/* ── Full-width separator — sibling to TopBar so it renders below the ─
-              Electron native title-bar chrome and spans all columns reliably ── */}
-          <div style={{ height: 1, background: 'var(--state-hover-bg)', flexShrink: 0 }} />
-        </>
+        <div style={{ display: homeVisible ? 'none' : 'block', flexShrink: 0 }}><TopBar /></div>
       )}
 
       {/* ── Drop zone — spans the full area below TopBar including both drawers ── */}
@@ -572,11 +580,23 @@ export default function App() {
         {!presentationMode && <SettingsPanel />}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
           {lessonActive && <LessonBanner />}
-          <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', paddingTop: 6, display: 'flex', flexDirection: 'column' }}>
+          <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+            {showScore && (
+              <div className="pr-score-bar">
+                <span className="o-note">{t`Tap a note to jump there`}</span>
+                <div className="o-seg" role="group" aria-label={t`View`}>
+                  {([['roll', t`Roll`], ['score', t`Score`], ['both', t`Both`]] as const).map(([mode, label]) => (
+                    <button key={mode} aria-pressed={scoreViewMode === mode} onClick={() => useStore.getState().setScoreViewMode(mode)}>{label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             {showScore && <ScoreView bytes={scoreBytes} style={{ flex: showRoll ? '0 0 50%' : 1 }} />}
             {showRoll && midi && <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div>}
+            {!presentationMode && <StepPill />}
             <CountInOverlay />
           </div>
+          {!playbarVisible && <div className="pr-playbar" aria-hidden="true" />}
           {keyboardMode === 'docked' && <Keyboard />}
           {keyboardMode === 'docked' && <KeyboardControls />}
         </div>
@@ -589,14 +609,18 @@ export default function App() {
         {isDragOver && (
           <div style={{
             position: 'absolute', inset: 0,
-            border: '2px solid var(--text-amber)',
-            borderRadius: 4,
+            border: '2px solid var(--accent)',
+            borderRadius: 5,
             background: 'var(--accent-amber-tint-bg)',
             pointerEvents: 'none',
             zIndex: 9000,
           }} />
         )}
       </div>
+      </div>
+
+      {/* TopBar is the window's drag handle; with it hidden, this keeps the window movable */}
+      {homeVisible && <div className="app-drag-region" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 16, zIndex: 61 }} />}
 
       {keyboardMode === 'floating' && <FloatingKeyboard />}
       <SettingsWindow />
@@ -612,18 +636,13 @@ export default function App() {
         <Tooltip title="Dismiss" description="Click anywhere on this message to close it.">
         <div
           role="alert"
+          className="o-toast"
           onClick={() => {
             if (dropErrorTimer.current) clearTimeout(dropErrorTimer.current)
             setDropError(null)
           }}
-          style={{
-            position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--bg-panel2)', border: '1px solid var(--drag-handle-dot)',
-            borderRadius: 6, padding: '8px 18px',
-            color: 'var(--text-default)', fontSize: 'var(--text-sm)',
-            cursor: 'pointer', zIndex: 9900,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-          }}>
+          style={{ cursor: 'pointer' }}>
+          <span className="o-dot o-dot-alert" />
           {dropError}
         </div>
         </Tooltip>
@@ -633,16 +652,7 @@ export default function App() {
           Appearance control, no click-to-dismiss (it clears itself quickly
           and carries nothing worth pausing to read/dismiss). ─────────────── */}
       {zoomHint && (
-        <div
-          role="status"
-          style={{
-            position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--bg-panel2)', border: '1px solid var(--drag-handle-dot)',
-            borderRadius: 6, padding: '8px 18px',
-            color: 'var(--text-default)', fontSize: 'var(--text-sm)',
-            pointerEvents: 'none', zIndex: 9900,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-          }}>
+        <div role="status" className="o-toast" style={{ pointerEvents: 'none' }}>
           {zoomHint}
         </div>
       )}

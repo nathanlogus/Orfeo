@@ -1655,187 +1655,43 @@ export default function SettingsPanel() {
   // ── Update check, app zoom, sound sets: shared with the Settings window ──
   const settingsPanelOpen = useStore((s) => s.settingsPanelOpen)
   const setSettingsPanelOpen = useStore((s) => s.setSettingsPanelOpen)
-  const [activeTab, setActiveTab] = useState<DrawerTab>('library')
-  const didInit = useRef(false)
-  // ── Init — ensures panel is open on first mount ───────────────────────────
-  useEffect(() => {
-    if (!didInit.current) { didInit.current = true; if (!settingsPanelOpen) setSettingsPanelOpen(true) }
-  }, [])
+  const [activeTab, setActiveTab] = useState<DrawerTab>('settings')
+  const close = () => setSettingsPanelOpen(false)
 
-
-
-
+  // Closed, it only hides: the Library stays mounted from startup, with its
+  // scroll, search and folder state.
   return (
-    <div className="touch-hit" style={{
-      // Match TrackPanel width exactly: 260px open, 32px collapsed (44 on a touch screen)
-      width: settingsPanelOpen ? 260 : (touchScreen ? 44 : 32),
-      background: 'var(--bg-modal)',
-      borderRight: '1px solid var(--border2)',
-      transition: 'width 0.2s ease',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      flexShrink: 0,
-      position: 'relative',
-    }}>
-      {/* ── Closed state: 3-icon column ────────────────────────────────────── */}
-      {!settingsPanelOpen && (
-        <div className="touch-big" style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          height: '100%', paddingTop: 10, paddingBottom: 10,
-        }}>
-          <Tooltip title="Open Library" description="Browse and load MIDI files from your library folder.">
-          <button
-            onClick={() => { setActiveTab('library'); setSettingsPanelOpen(true) }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-dimmest)', padding: 4,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dimmest)'}
-          >
-            <Library size={18} />
-          </button>
-          </Tooltip>
-          <Tooltip title={t`Open Setup`} description={t`The everyday switches — sound engine, note names, keyboard, piano roll and more.`}>
-          <button
-            onClick={() => { setActiveTab('settings'); setSettingsPanelOpen(true) }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-dimmest)', padding: 4, marginTop: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dimmest)'}
-          >
-            <Settings2 size={18} />
-          </button>
-          </Tooltip>
-          <div style={{ flex: 1 }} />
-          <Tooltip title="Coming soon" oneLine>
-          <button
-            style={{
-              background: 'none', border: 'none', cursor: 'default',
-              color: 'var(--text-inactive)', padding: 4, opacity: 0.5,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Info size={18} />
-          </button>
-          </Tooltip>
+    <>
+      {settingsPanelOpen && <div className="pr-setup-scrim" onClick={close} />}
+      <aside className="pr-setup theme-paper touch-hit" aria-label={t`Setup`} hidden={!settingsPanelOpen}>
+        <div className="pr-setup-head">
+          <div>
+            <h2>{activeTab === 'settings' ? t`Setup` : t`Library`}</h2>
+            <span className="o-note" style={{ fontSize: 15 }}>{activeTab === 'settings' ? t`The everyday switches, without leaving the song.` : t`Browse and load MIDI files from your library folder.`}</span>
+          </div>
+          <button className="o-close" aria-label={t`Close`} onClick={close}><X size={18} strokeWidth={2} /></button>
         </div>
-      )}
 
-      {settingsPanelOpen && (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-
-          {/* ── Collapse button: chevron only, dynamic tooltip ────────────────── */}
-          <Tooltip title="Close panel" placement="left" oneLine>
-          <button
-            onClick={() => setSettingsPanelOpen(false)}
-            style={{
-              position: 'absolute', top: touchScreen ? 2 : 10, right: 0, zIndex: 10,
-              padding: '4px 5px', borderRadius: '4px 0 0 4px',
-              ...(touchScreen ? { width: 44, height: 44 } : {}),
-              background: 'var(--bg-tile)', border: '1px solid var(--border2)', borderRight: 'none',
-              color: 'var(--text-dimmest)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dimmest)'}
-          >
-            <ChevronLeft size={15} />
-          </button>
-          </Tooltip>
-
-          {/* ── Tab bar: Library / Settings, left-aligned with content ─────── */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-            {([
-              { id: 'library',  icon: <Library size={16} />,  label: 'Library'  },
-              { id: 'settings', icon: <Settings2 size={16} />, label: t`Setup` },
-            ] as { id: DrawerTab; icon: React.ReactNode; label: string }[]).map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  flex: 1, height: touchScreen ? 48 : 40,
-                  display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
-                  paddingLeft: 'var(--space-3)', gap: 5,
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  borderBottom: activeTab === tab.id ? '2px solid var(--text-amber)' : '2px solid transparent',
-                  color: activeTab === tab.id ? 'var(--text-amber)' : 'var(--text-inactive)',
-                  fontSize: 12, fontWeight: 600,
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  transition: 'color 0.15s',
-                }}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* ── Open settings — pinned at the top of Setup, never scrolls away ── */}
-          {activeTab === 'settings' && (
-            <div style={{ flexShrink: 0, padding: '8px 14px', borderBottom: '1px solid var(--bg-tile)' }}>
-              <button onClick={() => useStore.getState().openSettingsWindow()}
-                style={{ width: '100%', minHeight: touchScreen ? 44 : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '7px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                  border: '1px solid var(--accent-amber-strong)', background: 'var(--accent-amber-medium)', color: 'var(--text-amber)',
-                  fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-ui)' }}>
-                <Settings size={13} strokeWidth={1.5} /> {t`Open settings`}
-              </button>
-            </div>
-          )}
-
-          {/* Panel content */}
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            {/* Library stays mounted behind Setup so its scroll, search and
-                folder state are still there when you switch back */}
-            <LibraryPanel hidden={activeTab !== 'library'} />
-            {activeTab === 'settings' && (
-              <div className="touch-settings" style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-
-                <QuickSettings />
-              </div>
-            )}
-          </div>
-
-          {/* ── Manual link + update check — always visible at drawer bottom ── */}
-          <div style={{
-            flexShrink: 0,
-            borderTop: '1px solid var(--bg-tile)',
-            padding: touchScreen ? '0 14px' : '8px 14px',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }} className="touch-big">
-            <Tooltip title="Open user manual" oneLine wrapperStyle={{ flex: 1, minWidth: 0 }}>
-            <button
-              onClick={() => window.electronAPI.openExternal('https://orfeo.cc/docs')}
-              style={{
-                flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 7,
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', padding: '4px 0', justifyContent: 'flex-start',
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-            >
-              <BookOpen size={11} strokeWidth={1.5} />
-              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>User Manual</span>
-            </button>
-            </Tooltip>
-            <DevModeBadge />
-            <RateButton />
-            <UpdateButton />
-          </div>
-
+        <div className="o-seg" role="group" aria-label={t`Drawer`} style={{ display: 'flex', flexShrink: 0 }}>
+          <button aria-pressed={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>{t`Setup`}</button>
+          <button aria-pressed={activeTab === 'library'} onClick={() => setActiveTab('library')}>{t`Library`}</button>
         </div>
-      )}
-    </div>
+
+        <div className="pr-setup-body">
+          <LibraryPanel hidden={activeTab !== 'library'} />
+          {activeTab === 'settings' && <div className="pr-setup-card touch-settings"><QuickSettings /></div>}
+        </div>
+
+        <div className="pr-setup-foot">
+          <button className="pr-setup-black" onClick={() => useStore.getState().openSettingsWindow()}>{t`All settings`}</button>
+          <button className="o-btn o-btn-lg" style={{ height: 'var(--control-h-lg)' }} onClick={() => window.electronAPI.openExternal('https://orfeo.cc/docs')}>{t`User manual`}</button>
+        </div>
+        <div className="pr-setup-meta touch-big">
+          <DevModeBadge />
+          <RateButton />
+          <UpdateButton />
+        </div>
+      </aside>
+    </>
   )
 }
-
-
