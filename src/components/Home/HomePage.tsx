@@ -149,14 +149,14 @@ export default function HomePage() {
   const showConnect = isServer && !connected
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', background: 'var(--bg-modal-header)', color: 'var(--text-default)' }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', borderBottom: '1px solid var(--border2)' }}>
+      <header className="orfeo-rise-in" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', borderBottom: '1px solid var(--border2)' }}>
         <FaceTheMusicMark width={150} fill="var(--text-amber)" />
         <label className="home-search">
           <Search size={15} aria-hidden />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder={t`Search songs and artists`} aria-label={t`Search songs and artists`} />
           {q && <button onClick={() => setQ('')} aria-label={t`Clear search`}><X size={14} /></button>}
         </label>
-        <div role="tablist" style={{ display: 'flex', gap: 4 }}>
+        <div role="tablist" className="home-tabs">
           <button role="tab" aria-selected={!isServer} className="home-tab" onClick={() => switchSource('device')}>{t`This device`}</button>
           <button role="tab" aria-selected={isServer} className="home-tab" onClick={() => switchSource('server')}>{t`Home server`}</button>
         </div>
@@ -178,7 +178,7 @@ export default function HomePage() {
         </form>
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-          <nav aria-label={t`Filters`} style={{ width: 240, flexShrink: 0, overflowY: 'auto', padding: '12px 10px', borderRight: '1px solid var(--border2)' }}>
+          <nav aria-label={t`Filters`} className="orfeo-rise-in orfeo-rise-in-2" style={{ width: 240, flexShrink: 0, overflowY: 'auto', padding: '12px 10px', borderRight: '1px solid var(--border2)' }}>
             <h3 className="home-heading">{isServer ? t`Genre` : t`Folder`}</h3>
             <FilterButton label={t`All`} active={!genre} onClick={() => { setGenre(null); setArtist(null) }} />
             {genreOptions.map(g => <FilterButton key={g.name} label={isServer ? genreLabel(g.name) : g.name} count={g.count} active={genre === g.name} onClick={() => { setGenre(genre === g.name ? null : g.name); setArtist(null); setDeviceShown(PAGE) }} />)}
@@ -190,7 +190,7 @@ export default function HomePage() {
             </>}
           </nav>
 
-          <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <main className="orfeo-rise-in orfeo-rise-in-3" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 40, padding: '6px 16px', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
               <span aria-live="polite">{total === 1 ? t`1 song` : `${total.toLocaleString()} ${t`songs`}`}</span>
               {loading && isServer && <Loader2 size={13} className="home-spin" aria-label={t`Loading`} />}

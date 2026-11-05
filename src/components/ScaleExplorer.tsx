@@ -31,6 +31,7 @@ import CofTitleMark from './CofTitleMark'
 import StarmapRing, { type LitChord } from './Starmap/StarmapRing'
 import { STAR_MIN_NOTES, STAR_MAX_NOTES, type RingLayout } from '../utils/starmap'
 import { t } from '../utils/i18n'
+import { touchScreen } from '../utils/touchScreen'
 
 // ── Modal dimensions — explorer area on the left, settings column on the
 // right. The modal opens centred on the window with its bottom edge just
@@ -933,7 +934,8 @@ export default function ScaleExplorer() {
       role="dialog"
       aria-modal="true"
       aria-label="Scales Explorer"
-      className="orfeo-modal-glow app-no-drag"
+      data-instant
+      className="orfeo-modal-glow app-no-drag touch-explorer"
       style={{
         position: 'fixed',
         left: pos.x,
@@ -953,7 +955,7 @@ export default function ScaleExplorer() {
     >
       {/* Header — drag handle */}
       <div onPointerDown={onDragStart} style={{ touchAction: 'none',
-        flexShrink: 0, height: 36, display: 'flex', alignItems: 'center',
+        flexShrink: 0, height: touchScreen ? 44 : 36, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 var(--space-3)',
         background: 'var(--bg-modal-header)', borderBottom: '1px solid var(--border)',
         cursor: 'grab', userSelect: 'none',

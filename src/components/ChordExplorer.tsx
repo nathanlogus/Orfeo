@@ -30,6 +30,7 @@ import {
 import ChevronPlayIcon from './ChevronPlayIcon'
 import ExplorerOctaveControl from './ExplorerOctaveControl'
 import { t } from '../utils/i18n'
+import { touchScreen } from '../utils/touchScreen'
 import {
   COMMON_CHORDS, ALL_CHORDS, FULL_CHORD_TYPES, type ChordInfo,
 } from '../utils/chordVocabulary'
@@ -645,7 +646,7 @@ export default function ChordExplorer() {
   const activeProg = selectedProg !== null ? ALL_PROGRESSIONS[selectedProg] : null
 
   return (
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" className="orfeo-modal-glow app-no-drag" style={{
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="orfeo-modal-glow app-no-drag touch-explorer" style={{
       position: 'fixed',
       left: pos.x,
       top: pos.y,
@@ -665,7 +666,7 @@ export default function ChordExplorer() {
         onPointerDown={startDrag}
         style={{
           touchAction: 'none',
-          height: 36, flexShrink: 0,
+          height: touchScreen ? 44 : 36, flexShrink: 0,
           background: 'var(--bg-modal-header)',
           borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',

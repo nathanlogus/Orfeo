@@ -414,7 +414,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
                 style={{
                   flexShrink: 0, background: 'none', border: '1px solid var(--border2)', borderRadius: 4,
                   padding: '3px 5px', display: 'flex', alignItems: 'center',
-                  color: 'var(--text-dim-control)', cursor: 'pointer', transition: 'all 0.12s',
+                  color: 'var(--text-dim-control)', cursor: 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim-control)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
@@ -460,7 +460,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
                 style={{
                   flex: 1, padding: '6px 0', borderRadius: 'var(--radius-md)',
                   background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
+                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
@@ -484,7 +484,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
                 style={{
                   width: '100%', padding: '6px 0', borderRadius: 'var(--radius-md)',
                   background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: noteEditorActive ? 'default' : 'pointer', transition: 'all 0.12s',
+                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: noteEditorActive ? 'default' : 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
                   opacity: noteEditorActive ? 0.4 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
@@ -508,7 +508,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
                 style={{
                   width: '100%', padding: '6px 0', borderRadius: 'var(--radius-md)',
                   background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)',
-                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: noteEditorActive ? 'default' : 'pointer', transition: 'all 0.12s',
+                  fontSize: 'var(--text-sm)', fontWeight: 600, cursor: noteEditorActive ? 'default' : 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
                   opacity: noteEditorActive ? 0.4 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}

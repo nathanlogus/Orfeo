@@ -7,12 +7,16 @@ import MixerKnob from './MixerKnob'
 import PianoKeysIcon from '../PianoKeysIcon'
 import Tooltip, { TooltipBox } from '../Tooltip'
 import { MarqueeText } from '../MarqueeText'
+import { touchScreen } from '../../utils/touchScreen'
 import {
   setChannelChorus,
   setChannelReverb,
   setChannelPan,
   setChannelVolume,
 } from '../../audio/engine'
+
+// Four finger-sized buttons need a wider strip
+export const CHANNEL_STRIP_W = touchScreen ? 184 : 120
 
 // ── VU meter constants ────────────────────────────────────────────────────────
 const SEG_H    = 4    // segment height in CSS px
@@ -79,7 +83,7 @@ function IBtn({ children, onClick, active, title, description, activeColor = 'va
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 26, height: 26, background: 'transparent',
+        width: touchScreen ? 42 : 26, height: touchScreen ? 44 : 26, background: 'transparent',
         border: `1.5px solid ${active ? activeColor : 'var(--border2)'}`,
         cursor: 'pointer', borderRadius: 4, transition: 'color 0.1s, border-color 0.1s',
         color: active ? activeColor : 'var(--text-icon-inactive)', flexShrink: 0,
@@ -311,7 +315,7 @@ export default function ChannelStrip({ trackIndex, locked, isDragging, onDragSta
       onDragOver={!locked ? (e) => e.preventDefault() : undefined}
       onDrop={!locked ? (e) => { e.preventDefault(); onDrop?.() } : undefined}
       style={{
-        width: 120, height: 574, flexShrink: 0,
+        width: CHANNEL_STRIP_W, height: 574, flexShrink: 0,
         background: 'var(--bg-tile)',
         border: '1px solid var(--border2)',
         borderRadius: 'var(--radius-md)',
@@ -324,7 +328,7 @@ export default function ChannelStrip({ trackIndex, locked, isDragging, onDragSta
 
       {/* ── Track name bar ────────────────────────────────────────────────── */}
       <div style={{
-        height: 30, flexShrink: 0, display: 'flex', alignItems: 'center',
+        height: touchScreen ? 44 : 30, flexShrink: 0, display: 'flex', alignItems: 'center',
         borderBottom: '1px solid var(--border)', overflow: 'hidden',
       }}>
         <div style={{ width: 3, alignSelf: 'stretch', background: trackColor, flexShrink: 0 }} />
@@ -344,7 +348,7 @@ export default function ChannelStrip({ trackIndex, locked, isDragging, onDragSta
             style={{
               background: 'none', border: 'none', cursor: 'grab',
               color: 'var(--text-inactive)', display: 'flex', alignItems: 'center',
-              padding: '0 5px 0 2px', flexShrink: 0,
+              padding: '0 5px 0 2px', flexShrink: 0, height: '100%',
             }}
           >
             <GripVertical size={11} />
@@ -422,7 +426,7 @@ export default function ChannelStrip({ trackIndex, locked, isDragging, onDragSta
 
       {/* ── M / S / Eye / Keyboard buttons ───────────────────────────────── */}
       <div style={{
-        height: 46, flexShrink: 0,
+        height: touchScreen ? 48 : 46, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         gap: 3, padding: 0,
         position: 'relative', zIndex: 2,

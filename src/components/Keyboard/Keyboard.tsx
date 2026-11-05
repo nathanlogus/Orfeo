@@ -14,6 +14,7 @@ import Tooltip, { useTooltip } from '../Tooltip'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { outputLatencySec } from '../../audio/engine'
 import { isShown } from '../../utils/trackShown'
+import { touchScreen } from '../../utils/touchScreen'
 
 const HAND_LH = 'var(--hand-lh)'
 const HAND_RH = 'var(--hand-rh)'
@@ -650,8 +651,8 @@ export default function Keyboard() {
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* ── Chord bar — hidden in Presentation Mode; fixed 36px so toggling the
           prompter never shifts the row above it ── */}
-      {!presentationMode && <div data-keyboard-header style={{
-        height: 36,
+      {!presentationMode && <div data-keyboard-header className="touch-hit touch-chordbar" data-instant style={{
+        height: touchScreen ? 48 : 36,
         background: 'var(--bg-modal-header)',
         borderTop: '1px solid var(--border)',
         display: 'flex',

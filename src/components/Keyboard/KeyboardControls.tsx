@@ -3,6 +3,7 @@ import { useStore } from '../../store'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { stepEvents } from '../../utils/stepThrough'
 import { t } from '../../utils/i18n'
+import { touchScreen } from '../../utils/touchScreen'
 import Tooltip from '../Tooltip'
 import type { KeyboardSize } from '../../types'
 import { getWhiteKeys, noteToLeftPct, computeTaggedBoundaryCurve, interpolateTaggedCurve, type TaggedBoundarySample } from '../../utils/handBoundaries'
@@ -122,12 +123,14 @@ export default function KeyboardControls() {
   return (
     <div
       ref={rowRef}
+      className="touch-hit touch-big"
       style={{
-        height: 34,
+        height: touchScreen ? 48 : 34,
         background: 'var(--bg-modal-header)',
         borderTop: '1px solid var(--bg-tile)',
         display: 'grid',
-        gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)',
+        // Bigger buttons don't fit thirds of a bar that's between two panels
+        gridTemplateColumns: touchScreen ? 'minmax(0,auto) minmax(0,1fr) minmax(0,auto)' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)',
         alignItems: 'center',
         padding: '0 var(--space-4)',
         flexShrink: 0,
@@ -141,9 +144,10 @@ export default function KeyboardControls() {
             <Tooltip key={size} title={`Switch to ${size}-key layout`} oneLine>
             <button
               onClick={() => setKeyboardSize(size)}
+              aria-pressed={keyboardSize === size}
               style={{
-                padding: '2px var(--space-2)', borderRadius: 4,
-                background: 'transparent',
+                padding: '2px var(--space-2)', borderRadius: 'var(--radius-sm)',
+                background: keyboardSize === size ? 'var(--bg-tile)' : 'transparent',
                 color: keyboardSize === size ? 'var(--text-amber)' : 'var(--text-muted)',
                 border: 'none',
                 fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontWeight: 600,
@@ -203,11 +207,12 @@ export default function KeyboardControls() {
           line (below) is actively rendering; the line takes this spot instead. ── */}
       <div ref={hintCellRef} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', justifySelf: 'center', minWidth: 0 }}>
         {!practiceLineActive && !presentationMode && (
-          <span ref={hintRef} style={{ display: 'inline-flex', alignItems: 'center', gap: 28, transform: `translateX(${hintShift}px)` }}>
+          <span ref={hintRef} style={{ display: 'inline-flex', alignItems: 'center', gap: touchScreen ? 2 : 28, transform: `translateX(${hintShift}px)` }}>
             {stepThroughEnabled && <StepArrow dir={-1} enabled={hasSong} />}
-            <span style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--font-ui)', userSelect: 'none', whiteSpace: 'nowrap' }}>
+            {/* No Shift key on a tablet, and the bar has no room to spare */}
+            {!touchScreen && <span style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--font-ui)', userSelect: 'none', whiteSpace: 'nowrap' }}>
               Shift+Click three keys or more to build &amp; lock a chord
-            </span>
+            </span>}
             {stepThroughEnabled && <StepArrow dir={1} enabled={hasSong} />}
           </span>
         )}
@@ -305,7 +310,7 @@ function NoteCounter() {
   const midi = useStore((s) => s.midi)
   if (!midi) return null
   return (
-    <span style={{ color: 'var(--text-inactive)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>
+    <span style={{ color: 'var(--text-inactive)', fontSize: 10, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
       {midi.noteCount.toLocaleString()} notes · {midi.tracks.length} tracks
     </span>
   )

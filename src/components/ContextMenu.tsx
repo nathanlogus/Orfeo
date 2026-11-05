@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { touchScreen } from '../utils/touchScreen'
 
 // ── ContextMenu — shared shell for right-click popups (Library's file/folder
 // menus). Previously copy-pasted per call site with a muted `--drag-handle-
@@ -59,8 +60,9 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(function
       style={{
         position: 'fixed', top: pos.top, left: pos.left,
         background: 'var(--bg-tooltip)', border: '1px solid var(--accent-amber-strong)',
-        borderRadius: 'var(--radius-md)',
-        zIndex: 9500, minWidth, overflow: 'hidden', padding: '4px 0',
+        // concentric with the items: 5px + 4px inset + 1px border
+        borderRadius: 'var(--radius-lg)',
+        zIndex: 9500, minWidth, overflow: 'hidden', padding: 4,
         '--_modal-shadow': 'var(--elevation-popover)',
       } as React.CSSProperties}
     >
@@ -90,9 +92,9 @@ export function ContextMenuItem({ onClick, disabled, danger, children }: {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: '100%', padding: '8px 14px',
+        width: '100%', padding: touchScreen ? '13px 10px' : '8px 10px',
         background: active ? 'var(--bg-tile)' : 'none',
-        border: 'none',
+        border: 'none', borderRadius: 5,
         color: active ? (danger ? 'var(--status-protected)' : 'var(--text-amber)') : 'var(--text-default)',
         fontSize: 'var(--text-xs)',
         textAlign: 'left', cursor: disabled ? 'default' : 'pointer',
@@ -142,7 +144,7 @@ export function ContextMenuDivider() {
 
 export function ContextMenuLabel({ children }: { children: ReactNode }) {
   return (
-    <div style={{ padding: '6px 14px 2px', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+    <div style={{ padding: '6px 10px 2px', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
       {children}
     </div>
   )

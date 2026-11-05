@@ -315,11 +315,10 @@ button, input, select, textarea {
   --bg-input:  #58595b;   /* NEW — interactive surfaces: inputs, toggle pills */
   --bg-highlight: #aeb0b5; /* NEW — sparing use only: small interactive highlight details */
 
-  /* ── Borders — values unchanged, usage intentionally reduced app-wide ──── */
-  /* Kept for occasional/rare cases (selection outlines, focus states) —
-     general panel separation now comes from background layering instead. */
-  --border:    #1e1e28;
-  --border2:   #252530;
+  /* ── Borders — structure only; depth comes from the --elevation-* shadows.
+     Used sparingly: general panel separation comes from background layering. */
+  --border:    #23232e;
+  --border2:   #2c2c39;
 
   /* ── Text colours — remapped to new readable 7-step scale ──────────────── */
   /* Existing names kept identical so nothing breaks — values updated. */
@@ -380,10 +379,12 @@ button, input, select, textarea {
 --text-md: 0.875rem;   /* 14px — slightly emphasized text */
 --text-lg: 1rem;       /* 16px — headings, chord names */
 
-/* Border radius scale — consistent rounding across all elements */
---radius-sm: 3px;
---radius-md: 5px;
---radius-lg: 8px;
+/* Border radius scale — nested surfaces stay concentric: a box with an even
+   inset takes outer = inner + padding + border, so --radius-lg wraps a
+   --radius-sm child across 5px of padding and a 1px border. */
+--radius-sm: 4px;
+--radius-md: 6px;
+--radius-lg: 10px;
 
 /* Standard row/button heights */
 --row-height: 44px;
@@ -536,16 +537,15 @@ button, input, select, textarea {
 --status-protected-tint-bg: rgba(224, 90, 90, 0.10); /* same warning — hover tint background; RGB matches --status-protected */
 --status-low-confidence: #7a323c;   /* MidiEditor.tsx — low-confidence hand-split passage text/swatch/highlight */
 
-/* ── Elevation — named base shadows for floating panels ─────────────────────
-   Each was independently hand-rolled per component before this token set;
-   values are preserved as-is (no visual change), just given shared names so
-   future panels reuse one instead of inventing a new literal. */
---elevation-modal: 0 8px 40px rgba(0, 0, 0, 0.8);          /* ChordExplorer, MixerConsole, LockedChordModal */
---elevation-modal-heavy: 0 8px 40px rgba(0, 0, 0, 0.85);   /* MidiEditor */
---elevation-explorer: 0 8px 48px rgba(0, 0, 0, 0.85);      /* ScaleExplorer — wider blur */
---elevation-floating-light: 0 8px 40px rgba(0, 0, 0, 0.7); /* FloatingKeyboard */
---elevation-strip: 0 6px 20px rgba(0, 0, 0, 0.6);          /* LoopRegionStrip popup — smaller than a full modal */
---elevation-popover: 0 4px 16px rgba(0, 0, 0, 0.55);       /* SettingsPanel.tsx — dropdown/context-menu popovers */
+/* ── Elevation — named base shadows for floating panels. Layered: a tight
+   contact shadow, a mid one and a wide ambient one, so a panel sits on the
+   surface below it instead of floating in a single dark blur. */
+--elevation-modal: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.45), 0 20px 56px rgba(0, 0, 0, 0.6);          /* ChordExplorer, MixerConsole, LockedChordModal */
+--elevation-modal-heavy: 0 1px 2px rgba(0, 0, 0, 0.55), 0 8px 20px rgba(0, 0, 0, 0.5), 0 20px 56px rgba(0, 0, 0, 0.65);   /* MidiEditor */
+--elevation-explorer: 0 1px 2px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.65);      /* ScaleExplorer — wider blur */
+--elevation-floating-light: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.35), 0 20px 56px rgba(0, 0, 0, 0.5); /* FloatingKeyboard */
+--elevation-strip: 0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 20px rgba(0, 0, 0, 0.5);          /* LoopRegionStrip popup — smaller than a full modal */
+--elevation-popover: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.45);       /* SettingsPanel.tsx — dropdown/context-menu popovers */
 
 /* ── Utility classes ── */
 
@@ -559,6 +559,7 @@ button, input, select, textarea {
     var(--_modal-shadow, var(--elevation-modal)),
     0 0 18px 4px var(--accent-amber-medium),
     0 0 5px 1px var(--accent-amber-strong);
+  animation: orfeo-fade-in 0.12s ease-out backwards;
 }
 
 /* ── Amber range slider — transparent-amber fill over a gray track, solid
@@ -624,8 +625,10 @@ button, input, select, textarea {
   cursor: pointer;
   transition: color 0.15s;
 }
-.orfeo-button:hover {
-  color: var(--text-amber);
+@media (hover: hover) {
+  .orfeo-button:hover {
+    color: var(--text-amber);
+  }
 }
 .orfeo-button.active {
   color: var(--text-amber);
@@ -661,17 +664,39 @@ body {
   letter-spacing: 0.03rem;
 }
 
+/* A theme switch repaints everything at once: nothing eases through it */
+.theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
+
+/* Overlays keep their own scrolling to themselves */
+.orfeo-modal-glow, .orfeo-modal-glow * { overscroll-behavior: contain; }
+
+/* Numbers that change while you watch them don't jitter sideways */
+.orfeo-value { font-variant-numeric: tabular-nums; }
+
+/* ── Press feedback: a pressed button gives way a little. Only the press
+   itself is timed here, !important because many buttons carry their own
+   inline colour transition; the release uses whatever the button already has.
+   [data-instant] marks what's used while playing (transport, steppers, keys,
+   mixer, explorers), which stays instant and never shifts. */
+@media (prefers-reduced-motion: no-preference) {
+  button { transition: transform 150ms ease-out; }
+  button:active:not(:disabled):not([data-instant] *) {
+    transform: scale(0.96);
+    transition: transform 150ms ease-out !important;
+  }
+}
+
 /* ── Mixer Console — scrollable channel strip row ────────────────────────────
    Thin dark scrollbar; auto-shows only when content overflows.               */
 .mixer-scroll::-webkit-scrollbar        { height: 4px }
 .mixer-scroll::-webkit-scrollbar-track  { background: transparent }
 .mixer-scroll::-webkit-scrollbar-thumb  { background: var(--border2); border-radius: 2px }
-.mixer-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-dimmest) }
+@media (hover: hover) { .mixer-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-dimmest) } }
 
 /* ── Amber scrollbar — lists where the handle must stand out against the
    dark box (Scales Explorer progressions list). */
 .amber-scroll::-webkit-scrollbar-thumb       { background: var(--accent-amber-bold); border-radius: 3px }
-.amber-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-amber) }
+@media (hover: hover) { .amber-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-amber) } }
 
 /* ── TopBar's left/right cluster overflow fallback (see TopBar.tsx's own
    comments) — same "reachable via scroll, nothing hidden" guarantee as
@@ -697,30 +722,42 @@ body {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #252535; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #353548; }
+@media (hover: hover) { ::-webkit-scrollbar-thumb:hover { background: #353548; } }
 
-/* Range slider — used for scrub and BPM */
+/* Range slider — the scrub bar. Caller sets --fill (0%-100%) per render. */
 .scrub-slider {
   -webkit-appearance: none;
   appearance: none;
-  height: 3px;
-  border-radius: 2px;
-  background: #252535;
-  outline: none;
+  height: 16px;
+  background: transparent;
+  outline-offset: 0;
   cursor: pointer;
+}
+.scrub-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--text-amber) var(--fill, 0%),
+    var(--state-disabled) var(--fill, 0%)
+  );
 }
 .scrub-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
   border-radius: 50%;
-  background: #e8a027;
+  background: var(--text-amber);
   cursor: pointer;
-  transition: transform 0.1s;
-  border: 2px solid #0f0f12;
+  transition: transform 0.1s ease-out;
+  border: 2px solid var(--bg-deep);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
-.scrub-slider::-webkit-slider-thumb:hover { transform: scale(1.3); }
+@media (hover: hover) {
+  .scrub-slider:not(:disabled)::-webkit-slider-thumb:hover { transform: scale(1.3); }
+}
 .scrub-slider:disabled { opacity: 0.25; cursor: default; }
 
 /* Electron window drag regions */
@@ -744,6 +781,19 @@ textarea:focus-visible,
 ::-webkit-scrollbar-button { display: none; }
 .titlebar-button { background: transparent !important; }
 
+/* ── Entrances — one short sequence, once. What's measured as it opens
+   (the mixer, the explorers) only fades, so its position reads true. */
+@keyframes orfeo-fade-in { from { opacity: 0; } }
+@keyframes orfeo-rise-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes orfeo-settle-in { from { opacity: 0; transform: scale(0.98); } }
+:root .orfeo-settle-in { animation: orfeo-settle-in 0.18s ease-out backwards; }
+.orfeo-rise-in { animation: orfeo-rise-in 0.24s ease-out backwards; }
+.orfeo-rise-in-2 { animation-delay: 0.1s; }
+.orfeo-rise-in-3 { animation-delay: 0.2s; }
+@media (prefers-reduced-motion: reduce) {
+  :root .orfeo-settle-in, .orfeo-rise-in { animation-name: orfeo-fade-in; }
+}
+
 /* Loop nudge blink — pulses via filter so inline color styles are unaffected */
 @keyframes orfeo-loop-blink {
   0%, 100% { filter: brightness(1); }
@@ -761,8 +811,10 @@ textarea:focus-visible,
   0%, 15%   { transform: translateX(0); }
   85%, 100% { transform: translateX(var(--marquee-distance, 0)); }
 }
-.orfeo-marquee-track:hover .orfeo-marquee-text.is-overflowing {
-  animation: orfeo-marquee 6s ease-in-out infinite;
+@media (hover: hover) {
+  .orfeo-marquee-track:hover .orfeo-marquee-text.is-overflowing {
+    animation: orfeo-marquee 6s ease-in-out infinite;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .orfeo-marquee-track:hover .orfeo-marquee-text.is-overflowing { animation: none; }
@@ -782,29 +834,57 @@ textarea:focus-visible,
 .orfeo-countin-pop { animation: orfeo-countin-pop 0.15s ease-out }
 @media (prefers-reduced-motion: reduce) { .orfeo-countin-pop { animation: none } }
 
+/* ── Top bar ──────────────────────────────────────────────────────────────
+   A readout is a small inset tile. Its corners wrap the --radius-sm steppers
+   inside: --radius-lg = 4 + 5px padding + 1px border. */
+.topbar-readout { display: flex; align-items: center; gap: 6px; padding: 5px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-tile); }
+.topbar-stepper { display: flex; flex-direction: column; gap: 1px; }
+.topbar-stepper button { background: var(--state-hover-bg) !important; }
+.tbtn-loop-on { background: var(--accent-amber-toggle-active-bg) !important; }
+.tbtn-play { border-radius: 50% !important; background: var(--text-amber) !important; color: var(--text-on-amber) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 10px var(--accent-amber-medium); }
+@media (hover: hover) {
+  .tbtn-play:not(:disabled):hover { background: var(--accent-amber-hover) !important; }
+}
+
+/* Master volume on a touch screen: speaker button + big slider (VolumeKnob.tsx) */
+.touch-volume { order: 9; margin-left: 6px; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-tile); color: var(--text-active); font-family: var(--font-mono); font-size: var(--text-md); font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; flex-shrink: 0; }
+.touch-volume[aria-expanded='true'] { border-color: var(--accent-amber-strong); color: var(--text-amber); }
+.touch-volume-scrim { position: fixed; inset: 0; z-index: 9500; }
+.touch-volume-pop { position: fixed; padding: 14px 20px 10px; box-sizing: border-box; border: 1px solid var(--accent-amber-strong); border-radius: var(--radius-lg); background: var(--bg-modal); }
+.touch-volume-head { display: flex; align-items: baseline; justify-content: space-between; color: var(--text-muted); font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.1em; }
+.touch-volume-head strong { color: var(--text-amber); font-family: var(--font-mono); font-size: 24px; font-weight: 700; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+:root .orfeo-slider-big { display: block; height: 56px; }
+:root .orfeo-slider-big::-webkit-slider-runnable-track { height: 10px; border-radius: 5px; background: linear-gradient(to right, var(--text-amber) var(--fill, 50%), var(--state-disabled) var(--fill, 50%)); }
+:root .orfeo-slider-big::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -11px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+
 /* ── Home page ─────────────────────────────────────────────────────────────
    Rows and filters stay at least 44px tall on touch screens (Android). */
-.home-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid var(--border2); border-radius: var(--radius-md); background: var(--bg-tile); color: var(--text-muted); }
+.home-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border: 1px solid var(--border2); border-radius: 999px; background: var(--bg-tile); color: var(--text-muted); transition: border-color 0.12s; }
 .home-search:focus-within { border-color: var(--text-amber); }
 .home-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text-active); font: inherit; font-size: var(--text-md); }
-.home-search button { display: flex; padding: 4px; background: none; border: none; color: inherit; cursor: pointer; }
+.home-search button { display: flex; padding: 4px; margin-right: -6px; background: none; border: none; color: inherit; cursor: pointer; }
+.home-tabs { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border2); border-radius: var(--radius-lg); background: var(--bg-modal); }
 .home-tab, .home-action, .home-link, .home-icon, .home-filter, .home-song { font-family: inherit; cursor: pointer; border: none; }
-.home-tab { height: 34px; padding: 0 12px; border-radius: var(--radius-md); background: none; color: var(--text-muted); font-size: var(--text-base); white-space: nowrap; }
+.home-tab { height: 30px; padding: 0 12px; border-radius: var(--radius-md); background: none; color: var(--text-muted); font-size: var(--text-base); white-space: nowrap; transition: background-color 0.12s, color 0.12s, transform 150ms ease-out; }
 .home-tab[aria-selected='true'] { background: var(--bg-tile); color: var(--text-amber); }
-.home-action { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border2); border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); white-space: nowrap; }
-.home-primary { background: var(--text-amber); border-color: var(--text-amber); color: var(--text-near-black); font-weight: 600; }
-.home-icon { display: flex; padding: 8px; background: none; color: var(--text-muted); }
+.home-action { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border2); border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); white-space: nowrap; transition: background-color 0.12s, transform 150ms ease-out; }
+.home-primary { background: var(--text-amber); border-color: var(--text-amber); color: var(--text-near-black); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.home-icon { display: flex; padding: 8px; border-radius: var(--radius-md); background: none; color: var(--text-muted); transition: background-color 0.12s, transform 150ms ease-out; }
 .home-link { padding: 4px; background: none; color: var(--text-amber); font-size: var(--text-sm); }
 .home-heading { margin: 0 0 6px; padding: 0 8px; color: var(--text-muted); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
-.home-filter { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 0 8px; border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); text-align: left; }
+.home-filter { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 0 8px; border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); text-align: left; transition: background-color 0.12s, transform 150ms ease-out; }
 .home-filter[aria-pressed='true'] { background: var(--accent-amber-tint-bg); color: var(--text-amber); }
 .home-filter-search { width: 100%; height: 30px; margin-bottom: 6px; padding: 0 8px; box-sizing: border-box; border: 1px solid var(--border2); border-radius: var(--radius-sm); outline: none; background: var(--bg-tile); color: var(--text-active); font: inherit; font-size: var(--text-sm); }
-.home-song { width: 100%; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1fr) 14px; align-items: center; gap: 12px; min-height: 44px; padding: 0 8px; border-radius: var(--radius-md); border-bottom: 1px solid var(--border); background: none; color: var(--text-muted); font-size: var(--text-sm); text-align: left; }
+.home-song { width: 100%; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1fr) 14px; align-items: center; gap: 12px; min-height: 44px; padding: 0 8px; border-bottom: 1px solid var(--border); background: none; color: var(--text-muted); font-size: var(--text-sm); text-align: left; transition: background-color 0.1s; }
+/* A long list only darkens under the finger: its rows don't shrink */
+.home-song:active:not(:disabled) { background-color: var(--bg-tile); transform: none !important; }
 .home-song > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-song .home-song-title { color: var(--text-active); font-size: var(--text-md); }
 .home-song:disabled { cursor: progress; }
-.home-tab:hover, .home-action:not(.home-primary):hover, .home-icon:hover, .home-filter:hover, .home-song:hover:not(:disabled) { background-color: var(--bg-tile); }
-.home-primary:hover { background: var(--accent-amber-hover); }
+@media (hover: hover) {
+  .home-tab:hover, .home-action:not(.home-primary):hover, .home-icon:hover, .home-filter:hover, .home-song:hover:not(:disabled) { background-color: var(--bg-tile); }
+  .home-primary:hover { background: var(--accent-amber-hover); }
+}
 .home-tab:focus-visible, .home-action:focus-visible, .home-link:focus-visible, .home-icon:focus-visible, .home-filter:focus-visible, .home-song:focus-visible, .home-search button:focus-visible { outline: 2px solid var(--text-amber); outline-offset: -2px; }
 .home-error { margin: 0 16px 8px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-tile); color: var(--text-amber); font-size: var(--text-sm); }
 .home-connect { align-self: center; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: min(480px, 100%); padding: 48px 20px; box-sizing: border-box; font-size: var(--text-base); }
@@ -813,6 +893,7 @@ textarea:focus-visible,
 .home-connect code { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-amber); }
 .home-connect input { width: 100%; height: 38px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--border2); border-radius: var(--radius-md); outline: none; background: var(--bg-tile); color: var(--text-active); font-family: var(--font-mono); font-size: var(--text-md); }
 .home-connect input:focus { border-color: var(--text-amber); }
+.home-connect input { transition: border-color 0.12s; }
 .home-spin { animation: home-spin 0.9s linear infinite; }
 @keyframes home-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .home-spin { animation: none; } }
@@ -821,3 +902,59 @@ textarea:focus-visible,
 .home-card > button { flex: 1; }
 .home-card-state { position: absolute; top: 6px; right: 6px; display: flex; padding: 4px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: var(--text-default); pointer-events: none; }
 .home-card-mastery { position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: var(--text-amber); font-family: var(--font-mono); font-size: var(--text-xs); pointer-events: none; }
+
+/* ── Touch screens — Android asks for 48dp. Everything here is scoped to
+   @media (pointer: coarse), so the desktop layout never changes. The tap area
+   grows through a ::after on the button, so nothing moves, in containers
+   marked .touch-hit; .touch-big makes the buttons themselves bigger where
+   there's room. A parent with overflow:hidden clips ::after, so those parents
+   need the room themselves. The piano keys stay out of this. */
+@media (pointer: coarse) {
+  .touch-hit button, .touch-hit [role='button'], .orfeo-modal-glow button { position: relative; }
+  .touch-hit button::after, .touch-hit [role='button']::after, .orfeo-modal-glow button::after { content: ''; position: absolute; inset: -8px; }
+  .orfeo-modal-glow [role='menuitem']::after { content: none; }
+  .touch-big button, .touch-big [role='button'] { min-width: 44px; min-height: 44px; justify-content: center; }
+  /* A label on a coloured pill: stays a pill, its tap area does the growing */
+  .touch-big button.touch-pill, button.touch-pill { min-height: 32px; min-width: 0; }
+
+  /* The right group's small icon columns */
+  .topbar-right button { min-width: 44px; }
+
+  /* The explorers' tiles sit close together: tall tap areas, barely wider ones */
+  .touch-explorer button { min-height: 36px; min-width: 32px; }
+  .touch-explorer button::after { inset: -6px -2px; }
+
+  /* Settings window + Setup drawer */
+  .touch-settings button:not([role='switch']) { min-height: 40px; }
+  .touch-settings button[aria-label]:not([role='switch']) { min-width: 40px; }
+  .touch-settings input { min-height: 32px; }
+  .touch-settings [role='switch']::after, .touch-hit [role='switch']::after { inset: -14px; }
+  .touch-settings nav button:not([role='switch']) { min-height: 48px; }
+
+  /* Two stacked chevrons share the gap between them: each grows away from the other */
+  .topbar-stepper { gap: 0; }
+  .topbar-stepper button:has(.lucide-chevron-up)::after { inset: -24px -6px 0; }
+  .topbar-stepper button:has(.lucide-chevron-down)::after { inset: 0 -6px -24px; }
+
+  /* The chord bar is a row of text labels: tall areas, not wider ones */
+  .touch-chordbar [role='button']::after { inset: -17px -10px; }
+
+  .scrub-slider { height: 44px; margin-block: -6px; }
+  .scrub-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+  .scrub-slider::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -8px; }
+
+  .home-search { height: 48px; }
+  .home-search button { padding: 12px; margin-right: -12px; }
+  .home-search input { height: 100%; }
+  .home-tab { height: 44px; }
+  .home-action, .home-icon, .home-link { min-height: 48px; }
+  .home-action { height: 48px; }
+  .home-icon { min-width: 48px; align-items: center; justify-content: center; }
+  .home-filter { min-height: 48px; }
+  .home-filter-search { height: 44px; }
+  .home-song { min-height: 56px; }
+  .home-connect input { height: 48px; }
+
+  /* Native selects and inputs in windows */
+  [role='dialog'] select { min-height: 40px; }
+}

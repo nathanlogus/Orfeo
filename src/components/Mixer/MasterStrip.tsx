@@ -14,6 +14,10 @@ import {
   COMPRESSOR_PRESETS,
 } from '../../audio/engine'
 import { useDevicePixelRatio } from '../../hooks/useDevicePixelRatio'
+import { touchScreen } from '../../utils/touchScreen'
+
+// Three finger-sized buttons plus the Focus pill need a wider strip
+export const MASTER_STRIP_W = touchScreen ? 216 : 184
 
 // ── VU meter constants ────────────────────────────────────────────────────────
 const SEG_H    = 4
@@ -82,7 +86,7 @@ function IBtn({ children, onClick, active, title, description, activeColor = 'va
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 26, height: 26, background: 'transparent',
+        width: touchScreen ? 40 : 26, height: touchScreen ? 44 : 26, background: 'transparent',
         border: `1.5px solid ${active ? activeColor : 'var(--border2)'}`,
         cursor: 'pointer', borderRadius: 4, transition: 'color 0.1s, border-color 0.1s',
         color: active ? activeColor : 'var(--text-icon-inactive)', flexShrink: 0,
@@ -487,7 +491,7 @@ export default function MasterStrip() {
 
   return (
     <div style={{
-      width: 184, height: 574, flexShrink: 0,
+      width: MASTER_STRIP_W, height: 574, flexShrink: 0,
       background: 'var(--bg-tile)',
       border: '1px solid var(--border2)',
       borderRadius: 'var(--radius-md)',
@@ -578,11 +582,11 @@ export default function MasterStrip() {
           two-row offsets (-9.3/+17.3), which were tuned for a layout that no
           longer exists. ── */}
       <div style={{
-        height: 40, flexShrink: 0,
+        height: touchScreen ? 48 : 40, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 6,
+        gap: touchScreen ? 2 : 6,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: touchScreen ? 0 : 4 }}>
           <IBtn
             onClick={handleMuteAll}
             active={allMuted}
@@ -617,6 +621,7 @@ export default function MasterStrip() {
             description={isCurrentlyFiltered ? t`Hearing keys, bass & drums, seeing only the keys. Click to bring back all tracks as they were.` : t`Click to hear only keys, bass & drums and see only the keys — good for practising`}
           >
           <button
+            className="touch-pill"
             onClick={() => setTrackMuteFilter(!isCurrentlyFiltered)}
             style={{
               padding: '2px 10px',
@@ -730,7 +735,7 @@ export default function MasterStrip() {
           onClick={handleCompToggle}
           disabled={knobsDisabled}
           style={{
-            width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: touchScreen ? 40 : 26, height: touchScreen ? 40 : 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'none', border: 'none', padding: 0,
             cursor: knobsDisabled ? 'default' : 'pointer',
             color: masterCompEnabled ? 'var(--text-amber)' : 'var(--text-white)',
