@@ -5,11 +5,12 @@ import { confirmDialog } from '../../utils/confirmController'
 import {
   ChevronLeft, ChevronDown, ChevronRight,
   FolderOpen, Folders, RefreshCw, FileMusic, FileCode2, Guitar, BookOpen, Library, Settings, Info,
-  Search, X, Undo2, ChevronsDownUp, Settings2, ArrowLeftRight,
+  Search, X, Undo2, ChevronsDownUp, Settings2, ArrowLeftRight, LayoutGrid,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import { libraryDisplayName, sortBySong } from '../../utils/libraryNames'
+import { SongBrowser } from '../SongBrowser/SongBrowser'
 import { TempoWarningDot } from '../Transport/TempoWarning'
 import { useTempoTrustScan } from '../../hooks/useTempoTrustScan'
 import type { NoteNaming, Accidentals, TranscriptEntry, LibraryFile } from '../../types'
@@ -315,6 +316,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'starred'>('all')
   const [librarySearch, setLibrarySearch] = useState('')
+  const [songBrowserOpen, setSongBrowserOpen] = useState(false)
   // Folders start expanded (not in collapsed set)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   // Whole "Folders" section (all folder rows, collapsed under one row) — starts expanded
@@ -937,6 +939,24 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
               </button>
               </Tooltip>
             </div>
+
+            <button
+              onClick={() => setSongBrowserOpen(true)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '5px 8px',
+                marginBottom: 6, borderRadius: 4, cursor: 'pointer', border: '1px solid var(--accent-amber-strong)',
+                background: 'var(--accent-amber-medium)', color: 'var(--text-amber)', fontSize: 'var(--text-xs)',
+                fontWeight: 600, fontFamily: 'var(--font-ui)',
+              }}
+            >
+              <LayoutGrid size={12} strokeWidth={1.5} /> {t`Browse songs`}
+            </button>
+            {songBrowserOpen && (
+              <SongBrowser
+                onClose={() => setSongBrowserOpen(false)}
+                onOpen={path => { setSongBrowserOpen(false); void handleLoadFile(path) }}
+              />
+            )}
 
             {/* Active library path — click opens the folder (shows files; the folder-picker dialog above never does, that's OS-level) */}
             <Tooltip title={t`Open folder`} oneLine wrapperStyle={{ display: 'block', width: '100%' }}>

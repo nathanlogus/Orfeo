@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFolderInExplorer: (folderPath: string) => ipcRenderer.invoke('shell:openFolder', folderPath),
   showItemInFolder:   (filePath: string) => ipcRenderer.invoke('shell:showItemInFolder', filePath),
   listLibraryFolders: (libraryFolder: string) => ipcRenderer.invoke('fs:listLibraryFolders', libraryFolder),
+  readSongCatalog:    (libraryFolder: string) => ipcRenderer.invoke('fs:readSongCatalog', libraryFolder),
   createLibraryFolder: (libraryFolder: string, name: string) => ipcRenderer.invoke('fs:createLibraryFolder', libraryFolder, name),
   renameLibraryFolder: (libraryFolder: string, oldName: string, newName: string) => ipcRenderer.invoke('fs:renameLibraryFolder', libraryFolder, oldName, newName),
   deleteLibraryFolder: (libraryFolder: string, name: string) => ipcRenderer.invoke('fs:deleteLibraryFolder', libraryFolder, name),

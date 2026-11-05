@@ -761,9 +761,18 @@ async function uniqueFolderName(libraryFolder: string, baseName: string): Promis
 ipcMain.handle('fs:listLibraryFolders', async (_e, libraryFolder: string) => {
   try {
     return readdirSync(libraryFolder, { withFileTypes: true })
-      .filter(e => e.isDirectory())
+      .filter(e => e.isDirectory() && !e.name.startsWith('.'))
       .map(e => e.name)
   } catch { return [] }
+})
+
+// ── Optional catalog.json in the library folder — feeds the Song Browser ───
+ipcMain.handle('fs:readSongCatalog', async (_e, libraryFolder: string) => {
+  try {
+    const path = join(libraryFolder, 'catalog.json')
+    if (statSync(path).size > 64 * 1024 * 1024) return null
+    return JSON.parse(readFileSync(path, 'utf8'))
+  } catch { return null } // no catalog or a broken one: cards fall back to file names
 })
 
 ipcMain.handle('fs:createLibraryFolder', async (_e, libraryFolder: string, name: string) => {
