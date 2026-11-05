@@ -5,9 +5,10 @@ import type { UpdateStatus, UpdateInfo } from '../types'
 // ── One shared update status for the drawer footer and the Settings window
 // header. offUpdateStatus() removes every listener, so it is subscribed
 // exactly once (useUpdateService, mounted in SettingsPanel). ─────────────
-export const useUpdateState = create<{ status: UpdateStatus; info: UpdateInfo }>(() => ({
+export const useUpdateState = create<{ status: UpdateStatus; info: UpdateInfo; dot: boolean }>(() => ({
   status: { state: 'idle' },
   info: { mode: 'manual', downloadUrl: 'https://orfeo.cc/download' },
+  dot: true,   // Settings › Appearance › Updates: the dot on Settings, saved in prefs
 }))
 const setStatus = (status: UpdateStatus) => useUpdateState.setState({ status })
 
@@ -16,6 +17,12 @@ export function previewNewVersion() {
   const on = useUpdateState.getState().status.state === 'available'
   setStatus(on ? { state: 'idle' } : { state: 'available', version: '9.9.9' })
 }
+
+export function setUpdateDot(dot: boolean) {
+  useUpdateState.setState({ dot })
+  void window.electronAPI.setPrefs({ newVersionDot: dot })
+}
+export const useNewVersionDot = () => useUpdateState((s) => s.dot && (s.status.state === 'available' || s.status.state === 'ready'))
 
 export function pressUpdateButton() {
   const { status, info } = useUpdateState.getState()
@@ -30,6 +37,7 @@ export function useUpdateService() {
   const state = useUpdateState((s) => s.status.state)
   useEffect(() => {
     window.electronAPI.getUpdateInfo().then((info) => useUpdateState.setState({ info })).catch(() => {})
+    window.electronAPI.getPrefs().then((p) => { if (typeof p.newVersionDot === 'boolean') useUpdateState.setState({ dot: p.newVersionDot }) }).catch(() => {})
     window.electronAPI.onUpdateStatus(setStatus)
     window.electronAPI.getNewVersion().then((version) => { if (version) setStatus({ state: 'available', version }) }).catch(() => {})
     return () => window.electronAPI.offUpdateStatus()

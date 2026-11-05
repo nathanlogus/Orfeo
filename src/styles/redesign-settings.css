@@ -2,7 +2,7 @@
    Built on the .o-* kit in index.css; everything uses tokens so it follows the
    .theme-paper / .theme-studio scope it sits in. */
 
-/* ── Window ─────────────────────────────────────────────────────────────── */
+/* â”€â”€ Window â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .set-window { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; box-sizing: border-box; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-floor); color: var(--ui-text); }
 .o-window-head.set-head { align-items: center; padding: 14px 24px; }
 .set-search { width: min(340px, 40%); box-sizing: border-box; font-size: var(--text-md); }
@@ -33,7 +33,7 @@
 .set-card .o-seg button { padding: 0 12px; }
 .set-card .o-seg > *, .set-tab-row .o-seg > *, .x-sound .o-seg > * { flex: 1 1 auto; width: auto; }
 
-/* ── Card ───────────────────────────────────────────────────────────────── */
+/* â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .set-card { display: flex; flex-direction: column; min-width: 0; box-sizing: border-box; height: 100%; }
 .set-card-head { display: flex; align-items: flex-start; gap: 16px; }
 .set-card-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 19px; letter-spacing: -0.6px; }
@@ -79,14 +79,17 @@
 .set-font-meta { display: block; color: var(--ui-text-soft); font-size: var(--text-sm); }
 
 /* Hand colours */
-.set-presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.set-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .set-tile { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--ui-line-soft); border-radius: var(--radius-md); background: var(--ui-control); color: var(--ui-text); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
 .set-tile[aria-pressed='true'] { outline: 1px solid var(--ui-line); border-color: var(--ui-line); }
+.set-tile-words { display: flex; flex-direction: column; min-width: 0; }
+.set-tile-words > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-tile-words > span + span { color: var(--ui-text-soft); font-size: var(--text-xs); }
 .set-pair { flex-shrink: 0; display: flex; }
 .set-pair > span { width: 22px; height: 30px; box-sizing: border-box; border: 1px solid var(--ink); }
 .set-pair > span:first-child { border-radius: 4px 0 0 4px; }
 .set-pair > span:last-child { border-left: 0; border-radius: 0 4px 4px 0; }
-.set-hand-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.set-hand-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 8px; }
 .set-hand-pick { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-control); font-size: 15px; }
 .set-hand-swatch { position: relative; flex-shrink: 0; width: 24px; height: 24px; overflow: hidden; border: 1px solid var(--ink); border-radius: 4px; }
 .set-hand-swatch input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
@@ -104,7 +107,14 @@
 
 /* Updates card */
 .set-update { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--accent); color: var(--on-accent); font-size: var(--text-md); }
+.set-update-note { display: block; font-size: var(--text-base); }
 .set-update button { flex-shrink: 0; height: 40px; padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: var(--ink); color: #ffffff; font: inherit; font-size: 15px; cursor: pointer; }
+
+/* The dot on a way into Settings; beside the name in the group list */
+button:has(> .set-new-dot) { position: relative; }
+.set-new-dot { position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; box-sizing: border-box; border: 2px solid var(--ui-floor); border-radius: 50%; background: var(--paint-pink); }
+.set-nav-list .set-new-dot { position: static; flex-shrink: 0; margin-left: auto; }
+.set-about[data-dot='off'] .o-icon-quiet > span { display: none; }
 
 /* Test-build panels */
 .set-dev { margin-top: 12px; padding: 10px; border: 1px dashed var(--ui-line); border-radius: var(--radius-md); color: var(--ui-text-soft); font-size: var(--text-sm); }
@@ -120,7 +130,7 @@
 .set-delay-line > i { flex-shrink: 0; width: 10px; height: 10px; border-radius: 2px; }
 .set-delay-line > span:first-of-type { flex: 1; min-width: 0; color: var(--ui-text-soft); }
 
-/* ── Export to audio ────────────────────────────────────────────────────── */
+/* â”€â”€ Export to audio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .o-window.x-window { gap: 18px; }
 .x-song { margin-top: 4px; overflow: hidden; color: var(--ui-text-soft); font-size: var(--text-md); text-overflow: ellipsis; white-space: nowrap; }
 .x-form { display: flex; flex-direction: column; gap: 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -132,7 +142,8 @@
 .x-tile > input { position: absolute; opacity: 0; pointer-events: none; }
 .x-tile:focus-within { outline: 2px solid var(--ui-line); outline-offset: 1px; }
 .x-tile[data-on] { outline: 1px solid var(--ui-line); border-color: var(--ui-line); background: var(--ui-control); }
-.x-tile[data-off] { cursor: default; opacity: 0.6; }
+.x-tile[data-off] { cursor: default; border-style: dashed; }
+.x-tile[data-off] .x-tile-name { color: var(--ui-text-soft); }
 .x-tile-name { font-size: 20px; letter-spacing: -0.7px; }
 .x-tile-tag[data-tag='mp3'] { background: var(--paint-lime); font-size: 15px; }
 .x-tile-tag[data-tag='wav'] { background: var(--paint-blue); font-size: 15px; }
@@ -141,9 +152,10 @@
 .x-sound { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .x-sound-set { width: 220px; max-width: 100%; }
 .x-sound-set > div { margin-bottom: 0 !important; }
+.x-foot { display: flex; flex-direction: column; gap: 12px; }
 .set-saved { display: inline-flex; align-items: center; gap: 10px; font-size: var(--text-md); }
 
-/* ── File info ──────────────────────────────────────────────────────────── */
+/* â”€â”€ File info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .o-window.fi-window { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 18px; }
 .o-window-head.fi-head { align-items: center; }
 .fi-file { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; cursor: default; }
@@ -163,13 +175,18 @@
 .fi-history .x-label { margin-bottom: 6px; }
 .fi-history ol { max-height: 190px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
 .fi-history li { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--ui-line-soft); font-size: var(--text-md); line-height: 1.3; }
-.fi-history .o-tag { flex-shrink: 0; white-space: nowrap; }
+.fi-history .o-tag { flex-shrink: 0; color: var(--ink); white-space: nowrap; }
+.fi-history .x-label .o-note { font-size: var(--text-base); }
+.fi-when { flex-shrink: 0; white-space: nowrap; }
 .fi-copy { display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: var(--radius-md); background: var(--ui-floor); color: var(--ui-text); }
 .fi-copy-head { display: flex; align-items: flex-start; gap: 12px; }
 .fi-copy-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 6px 6px 14px; box-sizing: border-box; border-radius: var(--radius-md); background: var(--ui-surface); }
 .fi-copy-name { display: block; overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ── Enjoying Orfeo? ────────────────────────────────────────────────────── */
+/* â”€â”€ Confirm â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.confirm-disc { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
+
+/* â”€â”€ Enjoying Orfeo? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .note-panel { position: fixed; right: 24px; bottom: 32px; z-index: 9900; display: flex; flex-direction: column; gap: 12px; width: min(380px, calc(100vw - 32px)); padding: 28px; overflow: hidden; border-radius: var(--radius-md); background: var(--ui-surface); color: var(--ui-text); }
 .note-panel > .o-window-head { position: relative; }
 .note-close { display: flex; align-items: center; justify-content: center; width: var(--control-h-lg); height: var(--control-h-lg); padding: 0; border: 0; border-radius: 50%; background: var(--ink); color: #ffffff; cursor: pointer; }
@@ -179,19 +196,25 @@
 .note-links { display: flex; justify-content: space-between; gap: 12px; }
 .note-links .o-link { min-height: 44px; font-size: 15px; color: var(--ui-text-soft); }
 
-/* ── Drop overlay ───────────────────────────────────────────────────────── */
+/* â”€â”€ Drop overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .drop-overlay { position: absolute; inset: 0; z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: var(--scrim); color: #ffffff; pointer-events: none; }
 .drop-frame { position: absolute; inset: 22px; border: 3px dashed var(--paint-yellow); border-radius: var(--radius-md); }
 .drop-disc { display: flex; align-items: center; justify-content: center; width: 84px; height: 84px; border-radius: 50%; background: var(--paint-yellow); color: var(--ink); }
 .drop-title { font-size: 26px; letter-spacing: -0.9px; }
 .drop-note { color: var(--sand); font-size: var(--text-base); text-align: center; }
 
-/* ── Touch, short and narrow screens ────────────────────────────────────── */
+/* â”€â”€ Touch, short and narrow screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (pointer: coarse) {
   .set-search input { min-height: 0; }
   .fi-field input { height: 52px; }
+  .o-btn.fi-version { height: 48px; }
+  .x-sound .o-seg button { min-height: 48px; }
   .set-row { min-height: 54px; }
   .set-dev-btns button { min-height: 44px; }
+  /* index.css allows 40 here; touch targets are 48, and tiles keep their own height */
+  .set-window.touch-settings button:not([role='switch']) { min-height: 48px; }
+  .set-window.touch-settings button[aria-label]:not([role='switch']) { min-width: 48px; }
+  .set-window.touch-settings .set-tile { min-height: 60px; }
 }
 @media (max-height: 640px) {
   .set-head { padding: 8px 16px; }
@@ -201,6 +224,7 @@
   .set-page-intro { margin-top: 2px; font-size: var(--text-base); }
   .set-nav-list button { min-height: 44px; font-size: var(--text-md); }
   .o-window.x-window, .o-window.fi-window { padding: 16px 20px; gap: 12px; }
+  .x-foot { position: sticky; bottom: -16px; margin: 0 -4px -16px; padding: 8px 4px 16px; background: var(--ui-surface); }
   .fi-window .o-title-lg, .x-window .o-title-lg { font-size: var(--text-2xl); }
 }
 @media (max-height: 640px) and (pointer: coarse) { .set-nav-list button { min-height: 48px; } }

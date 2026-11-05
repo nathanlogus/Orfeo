@@ -10,17 +10,19 @@ import { t } from './i18n'
 export const DEFAULT_HAND_LH = '#6270A5'
 export const DEFAULT_HAND_RH = '#CB636C'
 
-export interface HandPreset { id: string; name: string; lh: string; rh: string }
+export interface HandPreset { id: string; name: string; lh: string; rh: string; note?: string }
 
-// The three after Orfeo's own were checked with a colour-blindness simulation
+// Bright, Sky and Mint were checked with a colour-blindness simulation
 // (Machado 2009, full severity; OKLab distance): the two hands stay apart, and
 // both stay clear of amber, for normal vision and the three common kinds of
-// colour blindness. (Orfeo's pair is weakest for red-blind eyes.)
+// colour blindness. (Orfeo's pair is weakest for red-blind eyes.) Scrapbook is
+// the redesign's pair and was not checked.
 export const HAND_PRESETS: HandPreset[] = [
-  { id: 'orfeo', name: t`Orfeo`,          lh: DEFAULT_HAND_LH, rh: DEFAULT_HAND_RH },
+  { id: 'scrapbook', name: t`Scrapbook`,  lh: '#6483FF', rh: '#FFDE3B', note: t`This design` },
+  { id: 'orfeo', name: t`Orfeo`,          lh: DEFAULT_HAND_LH, rh: DEFAULT_HAND_RH, note: t`The classic pair` },
   { id: 'bright', name: t`Bright`,        lh: '#4F8CFF', rh: '#FF5C8A' },
-  { id: 'sky', name: t`Sky`,              lh: '#56B4E9', rh: '#D55E00' },  // sky blue & vermilion
-  { id: 'mint', name: t`Mint`,            lh: '#5B5FD6', rh: '#4FC6A8' },  // indigo & mint
+  { id: 'sky', name: t`Sky`,              lh: '#56B4E9', rh: '#D55E00', note: t`Colour-blind friendly` },  // sky blue & vermilion
+  { id: 'mint', name: t`Mint`,            lh: '#5B5FD6', rh: '#4FC6A8', note: t`Colour-blind friendly` },  // indigo & mint
 ]
 
 const HEX = /^#[0-9a-fA-F]{6}$/
@@ -62,6 +64,8 @@ const dist = (a: string, b: string) => { const A = oklab(a), B = oklab(b); retur
 // How different two hex colours look (OKLab distance; ~0.1 = clearly different)
 export const colorDistance = dist
 export const sameHex = (a: string | undefined, b: string | undefined) => !!a && !!b && a.toLowerCase() === b.toLowerCase()
+// A pair that is no ready-made one is the musician's own
+export const isOwnPair = (lh: string, rh: string) => !HAND_PRESETS.some(p => sameHex(p.lh, lh) && sameHex(p.rh, rh))
 
 // ── A piano/organ track on a hand colour follows the user's pair: its
 // current hand colour (prev) or Orfeo's default (also what older saved

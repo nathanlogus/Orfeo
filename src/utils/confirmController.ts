@@ -6,7 +6,10 @@
 //   const choice = await confirmDialog({ message: '...', buttons: ['OK', 'Cancel'] })
 //   // choice === index of clicked button, or buttons.length - 1 for Escape/backdrop
 
+import type { LucideIcon } from 'lucide-react'
+
 export type ConfirmOptions = {
+  icon?: LucideIcon       // drawn in the yellow disc above the title
   title?: string
   message: string
   detail?: string

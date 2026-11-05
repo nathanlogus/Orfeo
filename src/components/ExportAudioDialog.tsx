@@ -41,7 +41,7 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
   const sets = allSoundfonts(extra).filter(sf => sf.downloaded)
   const open = isOpenSong(path)
 
-  const [version, setVersion] = useState<ExportVersion>('original')
+  const [version, setVersion] = useState<ExportVersion>(open ? 'heard' : 'original')
   const [sound, setSound] = useState<ExportSound>(audioEngine === 'native' && NATIVE_AVAILABLE ? 'native' : 'studio')
   const [soundfont, setSoundfont] = useState(selectedSoundfont)
   const [format, setFormat] = useState<ExportFormat>('mp3')
@@ -65,6 +65,9 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
     }).catch(() => { if (live) setNote({ kind: 'unreadable', text: t`Couldn't read this song.` }) })
     return () => { live = false }
   }, [path, version, sound])
+
+  // a new choice clears the last result, so the actions go back to Cancel · Export
+  useEffect(() => { setPhase(p => (p.k === 'done' || p.k === 'error' ? { k: 'choose' } : p)) }, [version, sound, soundfont, format])
 
   const close = () => { cancelled.current = true; forgetLoadedSong(); onClose() }
   useEffect(() => {
@@ -118,7 +121,7 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
           <button type="button" onClick={close} aria-label={t`Close`} className="o-close"><X size={18} /></button>
         </div>
 
-        <fieldset disabled={working || phase.k === 'done'} className="x-form">
+        <fieldset disabled={working} className="x-form">
           <div>
             <div className="x-label">{t`Version to export`}</div>
             <div className="x-tiles x-tiles-3">
@@ -154,6 +157,8 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
           </div>
         </fieldset>
 
+        {/* the footer stays in view on a short screen: progress and result are what you wait for */}
+        <div className="x-foot">
         {working && (
           <div>
             <div className="x-tile-what" style={{ marginBottom: 6 }}>{stageText}</div>
@@ -166,9 +171,10 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
           {phase.k === 'done' ? (
             <>
               <span className="set-saved" role="status"><span className="set-live-dot" />{t`Saved to Exports.`}</span>
-              <button type="button" className="o-btn-quiet" onClick={() => { void window.electronAPI.showItemInFolder(phase.path); close() }}>{t`Show in folder`}</button>
+              <button type="button" className="o-btn-quiet" onClick={() => void window.electronAPI.showItemInFolder(phase.path)}>{t`Show in folder`}</button>
               <span className="o-spacer" />
-              <button type="button" className="o-btn-primary o-btn-lg" onClick={close}>{t`Close`}</button>
+              <button type="button" className="o-btn o-btn-lg" onClick={close}>{t`Close`}</button>
+              <button type="button" className="o-btn-primary o-btn-lg" onClick={() => void start()}><Download size={16} strokeWidth={2} />{t`Export again`}</button>
             </>
           ) : working ? (
             // saving takes a moment and can't be undone halfway: Cancel waits it out
@@ -183,6 +189,7 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
               <button type="button" className="o-btn-primary o-btn-lg" disabled={blocked} onClick={() => void start()}><Download size={16} strokeWidth={2} />{t`Export`}</button>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>,
