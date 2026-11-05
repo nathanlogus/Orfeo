@@ -1,4 +1,4 @@
-// ── Home song server (android/song-server.mjs): what may come from it ───────
+// ── Home song server (server/song-server.mjs): what may come from it ───────
 // Songs land in <library>/Home Server, keeping the server's folders. A path comes
 // from the network, so it has to be one plain relative path to a song.
 import { join } from 'path'
@@ -11,7 +11,7 @@ export function serverUrl(text: string): string {
   return new URL(url).port || /^https:/i.test(url) ? url : `${url}:8765`
 }
 
-// Discovery: android/song-server.mjs answers this on UDP, naming its web port
+// Discovery: server/song-server.mjs answers this on UDP, naming its web port
 export const DISCOVERY_PORT = 8765
 export const DISCOVERY_PROBE = 'orfeo-songs?'
 export function discoveredAddress(reply: string, ip: string): string | null {

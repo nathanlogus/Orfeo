@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Serves a folder of songs to Orfeo on the home network, read-only:
-//   node android/song-server.mjs <folder> [port]
+//   node server/song-server.mjs <folder> [port]
 //
 // GET /api/songs?q=&genre=&artist=&arrangement=&difficulty=&key=&classic=1&sort=&offset=&limit=
 //     { total, songs: [{ path, title, artist, genre, size }], genres, artists, arrangements, difficulties, keys }
@@ -33,7 +33,7 @@ const MAX_PAGE = 200
 const DISCOVERY_PORT = 8765
 
 const [folder, port = '8765'] = process.argv.slice(2)
-if (!folder) { console.error('Usage: node android/song-server.mjs <folder> [port]'); process.exit(1) }
+if (!folder) { console.error('Usage: node server/song-server.mjs <folder> [port]'); process.exit(1) }
 const root = realpathSync(resolve(folder))
 
 function readJson(name) {
