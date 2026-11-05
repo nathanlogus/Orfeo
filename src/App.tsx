@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import TopBar from './components/Transport/TopBar'
 import PianoRoll from './components/PianoRoll/PianoRoll'
+import ScoreView from './components/ScoreView'
+import { isScoreFor } from './utils/scoreSource'
 import Keyboard from './components/Keyboard/Keyboard'
 import KeyboardControls from './components/Keyboard/KeyboardControls'
 import TrackPanel from './components/TrackPanel/TrackPanel'
@@ -8,7 +10,7 @@ import SettingsPanel from './components/SettingsPanel/SettingsPanel'
 import SettingsWindow from './components/Settings/SettingsWindow'
 import { useUpdateService } from './hooks/useUpdateCheck'
 import { useSoundfontService } from './hooks/useSoundfonts'
-import EmptyState from './components/EmptyState'
+import HomePage from './components/Home/HomePage'
 import { useStore } from './store'
 import FloatingKeyboard from './components/Keyboard/FloatingKeyboard'
 import ChordExplorer from './components/ChordExplorer'
@@ -41,6 +43,7 @@ import { runChordVocabularyTest } from './utils/chordVocabularyTest'
 import { runBeatGridTest } from './utils/beatGridTest'
 import { runTrackChordRoleTest } from './utils/trackChordRoleTest'
 import { runChordSequenceBuilderTest } from './utils/chordSequenceBuilderTest'
+import { runMidiDiagnosticsTest } from './utils/midiDiagnosticsTest'
 import { NES, confirmDiscardDirtyNoteEdits } from './utils/noteEditorState'
 import { confirmDiscardDirtyTempoKey, saveTempoKeyChanges } from './utils/tempoKeySave'
 import { isTapCapturing, registerTap, cancelTap } from './utils/tapTempoSession'
@@ -60,10 +63,16 @@ export default function App() {
   useSoundfontService()
   useSupportNoteService()
   const midi = useStore((s) => s.midi)
+  const homeOpen = useStore((s) => s.homeOpen)
   const keyboardMode = useStore((s) => s.keyboardMode)
   const appTheme = useStore((s) => s.appTheme)
   const presentationMode = useStore((s) => s.presentationMode)
   const noteEditorActive = useStore((s) => s.noteEditorActive)
+  const scoreViewMode = useStore((s) => s.scoreViewMode)
+  const scoreBytes = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath) ? s.scoreSource.bytes : null)
+  // the Note Editor draws on the roll, so it always gets it
+  const showScore = !!scoreBytes && scoreViewMode !== 'roll' && !noteEditorActive
+  const showRoll = !showScore || scoreViewMode === 'both'
   const { openFile } = useMidiFile()
   const { play, pause, stop } = usePlayback()
   useAudioEngine()
@@ -266,6 +275,7 @@ export default function App() {
       ;(window as any).__orfeoBeatGridTest = runBeatGridTest
       ;(window as any).__orfeoTrackChordRoleTest = runTrackChordRoleTest
       ;(window as any).__orfeoChordSequenceBuilderTest = runChordSequenceBuilderTest
+      ;(window as any).__orfeoMidiDiagnosticsTest = runMidiDiagnosticsTest
     }
   }, [])
 
@@ -490,6 +500,9 @@ export default function App() {
     return () => document.removeEventListener('click', handleClick, true)
   }, [])
 
+  // A song that opens, by any route, is what the home page was for
+  useEffect(() => { if (midi) useStore.getState().setHomeOpen(false) }, [midi])
+
   return (
     <div className={appTheme === 'warm' ? 'theme-warm' : ''} style={{ width: '100vw', height: '100vh', background: appTheme === 'warm' ? 'var(--bg-warm)' : 'var(--bg-modal-header)', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-ui)' }}>
 
@@ -547,14 +560,16 @@ export default function App() {
       >
         {!presentationMode && <SettingsPanel />}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-          <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', paddingTop: 6 }}>
-            {midi ? <PianoRoll /> : <EmptyState />}
+          <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', paddingTop: 6, display: 'flex', flexDirection: 'column' }}>
+            {showScore && <ScoreView bytes={scoreBytes} style={{ flex: showRoll ? '0 0 50%' : 1 }} />}
+            {showRoll && midi && <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div>}
             <CountInOverlay />
           </div>
           {keyboardMode === 'docked' && <Keyboard />}
           {keyboardMode === 'docked' && <KeyboardControls />}
         </div>
         {!presentationMode && <TrackPanel />}
+        {(!midi || homeOpen) && <HomePage />}
 
         {/* ── Drag-over highlight overlay — pointer-events none so it doesn't ─
             block any child interaction; visible only while dragging ── */}

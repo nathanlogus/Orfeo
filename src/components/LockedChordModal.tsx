@@ -6,7 +6,8 @@ import { formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
 import { getNoteName } from '../utils/noteNames'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import OrfeoMark from './OrfeoMark'
-import { getPianoRollCenterX, getKeyboardHeaderTop } from '../utils/modalAnchors'
+import { getPianoRollCenterX, modalTopAboveKeyboard } from '../utils/modalAnchors'
+import { startModalDrag } from '../utils/modalDrag'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
 
@@ -62,8 +63,8 @@ export default function LockedChordModal() {
     if (!positioned.current) {
       positioned.current = true
       setPos({
-        x: Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2),
-        y: Math.round(getKeyboardHeaderTop() - MODAL_HEIGHT) - 23,
+        x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
+        y: modalTopAboveKeyboard(MODAL_HEIGHT, 23),
       })
     }
   }, [lockedKeys.size])
@@ -87,21 +88,7 @@ export default function LockedChordModal() {
   }, [lockedDisplay, lockedKeys, noteNaming, accidentals])
 
   // ── Drag ─────────────────────────────────────────────────────────────────
-  const startDrag = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const sx = e.clientX, sy = e.clientY, spx = pos.x, spy = pos.y
-    const onMove = (ev: MouseEvent) =>
-      // 44, not 0 — keeps the top edge clear of the 40px titleBarOverlay
-      // (electron/main.ts) where Windows draws its own window controls on
-      // top of everything in the DOM.
-      setPos({ x: Math.max(0, spx + ev.clientX - sx), y: Math.max(44, spy + ev.clientY - sy) })
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => startModalDrag(e, panelRef.current, pos, setPos)
 
   // ── Play all locked notes ─────────────────────────────────────────────────
   const playLockedChord = useCallback(() => {
@@ -163,8 +150,9 @@ export default function LockedChordModal() {
           same title font, no separate header background — just part of the
           panel like the Note Editor's is. ── */}
       <div
-        onMouseDown={startDrag}
+        onPointerDown={startDrag}
         style={{
+          touchAction: 'none',
           minHeight: 32,
           display: 'flex', alignItems: 'center', gap: 7,
           padding: '0 var(--space-3)',

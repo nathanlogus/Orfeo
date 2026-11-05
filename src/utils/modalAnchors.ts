@@ -12,6 +12,8 @@
 // Keyboard.tsx), not React refs, since callers here are unrelated siblings
 // in the component tree.
 
+import { MODAL_MIN_TOP } from './modalDrag'
+
 // Matches PianoRoll.tsx's own PLAYHEAD_RATIO — kept in sync manually since
 // pulling it from PianoRoll would import a component module for one constant.
 const PLAYHEAD_RATIO = 0.80
@@ -30,6 +32,13 @@ export function getKeyboardHeaderTop(): number {
   if (header) return header.top
   const roll = getPianoRollAreaRect()
   return roll ? roll.bottom : window.innerHeight
+}
+
+// Default top for a modal sitting above the keyboard. On a short screen (a tablet,
+// a small window) the sum goes negative, and a header above the screen has its
+// close button out of reach.
+export function modalTopAboveKeyboard(height: number, gap: number): number {
+  return Math.max(MODAL_MIN_TOP, Math.round(getKeyboardHeaderTop() - height) - gap)
 }
 
 // Fixed playbar-line Y within the piano roll area — always the same ratio

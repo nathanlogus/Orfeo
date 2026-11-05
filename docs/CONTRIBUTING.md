@@ -19,6 +19,7 @@ it targets `dev`, and every commit is authored by you.
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Build commands](#build-commands)
+- [Running the tests](#running-the-tests)
 - [Project layout](#project-layout)
 - [Coding conventions](#coding-conventions)
 - [Releases and auto-update](#releases-and-auto-update)
@@ -111,8 +112,14 @@ npm run dev
 | `npm run build` | Compile main + preload + renderer | `out/` |
 | `npm run preview` | Run the last `build` output without packaging | — |
 | `npm run typecheck` | `tsc --noEmit` — type-check only | — |
-| `npm run dist` | `build`, then package for the current platform | `release/` |
+| `npm run android:web` | Builds the web app for Android (needs no Android tools) | `android/app/src/main/assets/web/` |
+| `npm run android:debug` | `android:web`, then a debug APK (JDK 17+, Android SDK 36) | `android/app/build/outputs/apk/debug/` |
+| `npm run android:songs -- <folder>` | Serves a song folder to the home page on the home network | — |
+| `npm test` | Runs every `*Test.ts` in `src/` and `electron/`, one file per process | — |
+| `npm run dist` | `build`, then the Windows installer, portable app and Store package | `release/` |
 | `npm run dist:portable` | Windows portable `.exe` only (no installer), for a quick local test | `release/` |
+| `npm run dist:mac` | macOS `.dmg` + `.zip` for Apple Silicon and Intel, ad-hoc signed (must run **on** macOS) | `release/` |
+| `npm run dist:linux` | Linux AppImage + `.deb` + `.rpm` (x64; must run **on** Linux) | `release/` |
 
 <details>
 <summary><b>Cross-platform packaging</b></summary>
@@ -121,16 +128,71 @@ npm run dev
 
 | Command | Result |
 |---|---|
-| `npm run dist -- --mac` | macOS `.dmg` (must run **on** macOS) |
-| `npm run dist -- --linux` | Linux build with electron-builder defaults |
 | `npm run dist -- --dir` | Unpacked build for inspection, no installer |
 
-`package.json`'s `build` block defines explicit `win` and `mac` target lists but
-**no `linux` block** — Linux packaging falls back to electron-builder's
-defaults. Add a `linux` block there if you need to pin specific formats
-(AppImage / deb / rpm / …).
+`package.json`'s `build` block defines the `win`, `mac` and `linux` targets;
+`dist:mac` and `dist:linux` build those (each must run on its own system).
 
 </details>
+
+---
+
+## Running the tests
+
+```bash
+npm test                      # every *Test.ts under src/ and electron/, one process each
+# one file only (the parent uses the same path):
+node --import ./scripts/ts-esbuild-hooks.mjs src/runAllTests.ts --file src/utils/smfLeadTest.ts
+```
+
+Every test file exports one or more `run…Test()` functions returning its **failure
+count** — `0` means all checks passed. `src/runAllTests.ts` discovers every
+`*Test.ts` under `src/` and `electron/`, calls those functions and exits non-zero
+if anything failed, so it works the same on your machine and in CI.
+
+Three rules are deliberate, and each exists because of a specific trap:
+
+- **One child process per file.** Several tests import the store and mutate it, and
+  some leave timers, ports or promises behind. In one process the second file would
+  inherit the first one's state, and a test awaiting an unref'd handle would end the
+  whole run with an "unsettled top-level await" instead of a result.
+- **A file that cannot be loaded counts as a failure**, never as a skip. A broken
+  import is exactly what a test run is for.
+- **Skips are listed with a reason** in the `SKIP` table at the top of
+  `src/runAllTests.ts`. Add an entry only with a reason that a stranger can read;
+  today it is one file: `src/audio/exportNativeTest.ts` needs the add-on from
+  `npm run native:build`, which only exists on Windows.
+
+TypeScript and Vite-only imports are handled by `scripts/ts-esbuild-hooks.mjs`
+(`module.registerHooks` + the `esbuild` already in the tree), so `npm test` needs
+no new dependency and no build step — but it does need **Node 22.15 or newer**;
+older versions stop with that message instead of quietly running half the suite.
+
+To see the suite in a clean environment, Docker is enough (nothing about it is
+required for normal development):
+
+```bash
+docker run --rm -v "$PWD:/w" -w /w node:22 npm test
+```
+
+`npm run typecheck` covers the same files, so run both — the tests say a rule is
+right, the typecheck says the call sites still fit.
+
+---
+
+## Android
+
+`android/` wraps the same renderer in a WebView. `electron/main.ts` and `electron/preload.ts` run unchanged inside the page: `android/vite.config.ts` swaps `electron`, `fs` and `path` for `android/web/`, and `MainActivity.java` supplies the files, pickers, sharing and downloads a page can't do itself. A change to `main.ts` that uses a new Electron or Node call needs that call added there.
+
+Web MIDI and Web Audio come with the WebView. The Native sound engine isn't available on Android.
+
+The app listens for mouse events, so `android/web/touch.ts` turns a finger into a mouse: a press is sent as it happens, holding still shows a tooltip, and a drag scrolls only if something can scroll that way. Controls that handle pointer events themselves mark it with `touch-action: none` and are left alone.
+
+## Home song server
+
+`npm run android:songs -- <folder>` (`android/song-server.mjs`) serves a folder of songs to the home page on desktop and Android. It only needs Node, so the one file can run on any computer. It is plain HTTP with no login, read-only, and answers private network addresses only.
+
+Genre, artist and title come from `Genre/Artist/Title.mid` paths. A `metadata.json` in the folder overrides them, keyed by path; the format is at the top of the file. The app finds the server by a UDP broadcast on port 8765, or takes a typed address. Songs download to `<library>/Home Server` when opened and stay there. The filtering API (`/api/songs`) is documented in the same place.
 
 ---
 
@@ -145,7 +207,7 @@ src/         Renderer — React UI, PixiJS roll, audio, Web MIDI
   utils/       Pure functions (unit-testable, no React)
   types/       Shared interfaces
 scripts/     Build helpers
-build/       NSIS installer assets
+build/       Installer assets, macOS icon
 docs/        Documentation
 ```
 
@@ -168,21 +230,22 @@ Full rationale for each boundary is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Releases and auto-update
 
-Orfeo officially builds only **Windows** binaries. That is the only platform
-with a real release pipeline and the only one the in-app auto-update
-(`electron-updater`, in `electron/main.ts`) targets.
+Orfeo officially builds **Windows**, **macOS** and **Linux** (experimental)
+binaries, all from the same release pipeline. Only the installed Windows build auto-updates
+(`electron-updater`, in `electron/main.ts`).
 
 <details>
-<summary><b>Why no official macOS / Linux builds</b></summary>
+<summary><b>Why no auto-update on macOS / Linux</b></summary>
 
-`electron-updater` assumes the app checking for updates was built and published
-through the *same* pipeline as the update feed it points at. A community-built
-macOS or Linux binary is not — nobody but the person who built it controls how
-or when it is rebuilt. Pointing its auto-updater at Orfeo's official GitHub
-release feed would be actively wrong: it could offer an "update" that does not
-match how that binary was built, or silently never fire.
+On macOS, `electron-updater` can only replace an app signed with an Apple
+Developer ID, which the ad-hoc signed Mac builds aren't, so they stay on manual
+updates and the release carries no `latest-mac.yml`.
 
-So: **no auto-update on macOS/Linux, by design** — same as the Windows
+On Linux, `electron-updater` could only update the AppImage (not the `.deb` or
+`.rpm`), and the Linux builds are still experimental, so the release carries no
+`latest-linux.yml` for now.
+
+So: **no auto-update on macOS/Linux, for now** — same as the Windows
 **portable** build (no installer for `electron-updater` to act on). Users on
 any of these get new versions from [orfeo.cc/download](https://orfeo.cc/download),
 which follows every GitHub release. `electron/main.ts` decides this once as `updateMode` (`'auto'`
@@ -215,8 +278,14 @@ it.
 The workflow checks that the tag, `package.json` and the changelog agree,
 builds the installer (`Orfeo-Setup-X.Y.Z.exe`) and the portable app
 (`Orfeo-X.Y.Z-portable.exe`) on Windows from the tag, uploads them with
-`latest.yml` and the blockmap, writes the release notes from the changelog and
-publishes the release as *Latest*. It also builds the Microsoft Store package
+`latest.yml` and the blockmap, and — at the same time, on macOS — builds
+`Orfeo-X.Y.Z-mac-arm64.dmg`/`.zip` (Apple Silicon) and
+`Orfeo-X.Y.Z-mac-x64.dmg`/`.zip` (Intel), and on Linux the AppImage, `.deb` and
+`.rpm`, into the same draft. Windows goes first: once the Windows build is done,
+macOS and Linux get up to 30 minutes, then it writes the release notes from the
+changelog and publishes the release as *Latest*, with or without them. Their
+files join the published release when they finish; if one failed or GitHub had no
+machine for it, the run's summary says so and *Re-run failed jobs* adds them. It also builds the Microsoft Store package
 (`Orfeo-X.Y.Z.appx`, from the same app folder) and keeps it with the run, for
 step 4.
 
@@ -296,21 +365,27 @@ The key expires (Partner Center shows the date next to it): add a new key and
 update `AZURE_AD_APPLICATION_SECRET` before it does, or the Microsoft Store
 workflow stops with "Signing in to Partner Center failed".
 
-<details>
-<summary><b>Contributing a macOS / Linux build (community)</b></summary>
+### macOS builds
 
-1. Run `npm run dist -- --mac` or `npm run dist -- --linux` locally **on that
-   platform**.
-2. Upload the artifact as an **additional asset on the same GitHub release**,
-   named so it is unmistakably unofficial and unsigned, e.g.
-   `Orfeo-X.Y.Z-macOS-community.dmg`,
-   `Orfeo-X.Y.Z-Linux-community.AppImage`.
-3. **Do not** upload a `latest-mac.yml` / `latest-linux.yml` alongside it unless
-   you are committing to maintain a real update feed for that platform going
-   forward. An unmaintained one is worse than none — it tells
-   `electron-updater` an update channel exists when nobody is behind it.
+The Mac apps are **ad-hoc signed**: sealed with a signature that needs no
+Apple account, so macOS can check they're intact. They are not signed with an
+Apple Developer ID or notarized by Apple, which would need a paid Apple
+Developer Program membership. macOS therefore blocks a downloaded copy until
+the person allows it once in *Privacy & Security* (see
+[INSTALLATION.md → macOS](INSTALLATION.md#macos)).
 
-</details>
+Every push to `dev` and every pull request builds both Mac apps the same way
+(`.github/workflows/macos.yml`), read-only and without any secrets.
+
+### Linux builds
+
+`.github/workflows/linux.yml` builds the AppImage, `.deb` and `.rpm` (x64) and
+starts the packaged app on an invisible screen to check that it opens (twice:
+the unpacked app, and the AppImage exactly as a user starts it, sandbox on — a
+blocked AppImage sandbox on newer Ubuntu is reported as a warning). It runs on
+every push to `dev`, on pull requests, and inside the Release workflow, which
+then uploads the packages to the same draft. The packages and screenshots stay
+on each run as the **linux-packages** artifact.
 
 ---
 
@@ -340,6 +415,6 @@ workflow stops with "Signing in to Partner Center failed".
 ### Related documents
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — why each choice was made
-- [INSTALLATION.md](INSTALLATION.md) — installer vs. portable
+- [INSTALLATION.md](INSTALLATION.md) — downloads for each system, where data lives
 - [SHORTCUTS.md](SHORTCUTS.md) — keyboard and mouse reference
 - [CHANGELOG.md](CHANGELOG.md) — release history

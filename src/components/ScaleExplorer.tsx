@@ -10,7 +10,8 @@ import OrfeoMark from './OrfeoMark'
 import ChevronPlayIcon from './ChevronPlayIcon'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { getKeyboardHeaderTop } from '../utils/modalAnchors'
-import { useAnchorBottomOnResize } from '../hooks/useAnchorBottomOnResize'
+import { startModalDrag, MODAL_MAX_HEIGHT, type ModalPos } from '../utils/modalDrag'
+import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import Tooltip from './Tooltip'
@@ -22,6 +23,7 @@ import {
   EXPLORER_RANGE, explorerLowRoot, SPEED_MS, VOICING_ICON, ALL_PROGRESSIONS,
   resolveProgressionStep, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
   explorerKeyColors, captureStruckShape, restoreStruckShape, EXPLORER_SWITCH_STYLE, type ProgSpeed, type StruckShape,
+  explorerPosInWindow,
 } from '../utils/explorerShared'
 import { ALL_CHORDS } from '../utils/chordVocabulary'
 import ExplorerOctaveControl from './ExplorerOctaveControl'
@@ -357,14 +359,15 @@ export default function ScaleExplorer() {
   const starmapEnabled = useStore(s => s.starmapEnabled)
   const midiHeldKeys = useStore(s => s.midiHeldKeys)
 
-  // ── Window drag position — centred on the window, bottom edge just above
-  // the keyboard's chord display row; recomputed each time the modal opens. ─
+  // ── Window position — where you last dragged it, else centred on the window
+  // with its bottom edge just above the keyboard's chord display row. Read each
+  // time the modal opens; content changing size only moves the bottom edge. ───
   const [pos, setPos] = useState(() => defaultPos(MODAL_HEIGHT))
   const panelRef = useRef<HTMLDivElement>(null)
   // ── Set on open; the first render after the open state has settled
   // measures the real height and anchors the bottom edge from it. ─────────
   const needsAnchorRef = useRef(false)
-  useAnchorBottomOnResize(panelRef, setPos, scaleExplorerOpen && !scaleExplorerMinimized, MIN_TOP)
+  useKeepBottomOnScreen(panelRef, setPos, scaleExplorerOpen && !scaleExplorerMinimized, MIN_TOP)
   useFocusTrap(panelRef, scaleExplorerOpen && !scaleExplorerMinimized)
   useClampPositionOnZoom(pos, setPos, panelRef)
 
@@ -413,7 +416,6 @@ export default function ScaleExplorer() {
   // the live speed without restarting the chain
   const speedRef = useRef<ProgSpeed>('med')
   const progRunningRef = useRef(false)
-  const dragRef = useRef<{ ox: number; oy: number; mx: number; my: number } | null>(null)
   const scalePlayTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const chordSeqTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const chordSeqRunningRef = useRef(false)
@@ -544,9 +546,9 @@ export default function ScaleExplorer() {
   // ── On open: pause playback, reset all transient state ────────────────────
   useEffect(() => {
     if (scaleExplorerOpen) {
-      // ── Recompute anchor position every time the modal opens ────────────
-      setPos(defaultPos(MODAL_HEIGHT))
-      needsAnchorRef.current = true
+      const kept = useStore.getState().explorerPositions.scale
+      setPos(kept ? explorerPosInWindow(kept, MODAL_WIDTH, MODAL_HEIGHT, MIN_TOP) : defaultPos(MODAL_HEIGHT))
+      needsAnchorRef.current = !kept
       // unless switched off: Settings › Playback › Explorers pause playback
       if (useStore.getState().playbackState === 'playing' && useStore.getState().explorerPausesPlayback) {
         ;(window as any).__orfeoPlayer?.pause?.()
@@ -575,8 +577,8 @@ export default function ScaleExplorer() {
   }, [scaleExplorerOpen, stopProgression, clearScalePlayTimers, stopChordSequence, clearExplorerKeys, clearExplorerChordDisplay])
 
   // ── Once the opening key (C major) is in and the tiles have rendered, put
-  // the bottom edge just above the chord display row using the real height.
-  // Later height changes are handled by useAnchorBottomOnResize. ──────────
+  // the bottom edge just above the chord display row using the real height
+  // (first opening only: after that it opens where you left it). ───────────
   useLayoutEffect(() => {
     if (!needsAnchorRef.current || !scaleExplorerOpen || selectedRoot === null) return
     const el = panelRef.current
@@ -864,27 +866,12 @@ export default function ScaleExplorer() {
   }, [scaleExplorerOpen, selectedProg, progPlaying, stopProgression, startProgression, playChordsInSequence])
 
   // ── Window drag handler ───────────────────────────────────────────────────
-  const onDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    dragRef.current = { ox: pos.x, oy: pos.y, mx: e.clientX, my: e.clientY }
-    const onMove = (ev: MouseEvent) => {
-      if (!dragRef.current) return
-      setPos({
-        x: Math.max(0, dragRef.current.ox + ev.clientX - dragRef.current.mx),
-        // MIN_TOP, not 0 — same titleBarOverlay clearance as the initial
-        // position; dragging the header up to y=0 put it under Windows' native
-        // maximize/close buttons just as easily as the auto-computed position did.
-        y: Math.max(MIN_TOP, dragRef.current.oy + ev.clientY - dragRef.current.my),
-      })
-    }
-    const onUp = () => {
-      dragRef.current = null
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }, [pos])
+  const onDragStart = (e: React.PointerEvent) => {
+    let moved: ModalPos | null = null
+    startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
+      if (moved) useStore.getState().setExplorerPosition('scale', moved)
+    })
+  }
 
   // ── CoF label helpers ─────────────────────────────────────────────────────
   // Major key name for outer ring position
@@ -952,7 +939,7 @@ export default function ScaleExplorer() {
         left: pos.x,
         top: pos.y,
         width: MODAL_WIDTH,
-        maxHeight: '96vh',
+        maxHeight: MODAL_MAX_HEIGHT,
         background: 'var(--bg-modal)',
         border: '1px solid var(--state-hover-bg)',
         borderRadius: 10,
@@ -965,7 +952,7 @@ export default function ScaleExplorer() {
       } as CSSProperties}
     >
       {/* Header — drag handle */}
-      <div onMouseDown={onDragStart} style={{
+      <div onPointerDown={onDragStart} style={{ touchAction: 'none',
         flexShrink: 0, height: 36, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 var(--space-3)',
         background: 'var(--bg-modal-header)', borderBottom: '1px solid var(--border)',

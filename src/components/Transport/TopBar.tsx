@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect, useState } from 'react'
 import {
   Play, Pause, SkipBack, SkipForward, Repeat,
   FolderOpen, RotateCcw, ChevronUp, ChevronDown,
-  Rewind, FastForward,
+  Rewind, FastForward, Music2, Hourglass, Home,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
@@ -18,7 +18,7 @@ import Tooltip from '../Tooltip'
 import { TapTempoPad } from './TapTempoPad'
 import { TempoWarning } from './TempoWarning'
 import { useCurrentTempoTrust } from '../../hooks/useTempoTrustScan'
-import { stepDisplayedBpm } from '../../utils/bpmStep'
+import { stepDisplayedBpm, typedBpm } from '../../utils/bpmStep'
 import { isCountingIn, cancelCountIn } from '../../utils/countInRunner'
 import { ContextMenu, ContextMenuItem, ContextMenuDivider, useMenuDismiss } from '../ContextMenu'
 import { t } from '../../utils/i18n'
@@ -26,6 +26,7 @@ import { useMidiSettings } from '../../store/midiSettings'
 import { shortName } from '../../utils/midiDeviceNames'
 import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
 import { confirmDiscardDirtyTempoKey } from '../../utils/tempoKeySave'
+import { isScoreFor } from '../../utils/scoreSource'
 
 // NOTE: no more `C` shorthand object — every color below is a literal
 // `var(--token-name)` string written directly at its point of use, so the
@@ -44,7 +45,8 @@ const SKIP_SECS = 5
 // `geometrychange`, so this tracks the real safe zone live. Falls back to a
 // conservative constant if the API isn't present yet (first paint, or a
 // non-Windows build).
-const OVERLAY_INSET_FALLBACK = 174
+// Android has no window buttons to clear, and the bar needs every pixel
+const OVERLAY_INSET_FALLBACK = /Android/.test(navigator.userAgent) ? 0 : 174
 
 function useTitlebarOverlayInset(): number {
   const [inset, setInset] = useState(OVERLAY_INSET_FALLBACK)
@@ -103,6 +105,9 @@ export default function TopBar() {
 
 
   const { play, pause, stop, seek, seekAndPlay } = usePlayback()
+  const scoreViewMode = useStore((s) => s.scoreViewMode)
+  const waitForNotes = useStore((s) => s.waitForNotes)
+  const hasScore = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath))
   const { openFile } = useMidiFile()
   const wasPlayingRef = useRef(false)
 
@@ -292,6 +297,16 @@ export default function TopBar() {
             </span>
           </Tooltip>
         </div>
+        {midi && <Tooltip title="Home" description={"Find another song.\nYour open song stays as it is."} placement="bottom">
+          <button
+            onClick={() => useStore.getState().setHomeOpen(true)}
+            aria-label="Home"
+            className="app-no-drag"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--text-amber)' }}
+          >
+            <Home size={18} strokeWidth={1.5} />
+          </button>
+        </Tooltip>}
         <Tooltip title="Open a file (Ctrl+O)" description={"Loads a supported file from\ndisk to start a new session."} placement="bottom">
           <button
             onClick={openFile}
@@ -310,15 +325,22 @@ export default function TopBar() {
       {/* ── BPM ── (tighter gap/padding than the other groups: with the TAP pad
           the left column must still fit at a 1366 px window) */}
       <div className="app-no-drag" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 var(--space-2)', flexShrink: 0 }}>
-        <Tooltip title={`Tempo: ${liveBpm || '—'} BPM`} description={"The song's current playback tempo,\nscaled by your speed setting."} placement="bottom">
+        <Tooltip title={`Tempo: ${liveBpm || '—'} BPM`} description={t`The song's current playback tempo,\nscaled by your speed setting.\nDouble-click to type a tempo.`} placement="bottom">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>BPM</span>
               <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>TEMPO</span>
             </div>
-            <span style={{ color: isTempoChanged ? 'var(--text-amber)' : 'var(--text-active)', fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, minWidth: 36, textAlign: 'right', lineHeight: 1 }}>
-              {midi ? liveBpm : '—'}
-            </span>
+            <BpmValue
+              shown={midi ? String(liveBpm) : '—'}
+              changed={isTempoChanged}
+              disabled={!midi}
+              onType={(text) => {
+                const s = useStore.getState()
+                const next = typedBpm(text, s.originalBpm, currentFileBpm)
+                if (next !== null) setBpm(next)
+              }}
+            />
           </div>
         </Tooltip>
         {/* ±1 steps the DISPLAYED tempo (file tempo at the playhead, incl. any
@@ -657,6 +679,38 @@ export default function TopBar() {
 
         <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
 
+        {/* SCORE — notation files only, MIDI has no score to draw */}
+        <Tooltip
+          title={!hasScore ? t`No score for this song` : scoreViewMode === 'roll' ? t`Showing: piano roll` : scoreViewMode === 'both' ? t`Showing: score and piano roll` : t`Showing: score`}
+          description={hasScore ? t`Click to switch between the piano roll, the score, or both.` : t`Scores show for MusicXML, Guitar Pro and Capella files, not MIDI or saved edits.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!hasScore} aria-label={t`Score view`}
+            onClick={() => useStore.getState().setScoreViewMode(NEXT_SCORE_MODE[scoreViewMode])}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: hasScore ? 'pointer' : 'default', opacity: hasScore ? 1 : 0.4, color: hasScore && scoreViewMode !== 'roll' ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <Music2 size={24} />
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>SCORE</span>
+          </button>
+        </Tooltip>
+
+        {/* WAIT — the song moves only as the MIDI keyboard plays it */}
+        <Tooltip
+          title={waitForNotes ? t`Waiting for your notes` : t`Wait for notes`}
+          description={t`The song holds still until you play the next note or chord on your MIDI keyboard. Hide or mute a track to leave its notes out. Play turns this off.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!midi} aria-label={t`Wait for notes`} aria-pressed={waitForNotes}
+            onClick={() => useStore.getState().setWaitForNotes(!waitForNotes)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: waitForNotes ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <Hourglass size={24} />
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>WAIT</span>
+          </button>
+        </Tooltip>
+
+        <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
+
         {/* MIDI — the keyboard being played; click opens its settings */}
         <Tooltip
           title={midiDeviceConnected ? midiDeviceName : t`No connected keyboards`}
@@ -681,6 +735,8 @@ export default function TopBar() {
     </div>
   )
 }
+
+const NEXT_SCORE_MODE = { roll: 'both', both: 'score', score: 'roll' } as const
 
 const METRO_MENU_WIDTH = 150
 
@@ -849,6 +905,43 @@ function DebugCopyItem({ idleLabel, logTag, buildText, onDone }: {
     : idleLabel
 
   return <ContextMenuItem onClick={copy}>{label}</ContextMenuItem>
+}
+
+// ── The tempo number: double-click to type one, Enter or clicking away sets
+// it, Escape keeps the old one. Same size as the number, so nothing shifts. ──
+function BpmValue({ shown, changed, disabled, onType }: {
+  shown: string; changed: boolean; disabled: boolean; onType: (text: string) => void
+}) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const style: React.CSSProperties = {
+    color: changed ? 'var(--text-amber)' : 'var(--text-active)', fontFamily: 'var(--font-mono)',
+    fontSize: 20, fontWeight: 700, minWidth: 36, textAlign: 'right', lineHeight: 1,
+  }
+  if (draft === null) {
+    return <span onDoubleClick={disabled ? undefined : () => setDraft(shown)} style={style}>{shown}</span>
+  }
+  const finish = (save: boolean) => {
+    if (save) onType(draft)
+    setDraft(null)
+  }
+  return (
+    <input
+      autoFocus
+      aria-label={t`Tempo in BPM`}
+      inputMode="decimal"
+      maxLength={5}
+      value={draft}
+      onFocus={e => e.currentTarget.select()}
+      onChange={e => setDraft(e.currentTarget.value)}
+      onBlur={() => finish(true)}
+      onKeyDown={e => {
+        e.stopPropagation()
+        if (e.key === 'Enter') finish(true)
+        else if (e.key === 'Escape') finish(false)
+      }}
+      style={{ ...style, width: `max(36px, ${shown.length}ch)`, height: 20, padding: 0, border: 'none', outline: 'none', background: 'var(--bg-input, transparent)', boxShadow: '0 1px 0 var(--text-amber)' }}
+    />
+  )
 }
 
 // Long-press button: single click = +1, hold = accelerating repeat

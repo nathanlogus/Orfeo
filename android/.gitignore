@@ -1,0 +1,6 @@
+# Generated: the web build, Gradle output and this machine's SDK path
+app/src/main/assets/web/
+app/build/
+build/
+.gradle/
+local.properties

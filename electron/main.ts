@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell, Menu, utilityProcess, Messa
 import { autoUpdater } from 'electron-updater'
 import { join, basename, dirname, extname } from 'path'
 import { execFile } from 'child_process'
-import { readFileSync, writeFileSync, existsSync, readdirSync, createWriteStream, statSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, readdirSync, createWriteStream, statSync, renameSync, unlinkSync } from 'fs'
 import { mkdir, access, copyFile, readdir, rename, rmdir, writeFile } from 'fs/promises'
 import { Midi } from '@tonejs/midi'
 import { Chord, Note } from 'tonal'
@@ -10,9 +10,11 @@ import PDFDocument from 'pdfkit'
 import { assignHands } from '../src/utils/handAssignment'
 import { buildHandExportHint, withHandSuffix, nameHandFromSuffix, parseHandMapMeta, RESTORED_CONFIDENCE } from '../src/utils/handMetadata'
 import { getGMGroup } from '../src/utils/gmInstruments'
-import { exportsDir, nextFreeName } from './exportName'
+import { exportsDir, nextFreeName, safeExportBaseName } from './exportName'
+import { DISCOVERY_PORT, DISCOVERY_PROBE, discoveredAddress, safeSongPath, serverUrl, songServerDest } from './songServer'
 import { KEYBOARD_GROUPS } from '../src/utils/keyboardGroups'
 import { nextOrfeoVersion, stripOrfeoSuffix } from '../src/utils/orfeoVersioning'
+import { downloadEnding, newerRelease } from '../src/utils/newRelease'
 import type { Hand } from '../src/types'
 
 // ── Electron defaults app.getName() to package.json's "name" ("orfeo"),
@@ -61,7 +63,7 @@ async function ensureDemoFolder(): Promise<void> {
   // ── Source path: extraResources lands at resources/demo/ in production ───
   const srcDir = app.isPackaged
     ? join(process.resourcesPath, 'demo')
-    : join(app.getAppPath(), 'public', 'demo')
+    : join(app.getAppPath(), 'public', 'Demo')
 
   await copyDemoFilesRecursive(srcDir, targetDir)
 }
@@ -137,6 +139,13 @@ function createWindow() {
   })
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return
+    // ── Developer tools (Ctrl+Shift+I or F12) — the user manual asks for
+    // them in bug reports. Electron's default menu normally provides the
+    // shortcut, but that menu is switched off (Menu.setApplicationMenu(null),
+    // see app.whenReady), so the installed app needs it here. ────────────────
+    if (input.key === 'F12' || ((input.control || input.meta) && input.shift && !input.alt && input.code === 'KeyI')) {
+      event.preventDefault(); win.webContents.toggleDevTools(); return
+    }
     if (!(input.control || input.meta) || input.shift || input.alt) return
     if (input.key === '+' || input.key === '=' || input.code === 'NumpadAdd') {
       event.preventDefault(); stepZoom(win, 1)
@@ -526,11 +535,17 @@ function httpsGetFollow(url: string, onResponse: (res: import('http').IncomingMe
   }).on('error', (e: Error) => onResponse({ statusCode: 0, message: e.message } as any))
 }
 
+// One download per sound set: two of the same would share a temporary file, and
+// the second to finish would find it already gone
+const activeSoundfontDownloads = new Map<string, Promise<{ ok: boolean; error?: string }>>()
+
 ipcMain.handle('soundfont:download', (e, id: string) => {
   const entry = SOUNDFONT_CATALOG[id]
   const destPath = soundfontPath(id)
   if (!entry || !destPath) return Promise.resolve({ ok: false, error: 'Unknown soundfont' })
-  return new Promise<{ ok: boolean; error?: string }>((resolve) => {
+  const active = activeSoundfontDownloads.get(id)
+  if (active) return active
+  const download = new Promise<{ ok: boolean; error?: string }>((resolve) => {
     httpsGetFollow(entry.url, (res) => {
       if (!res.statusCode || res.statusCode >= 400) {
         resolve({ ok: false, error: `Download failed: HTTP ${res.statusCode ?? (res as any).message ?? 'unknown'}` })
@@ -547,15 +562,88 @@ ipcMain.handle('soundfont:download', (e, id: string) => {
       res.pipe(file)
       file.on('finish', () => {
         file.close(() => {
-          require('fs').renameSync(tmpPath, destPath)
+          try {
+            require('fs').renameSync(tmpPath, destPath)
+          } catch (err) {
+            resolve({ ok: false, error: (err as Error).message })
+            return
+          }
           e.sender.send('soundfont:progress', { id, progress: 1 })
           resolve({ ok: true })
         })
       })
       file.on('error', (err: Error) => resolve({ ok: false, error: err.message }))
     })
-  })
+  }).finally(() => activeSoundfontDownloads.delete(id))
+  activeSoundfontDownloads.set(id, download)
+  return download
 })
+// ── Home song server ───────────────────────────────────────────────────────
+// A plain file save, not fetch: on Android the page may not call an http address
+const SONG_SERVER_TIMEOUT_MS = 10_000
+function saveUrl(url: string, dest: string): Promise<void> {
+  const part = `${dest}.part`
+  return new Promise<void>((resolve, reject) => {
+    const http = require(url.startsWith('https:') ? 'https' : 'http')
+    http.get(url, (res: import('http').IncomingMessage) => {
+      if (res.statusCode !== 200) { res.resume(); reject(new Error(`server answered ${res.statusCode}`)); return }
+      const file = createWriteStream(part)
+      file.on('finish', () => file.close(() => resolve()))
+      file.on('error', reject)
+      res.pipe(file)
+    }).on('error', reject).setTimeout(SONG_SERVER_TIMEOUT_MS, function (this: import('http').ClientRequest) { this.destroy(new Error('server timed out')) })
+  }).then(() => renameSync(part, dest), (e) => {
+    if (existsSync(part)) unlinkSync(part)
+    throw e
+  })
+}
+
+const songServerRoot = () => loadPrefs().libraryFolder || app.getPath('userData')
+const haveSong = (dest: string, size: number) => existsSync(dest) && statSync(dest).size === size
+
+// shortcut: one broadcast on the default network; a server on another subnet needs its address typed
+const DISCOVERY_WAIT_MS = 1500
+ipcMain.handle('songServer:discover', () => new Promise<string | null>((resolve) => {
+  const socket = require('dgram').createSocket('udp4')
+  const finish = (address: string | null) => { clearTimeout(timer); socket.close(); resolve(address) }
+  const timer = setTimeout(() => finish(null), DISCOVERY_WAIT_MS)
+  socket.on('error', () => finish(null))
+  socket.on('message', (msg: Buffer, from: { address: string }) => {
+    const address = discoveredAddress(msg.toString(), from.address)
+    if (address) finish(address)
+  })
+  socket.bind(() => {
+    socket.setBroadcast(true)
+    socket.send(DISCOVERY_PROBE, DISCOVERY_PORT, '127.0.0.1')
+    socket.send(DISCOVERY_PROBE, DISCOVERY_PORT, '255.255.255.255')
+  })
+}))
+
+let songListCount = 0
+ipcMain.handle('songServer:query', async (_e, address: string, query: Record<string, string | number>) => {
+  const params = new URLSearchParams(Object.entries(query).map(([k, v]) => [k, String(v)]))
+  const listPath = join(app.getPath('userData'), `song-list-${++songListCount}.json`)
+  await saveUrl(`${serverUrl(address)}/api/songs?${params}`, listPath)
+  const result = JSON.parse(readFileSync(listPath, 'utf-8'))
+  unlinkSync(listPath)
+  const root = songServerRoot()
+  const songs = result.songs.filter((s: any) => safeSongPath(s?.path))
+    .map((s: any) => ({ ...s, local: haveSong(songServerDest(root, s.path), s.size) }))
+  return { ...result, songs }
+})
+
+// A song that changed on the server comes down again; edits are never lost that
+// way, since the app saves those as new files in Orfeo/
+ipcMain.handle('songServer:download', async (_e, address: string, path: string, size: number) => {
+  if (!safeSongPath(path)) throw new Error('not a song path')
+  const dest = songServerDest(songServerRoot(), path)
+  if (!haveSong(dest, size)) {
+    await mkdir(dirname(dest), { recursive: true })
+    await saveUrl(`${serverUrl(address)}/api/file?path=${encodeURIComponent(path)}`, dest)
+  }
+  return dest
+})
+
 ipcMain.handle('dialog:openMidi', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Open MIDI File',
@@ -629,8 +717,10 @@ ipcMain.handle('fs:statFiles', async (_e, paths: string[]) => {
 ipcMain.handle('export:save', async (_e, songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => {
   const dir = exportsDir(libraryFolder, app.getPath('music'))
   await mkdir(dir, { recursive: true })
+  // The name arrives from the renderer: one plain name inside dir, never a path.
+  const base = safeExportBaseName(dir, fileName)
   for (let tries = 0; tries < 50; tries++) {
-    const name = nextFreeName(new Set(await readdir(dir)), fileName)
+    const name = nextFreeName(new Set(await readdir(dir)), base)
     const path = join(dir, name)
     try { await writeFile(path, bytes, { flag: 'wx' }); return path }
     catch (e: any) { if (e?.code !== 'EEXIST') throw e }
@@ -665,6 +755,7 @@ ipcMain.handle('fs:getCachedImport',
 // Writes converted MIDI bytes (base64-encoded) to destPath.
 ipcMain.handle('fs:writeCachedImport',
   async (_e, destPath: string, base64: string): Promise<void> => {
+  await mkdir(dirname(destPath), { recursive: true })
   writeFileSync(destPath, Buffer.from(base64, 'base64'))
   appendFileLogEvent(destPath, { type: 'import', timestamp: Date.now(), summary: 'Imported and converted to MIDI' })
 })
@@ -1056,7 +1147,7 @@ ipcMain.handle('editor:save', async (_e, payload: {
     const existingMeta = (midi.header as any).meta ?? []
     ;(midi.header as any).meta = existingMeta.filter((m: any) =>
       !(typeof m.text === 'string' && (
-        m.text.startsWith('ORFEO_TRACK_NAME:') || m.text.startsWith('ORFEO_TRACK_COLOR:') ||
+        m.text.startsWith('ORFEO_TRACK_NAME:') || m.text.startsWith('ORFEO_TRACK_COLOR:') || m.text.startsWith('ORFEO_TRACK_HAND:') ||
         m.text.startsWith('ORFEO_TRACK_VISIBLE:') || m.text.startsWith('ORFEO_TRACK_KEYBOARD:')
       ))
     )
@@ -1814,12 +1905,13 @@ ipcMain.handle('window:setFullScreen', (_e, value: boolean) => {
 })
 
 // ── Auto-update — GitHub Releases as the update feed (see package.json's
-// build.publish). Only Windows gets real auto-update: that's the only
-// platform SquareBow actually builds, signs (nominally), and publishes
-// artifacts for via `npm run dist`. macOS/Linux builds are community-
-// contributed unofficial binaries — nobody controls their provenance or
-// update channel, so pointing electron-updater at the official GitHub feed
-// for them would be actively wrong (could offer an "update" that doesn't
+// build.publish). Only Windows gets real auto-update. macOS builds come
+// from the same release, but electron-updater can only replace a Mac app
+// signed with an Apple Developer ID, and they're only ad-hoc signed.
+// Linux builds are community-contributed unofficial binaries — nobody
+// controls their provenance or update channel, so pointing
+// electron-updater at the official GitHub feed for them would be actively
+// wrong (could offer an "update" that doesn't
 // match how that binary was built, or silently never fire since community
 // builds usually aren't uploaded as electron-updater-recognized artifacts
 // at all). Portable builds have no installer/uninstaller for
@@ -1839,7 +1931,8 @@ ipcMain.handle('window:setFullScreen', (_e, value: boolean) => {
 //   'manual' — portable build, macOS/Linux, and dev: no installer for
 //              electron-updater to act on, so the button just opens the
 //              download page on orfeo.cc (updated with every release).
-//              Nothing is ever downloaded or checked in-process.
+//              Nothing is ever downloaded in-process; one look at GitHub at
+//              launch lights a dot on the button (update:new-version).
 // The renderer asks for this ONCE on mount (update:info) and renders the
 // button's tooltip + click behavior from it — it never has to click and
 // wait to discover which mode it's in. ───────────────────────────────────
@@ -1889,6 +1982,26 @@ ipcMain.handle('update:check', () => {
   if (updateMode === 'manual') { void shell.openExternal(DOWNLOAD_URL); return }
   if (updateMode === 'store') { void shell.openExternal(STORE_PAGE_URL); return }
   autoUpdater.checkForUpdates().catch((err) => sendUpdateStatus(summarizeUpdateError(err)))
+})
+
+// Builds that can't update themselves still hear about a new release: the
+// update button blinks a dot and opens the download page. Silent when offline.
+// ORFEO_RELEASE_TEST=1.0.0 runs the real check in dev, pretending to be that version.
+const LATEST_RELEASE_URL = 'https://api.github.com/repos/Squarebow/Orfeo/releases/latest'
+const RELEASE_CHECK_TIMEOUT_MS = 10_000
+const releaseTest = app.isPackaged ? undefined : process.env.ORFEO_RELEASE_TEST
+
+// Asked by the renderer once it's listening, so a quick answer can't go missing
+ipcMain.handle('update:new-version', async (): Promise<string | null> => {
+  if (updateMode !== 'manual' || !(app.isPackaged || releaseTest)) return null
+  try {
+    const res = await fetch(LATEST_RELEASE_URL, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Orfeo' },
+      signal: AbortSignal.timeout(RELEASE_CHECK_TIMEOUT_MS),
+    })
+    if (!res.ok) return null
+    return newerRelease(releaseTest ?? app.getVersion(), await res.json() as any, downloadEnding(process.platform))
+  } catch { return null } // offline: try again next launch
 })
 
 ipcMain.handle('update:install', () => {
@@ -1967,8 +2080,12 @@ app.whenReady().then(async () => {
   // Ctrl+0 via Chromium's own zoomLevel. Left alone, that's a second,
   // uncoordinated zoom mechanism fighting the one built below (no step
   // list, no cap, no persistence, no DPR coordination with the piano-roll
-  // fix). Nulling it out guarantees there's exactly one zoom path. ────────
-  Menu.setApplicationMenu(null)
+  // fix). Nulling it out guarantees there's exactly one zoom path. macOS
+  // always shows a menu bar, and Quit and copy/paste in text fields live in
+  // it, so there it gets the app, Edit and Window menus — still no View. ──
+  Menu.setApplicationMenu(process.platform === 'darwin'
+    ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }])
+    : null)
   createWindow()
   if (updateMode === 'auto') {
     // Delayed so it doesn't compete with the app's own startup work; silent
@@ -1976,4 +2093,5 @@ app.whenReady().then(async () => {
     setTimeout(() => { autoUpdater.checkForUpdates().catch(() => {}) }, 5000)
   }
 })
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+// One window: closing it quits, on macOS too — nothing would reopen it from the Dock
+app.on('window-all-closed', () => app.quit())

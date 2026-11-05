@@ -8,7 +8,14 @@
 # 1. Check   — version, tag, package.json and changelog all agree; builds the notes
 # 2. Build   — on Windows, from the tag: installer, portable, latest.yml → draft release;
 #              the Microsoft Store package (.appx) is kept as a run artifact, not on GitHub
-# 3. Publish — adds the notes and publishes (or keeps it a draft / marks it a pre-release)
+#              On macOS, at the same time: .dmg and .zip for Apple Silicon and Intel →
+#              the same draft (ad-hoc signed, not notarized: no Apple account needed)
+#              On Linux, at the same time: AppImage, .deb, .rpm (x64), after a check that
+#              the packaged app opens (linux.yml) → the same draft
+# 3. Publish — adds the notes and publishes (or keeps it a draft / marks it a pre-release).
+#              Windows goes first: it needs only the Windows build. macOS and Linux get up
+#              to 30 minutes to join; after that, or if they fail, the release goes out
+#              without them and their files join it when they finish (Re-run failed jobs).
 #
 # The Microsoft Store is a separate step afterwards: Actions → Microsoft Store
 # (store.yml) with the same version sends this run's .appx to the Store.
@@ -116,16 +123,11 @@ jobs:
           --draft --verify-tag --title "Orfeo $version" --notes-file release-notes.md
 
   build:
-    name: 2. Build
+    name: 2. Build (Windows)
     needs: check
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      # The hand-engine check hashes handAssignment.ts with Windows line endings,
-      # exactly as on your PC, so the checkout must use them too.
-      - name: Use Windows line endings
-        run: git config --global core.autocrlf true
-
       - name: Get the code of the tagged version
         uses: actions/checkout@v7
         with:
@@ -178,15 +180,93 @@ jobs:
           path: release/*.appx
           if-no-files-found: error
 
-  publish:
-    name: 3. Publish
-    needs: [check, build]
+  build-mac:
+    name: 2. Build (macOS)
+    needs: check
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Get the code of the tagged version
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.check.outputs.tag }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Both architectures from the one Apple Silicon runner: nothing native to
+      # compile — the Native engine is Windows-only. The codesign check catches
+      # an app macOS would call damaged.
+      - name: Build and upload to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          npm run dist:mac -- --publish never
+          for app in release/mac/Orfeo.app release/mac-arm64/Orfeo.app; do
+            codesign --verify --deep --strict "$app"
+          done
+          # --clobber: re-running a failed job replaces what it uploaded before
+          gh release upload "$TAG" release/*.dmg release/*.zip --clobber --repo "$GITHUB_REPOSITORY"
+
+  # Linux, alongside Windows and from the same tag: AppImage, .deb and .rpm,
+  # plus a check that the packaged app opens (linux.yml, also runnable by hand).
+  build-linux:
+    name: 2. Build (Linux)
+    needs: check
+    uses: ./.github/workflows/linux.yml
+    with:
+      ref: ${{ needs.check.outputs.tag }}
+
+  # Into the same draft. --clobber: re-running a failed job replaces what it uploaded.
+  upload-linux:
+    name: 2. Upload (Linux)
+    needs: [check, build-linux]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/download-artifact@v8
         with:
+          name: linux-packages
+          path: linux
+
+      - name: Upload to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+        run: gh release upload "$TAG" linux/*.AppImage linux/*.deb linux/*.rpm --clobber --repo "$GITHUB_REPOSITORY"
+
+  publish:
+    name: 3. Publish
+    # Windows only: a macOS or Linux build must never hold a Windows release back. They
+    # aren't in `needs` because a job waiting for a machine would hold this one back too
+    # (GitHub can run out of macOS machines); the step below waits for them, for a while.
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
           name: release-notes
+
+      # Normally both are done within minutes and the release goes out complete
+      - name: Give macOS and Linux up to 30 minutes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 90); do
+            finished=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100"               --jq '[.jobs[] | select(.name == "2. Build (macOS)" or .name == "2. Upload (Linux)") | select(.status == "completed")] | length')
+            [ "$finished" = "2" ] && break
+            sleep 20
+          done
 
       - name: Add the notes and publish
         env:
@@ -211,3 +291,11 @@ jobs:
             echo "Next, the Microsoft Store: Actions → **Microsoft Store** → Run workflow, version **${TAG#v}**." >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
+          # say plainly what isn't there yet
+          assets=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          for platform in "macOS:.dmg" "Linux:.AppImage"; do
+            if ! grep -qF "${platform#*:}" <<< "$assets"; then
+              echo "::warning::${platform%%:*} files aren't on this release yet."
+              echo "**${platform%%:*} files aren't on this release yet.** They join it by themselves if the job is still running; if it failed or was cancelled, use *Re-run failed jobs* on this run." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done

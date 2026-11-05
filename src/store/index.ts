@@ -6,6 +6,7 @@ import type {
 } from '../types'
 import type { DetectedKey } from '../utils/keyDetection'
 import type { ForeignFormat } from '../utils/foreignFormatImport'
+import type { ScoreSource } from '../utils/scoreSource'
 import type { ProgressionVoicing } from '../utils/voiceLeading'
 import { detectKeyFromTracks, parseKeySignature } from '../utils/keyDetection'
 import { isKeyboardInstrument } from '../utils/gmInstruments'
@@ -160,6 +161,14 @@ interface OrfeoStore {
   mixerBaseline: Record<number, { volume: number; pan: number; chorus: number; reverb: number }>
   midiEditorOpen: boolean
   setMidiEditorOpen: (open: boolean) => void
+  // Session-only: the notation file behind the loaded song, if it has one
+  scoreSource: ScoreSource | null
+  setScoreSource: (source: ScoreSource | null) => void
+  scoreViewMode: 'roll' | 'both' | 'score'
+  // Wait for notes: the song is held still and moves as the player plays it, stepThrough.ts
+  waitForNotes: boolean
+  setWaitForNotes: (on: boolean) => void
+  setScoreViewMode: (mode: 'roll' | 'both' | 'score') => void
   pendingImportedFile: {
     sourcePath: string;
     format: ForeignFormat;
@@ -213,6 +222,13 @@ interface OrfeoStore {
   setCountInEnabled: (v: boolean) => void
   // ── Settings window (session only) — which group it shows; opened from
   // Quick Settings' gear icons / Open settings button / Ctrl + , ──────────
+  // Home page: shown over the app while no song is open, or when asked for
+  homeOpen: boolean
+  setHomeOpen: (open: boolean) => void
+  // A song to open the way a Library click does (SettingsPanel owns that path)
+  songToOpen: string | null
+  openSong: (path: string) => void
+
   settingsWindowOpen: boolean
   settingsWindowGroup: SettingsGroupId
   openSettingsWindow: (group?: SettingsGroupId) => void
@@ -246,6 +262,9 @@ interface OrfeoStore {
   noteEditorToolbarX: number
   noteEditorToolbarY: number
   setNoteEditorToolbarPos: (x: number, y: number) => void
+  // Where the Explorers were last dragged to; null until they are
+  explorerPositions: { chord: { x: number; y: number } | null; scale: { x: number; y: number } | null }
+  setExplorerPosition: (which: 'chord' | 'scale', pos: { x: number; y: number }) => void
   noteEditorSoloTrackIndex: number | null
   preSoloTrackVisibility: boolean[] | null
   soloTrackForEdit: (index: number, opts?: { keepPlayhead?: boolean }) => void
@@ -367,6 +386,9 @@ interface OrfeoStore {
   unhideLibraryFile: (path: string) => void
   showHiddenLibraryFiles: boolean
   setShowHiddenLibraryFiles: (v: boolean) => void
+  // Library rows as "Song — Artist", sorted by song. Display only: files keep their names
+  librarySongFirst: boolean
+  setLibrarySongFirst: (v: boolean) => void
   remapLibraryPaths: (pairs: { oldPath: string; newPath: string }[]) => void
   lastFolderOf: Map<string, string | null>
   setLastFolderOf: (map: Map<string, string | null>) => void
@@ -748,6 +770,12 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   setMixerOpen: (mixerOpen) => set({ mixerOpen }),
   midiEditorOpen: false,
   setMidiEditorOpen: (midiEditorOpen) => set({ midiEditorOpen }),
+  scoreSource: null,
+  setScoreSource: (scoreSource) => set({ scoreSource }),
+  scoreViewMode: 'roll',
+  setScoreViewMode: (scoreViewMode) => set({ scoreViewMode }),
+  waitForNotes: false,
+  setWaitForNotes: (waitForNotes) => set((s) => ({ waitForNotes, playbackState: waitForNotes && s.playbackState === 'playing' ? 'paused' : s.playbackState })),
   // ── Pending imported file — session-only, not persisted ──────────────────
   // Set when a foreign format (MusicXML, GP) is converted in-memory but not
   // yet saved to disk as a .mid cache file. Cleared on save or discard.
@@ -853,6 +881,11 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   setSkipEmptyBars: (skipEmptyBars) => set(skipEmptyBars ? { skipEmptyBars, chordTranscriptionEnabled: false } : { skipEmptyBars }),
   keepDrumCountIn: true,
   setKeepDrumCountIn: (keepDrumCountIn) => set({ keepDrumCountIn }),
+  homeOpen: false,
+  setHomeOpen: (homeOpen) => set({ homeOpen }),
+  songToOpen: null,
+  openSong: (songToOpen) => set({ songToOpen, presentationMode: false }),
+
   settingsWindowOpen: false,
   settingsWindowGroup: 'audio',
   openSettingsWindow: (group) => set((s) => ({ settingsWindowOpen: true, settingsWindowGroup: group ?? s.settingsWindowGroup })),
@@ -883,6 +916,8 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   noteEditorToolbarX: 24,
   noteEditorToolbarY: 80,
   setNoteEditorToolbarPos: (noteEditorToolbarX, noteEditorToolbarY) => set({ noteEditorToolbarX, noteEditorToolbarY }),
+  explorerPositions: { chord: null, scale: null },
+  setExplorerPosition: (which, pos) => set(s => ({ explorerPositions: { ...s.explorerPositions, [which]: pos } })),
 
   // ── Note Editor: track solo + first-run walkthrough ───────────────────────
   noteEditorSoloTrackIndex: null,
@@ -1163,6 +1198,8 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   })),
   showHiddenLibraryFiles: false,
   setShowHiddenLibraryFiles: (showHiddenLibraryFiles) => set({ showHiddenLibraryFiles }),
+  librarySongFirst: false,
+  setLibrarySongFirst: (librarySongFirst) => set({ librarySongFirst }),
   // ── Applies old→new path pairs after a folder move/rename, so a starred or
   // hidden file doesn't silently lose that state when its path changes. ──────
   remapLibraryPaths: (pairs) => set((s) => {
@@ -1211,6 +1248,9 @@ async function restoreLibraryPrefs() {
     if (typeof prefs.showHiddenLibraryFiles === 'boolean') {
       useStore.setState({ showHiddenLibraryFiles: prefs.showHiddenLibraryFiles })
     }
+    if (typeof prefs.librarySongFirst === 'boolean') {
+      useStore.setState({ librarySongFirst: prefs.librarySongFirst })
+    }
     if (prefs.noteNaming) store.setNoteNaming(prefs.noteNaming)
     if (prefs.accidentals) store.setAccidentals(prefs.accidentals)
     if (prefs.chordTrackingMode === 'auto' || prefs.chordTrackingMode === 'harmony' || prefs.chordTrackingMode === 'follow') {
@@ -1233,6 +1273,7 @@ async function restoreLibraryPrefs() {
     if (prefs.audioEngine === 'native') store.setAudioEngine(navigator.userAgent.includes('Windows') ? 'native' : 'samples')
     applySamplesIntroducedPref(prefs, store)
     if (typeof prefs.showBarNumbers === 'boolean') store.setShowBarNumbers(prefs.showBarNumbers)
+    if (prefs.scoreViewMode === 'roll' || prefs.scoreViewMode === 'both' || prefs.scoreViewMode === 'score') store.setScoreViewMode(prefs.scoreViewMode)
     if (typeof prefs.noteEditorEnabled === 'boolean') store.setNoteEditorEnabled(prefs.noteEditorEnabled)
     if (typeof prefs.saveTempoKeyChangesEnabled === 'boolean') store.setSaveTempoKeyChangesEnabled(prefs.saveTempoKeyChangesEnabled)
     if (typeof prefs.tapTempoPadEnabled === 'boolean') store.setTapTempoPadEnabled(prefs.tapTempoPadEnabled)
@@ -1252,6 +1293,10 @@ async function restoreLibraryPrefs() {
       useStore.setState({ tempoWarningDismissed: dismissed, tempoTrustCache: cache, libraryTrustIndex: index })
     }
     if (typeof prefs.noteEditorToolbarX === 'number' && typeof prefs.noteEditorToolbarY === 'number') store.setNoteEditorToolbarPos(prefs.noteEditorToolbarX, prefs.noteEditorToolbarY)
+    for (const which of ['chord', 'scale'] as const) {
+      const p = prefs.explorerPositions?.[which]
+      if (typeof p?.x === 'number' && typeof p?.y === 'number') store.setExplorerPosition(which, { x: p.x, y: p.y })
+    }
     if (typeof prefs.chordPrompterEnabled === 'boolean') store.setChordPrompterEnabled(prefs.chordPrompterEnabled)
     if (typeof prefs.chordTranscriptionEnabled === 'boolean') store.setChordTranscriptionEnabled(prefs.chordTranscriptionEnabled)
     if (typeof prefs.hideDemoFolder === 'boolean') store.setHideDemoFolder(prefs.hideDemoFolder)
@@ -1314,6 +1359,7 @@ const _unsubFav = useStore.subscribe((state) => {
       libraryFavourites:      Array.from(state.libraryFavourites),
       hiddenLibraryFiles:     state.hiddenLibraryFiles,
       showHiddenLibraryFiles: state.showHiddenLibraryFiles,
+      librarySongFirst:       state.librarySongFirst,
     }).catch(() => {})
   }, 1000)
 })
@@ -1341,6 +1387,7 @@ let _prevAccidentals: string | null = null
 let _prevMasterVolume: number | null = null
 let _prevAudioEngine: string | null = null
 let _prevShowBarNumbers: boolean | null = null
+let _prevScoreViewMode: string | null = null
 let _prevNoteEditorEnabled:    boolean | null = null
 let _prevSaveTempoKeyChangesEnabled: boolean | null = null
 let _prevTapTempoPadEnabled: boolean | null = null
@@ -1355,6 +1402,7 @@ let _prevSamplesIntroduced: boolean | null = null
 let _prevCountInBars: number | null = null
 let _prevTempoCorrections: object | null = null
 let _prevNoteEditorToolbarX:   number  | null = null
+let _prevExplorerPositions: unknown = null
 let _prevNoteEditorToolbarY:   number  | null = null
 let _prevChordPrompterEnabled: boolean | null = null
 let _prevChordTranscriptionEnabled: boolean | null = null
@@ -1412,6 +1460,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevMasterVolume = state.masterVolume
     _prevAudioEngine = state.audioEngine
     _prevShowBarNumbers = state.showBarNumbers
+    _prevScoreViewMode = state.scoreViewMode
     _prevNoteEditorEnabled = state.noteEditorEnabled
     _prevSaveTempoKeyChangesEnabled = state.saveTempoKeyChangesEnabled
     _prevTapTempoPadEnabled = state.tapTempoPadEnabled
@@ -1426,6 +1475,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevCountInBars = state.countInBars
     _prevTempoCorrections = state.tempoCorrections
     _prevNoteEditorToolbarX = state.noteEditorToolbarX
+    _prevExplorerPositions = state.explorerPositions
     _prevNoteEditorToolbarY = state.noteEditorToolbarY
     _prevChordPrompterEnabled = state.chordPrompterEnabled
     _prevChordTranscriptionEnabled = state.chordTranscriptionEnabled
@@ -1486,6 +1536,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     state.autoLevelOnLoad !== _prevAutoLevelOnLoad ||
     state.audioEngine !== _prevAudioEngine ||
     state.showBarNumbers !== _prevShowBarNumbers ||
+    state.scoreViewMode !== _prevScoreViewMode ||
     state.noteEditorEnabled !== _prevNoteEditorEnabled ||
     state.saveTempoKeyChangesEnabled !== _prevSaveTempoKeyChangesEnabled ||
     state.tapTempoPadEnabled !== _prevTapTempoPadEnabled ||
@@ -1500,6 +1551,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     state.countInBars !== _prevCountInBars ||
     state.tempoCorrections !== _prevTempoCorrections ||
     state.noteEditorToolbarX !== _prevNoteEditorToolbarX ||
+    state.explorerPositions !== _prevExplorerPositions ||
     state.noteEditorToolbarY !== _prevNoteEditorToolbarY ||
     state.chordPrompterEnabled !== _prevChordPrompterEnabled ||
     state.chordTranscriptionEnabled !== _prevChordTranscriptionEnabled ||
@@ -1552,6 +1604,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevMasterVolume = state.masterVolume
     _prevAudioEngine = state.audioEngine
     _prevShowBarNumbers = state.showBarNumbers
+    _prevScoreViewMode = state.scoreViewMode
     _prevNoteEditorEnabled = state.noteEditorEnabled
     _prevSaveTempoKeyChangesEnabled = state.saveTempoKeyChangesEnabled
     _prevTapTempoPadEnabled = state.tapTempoPadEnabled
@@ -1566,6 +1619,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevCountInBars = state.countInBars
     _prevTempoCorrections = state.tempoCorrections
     _prevNoteEditorToolbarX = state.noteEditorToolbarX
+    _prevExplorerPositions = state.explorerPositions
     _prevNoteEditorToolbarY = state.noteEditorToolbarY
     _prevChordPrompterEnabled = state.chordPrompterEnabled
     _prevChordTranscriptionEnabled = state.chordTranscriptionEnabled
@@ -1624,6 +1678,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
       autoLevelOnLoad: state.autoLevelOnLoad,
       audioEngine: state.audioEngine,
       showBarNumbers: state.showBarNumbers,
+      scoreViewMode: state.scoreViewMode,
       noteEditorEnabled: state.noteEditorEnabled,
       saveTempoKeyChangesEnabled: state.saveTempoKeyChangesEnabled,
       tapTempoPadEnabled: state.tapTempoPadEnabled,
@@ -1639,6 +1694,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
       tempoCorrections: state.tempoCorrections,
       noteEditorToolbarX: state.noteEditorToolbarX,
       noteEditorToolbarY: state.noteEditorToolbarY,
+      explorerPositions: state.explorerPositions,
       chordPrompterEnabled: state.chordPrompterEnabled,
       chordTranscriptionEnabled: state.chordTranscriptionEnabled,
       hideDemoFolder: state.hideDemoFolder,
@@ -1694,6 +1750,11 @@ const _unsubPrefs = useStore.subscribe((state) => {
 // actually open on pause, stop, or a new file loading. ─────────────────────
 let _prevPlaybackStateForCollapse: PlaybackState | null = null
 let _prevMidiForCollapse: unknown = null
+// Play hands the song back to its own clock
+useStore.subscribe((s, prev) => {
+  if (s.waitForNotes && s.playbackState === 'playing' && prev.playbackState !== 'playing') useStore.setState({ waitForNotes: false })
+})
+
 let _drawersAutoCollapsed = false
 let _preCollapseTrackPanelOpen = false
 let _preCollapseSettingsPanelOpen = false

@@ -11,8 +11,9 @@ import { useFocusTrap } from '../hooks/useFocusTrap'
 import SpeedControl from './SpeedControl'
 import OrfeoMark from './OrfeoMark'
 import Tooltip from './Tooltip'
-import { getPianoRollCenterX, getKeyboardHeaderTop } from '../utils/modalAnchors'
-import { useAnchorBottomOnResize } from '../hooks/useAnchorBottomOnResize'
+import { getPianoRollCenterX, modalTopAboveKeyboard } from '../utils/modalAnchors'
+import { startModalDrag, type ModalPos } from '../utils/modalDrag'
+import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import { buildChordMidi, formatChordSuffix, formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
@@ -24,6 +25,7 @@ import {
   EXPLORER_RANGE, explorerLowRoot, SPEED_MS, VOICING_ICON, ALL_PROGRESSIONS,
   resolveProgressionStep, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
   explorerKeyColors, captureStruckShape, restoreStruckShape, EXPLORER_SWITCH_STYLE, type ProgSpeed, type StruckShape,
+  explorerPosInWindow,
 } from '../utils/explorerShared'
 import ChevronPlayIcon from './ChevronPlayIcon'
 import ExplorerOctaveControl from './ExplorerOctaveControl'
@@ -108,15 +110,16 @@ export default function ChordExplorer() {
   const [inverted, setInverted] = useState(false)
   const lowRootRef = useRef(explorerLowRoot(explorerOctave))
   lowRootRef.current = explorerLowRoot(explorerOctave)
-  // ── Window drag position — bottom edge on the keyboard header, horizontally
-  // centered on the piano roll; recomputed each time the modal opens, but not
-  // while it's open (side-panel toggles don't move it). ─────────────────────
+  // ── Window position — where you last dragged it, else bottom edge on the
+  // keyboard header, horizontally centered on the piano roll. Read each time
+  // the modal opens, not while it's open (side-panel toggles don't move it);
+  // content changing size only moves the bottom edge. ───────────────────────
   const [pos, setPos] = useState(() => ({
-    x: Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2),
-    y: Math.round(getKeyboardHeaderTop() - MODAL_HEIGHT) - 78,
+    x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
+    y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
   }))
   const panelRef = useRef<HTMLDivElement>(null)
-  useAnchorBottomOnResize(panelRef, setPos, chordExplorerOpen && !chordExplorerMinimized, 44)
+  useKeepBottomOnScreen(panelRef, setPos, chordExplorerOpen && !chordExplorerMinimized, 44)
   useFocusTrap(panelRef, chordExplorerOpen && !chordExplorerMinimized)
   useClampPositionOnZoom(pos, setPos, panelRef)
   const [selectedRoot, setSelectedRoot] = useState(0)
@@ -195,10 +198,10 @@ export default function ChordExplorer() {
   // Reset transient state on open; no keyboard size change (61 is for ScaleExplorer only).
   useEffect(() => {
     if (chordExplorerOpen) {
-      // ── Recompute anchor position every time the modal opens ────────────
-      setPos({
-        x: Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2),
-        y: Math.round(getKeyboardHeaderTop() - MODAL_HEIGHT) - 78,
+      const kept = useStore.getState().explorerPositions.chord
+      setPos(kept ? explorerPosInWindow(kept, MODAL_WIDTH, MODAL_HEIGHT, 44) : {
+        x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
+        y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
       })
       setSearch('')
       setSearchOpen(false)
@@ -603,22 +606,13 @@ export default function ChordExplorer() {
     }
   }
 
-  const startDrag = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault()
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     setProgDropdownOpen(false)
     setDropdownRect(null)
-    const sx = e.clientX, sy = e.clientY, spx = pos.x, spy = pos.y
-    const onMove = (ev: MouseEvent) =>
-      // 44, not 0 — keeps the top edge clear of the 40px titleBarOverlay
-      // (electron/main.ts) where Windows draws its own window controls on
-      // top of everything in the DOM.
-      setPos({ x: Math.max(0, spx + ev.clientX - sx), y: Math.max(44, spy + ev.clientY - sy) })
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    let moved: ModalPos | null = null
+    startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
+      if (moved) useStore.getState().setExplorerPosition('chord', moved)
+    })
   }
 
   const rootLabel = (pc: number) => rootLabels.find(r => r.pitchClass === pc)?.label ?? ''
@@ -668,8 +662,9 @@ export default function ChordExplorer() {
 
       {/* Header — draggable */}
       <div
-        onMouseDown={startDrag}
+        onPointerDown={startDrag}
         style={{
+          touchAction: 'none',
           height: 36, flexShrink: 0,
           background: 'var(--bg-modal-header)',
           borderBottom: '1px solid var(--border)',

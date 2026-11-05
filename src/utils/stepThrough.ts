@@ -4,14 +4,14 @@
 // back one. No tempo, no loop: the player's own pace. Shift + arrow jumps a
 // bar. Built for learning fast solos and transcribing, including MIDI made
 // from audio, whose "chords" start a few ms apart: notes starting within
-// GROUP_SEC of the first note of a step count as that one step.
+// CHORD_GRACE_SEC of the first note of a step count as that one step.
 
 import { useStore } from '../store'
 import { NES } from './noteEditorState'
 import { amberHex } from './hitEffectQueue'
 import { isShown } from './trackShown'
+import { CHORD_GRACE_SEC } from './midiParser'
 
-const GROUP_SEC = 0.03
 const EPS = 1e-4
 const MIN_MS = 120
 const MAX_MS = 2500
@@ -30,7 +30,7 @@ function activeMidi(): any {
 // hi-hat into a step. ─────────────────────────────────────────────────────
 let _cache: { midi: unknown; sig: string; steps: Step[] } | null = null
 
-function audibleSignature(): string {
+function shownSignature(): string {
   return useStore.getState().tracks.map(t => (t.muted ? 'm' : t.solo ? 's' : '.') + (t.visible ? 'v' : 'h')).join('')
 }
 
@@ -49,7 +49,7 @@ export function buildSteps(midi: any, tracks: ReturnType<typeof useStore.getStat
   const steps: Step[] = []
   for (const n of all) {
     const last = steps[steps.length - 1]
-    if (last && n.time - last.time <= GROUP_SEC) last.notes.push(n)
+    if (last && n.time - last.time <= CHORD_GRACE_SEC) last.notes.push(n)
     else steps.push({ time: n.time, notes: [n] })
   }
   return steps
@@ -57,7 +57,7 @@ export function buildSteps(midi: any, tracks: ReturnType<typeof useStore.getStat
 
 function steps(): Step[] {
   const midi = activeMidi()
-  const sig = audibleSignature()
+  const sig = shownSignature()
   if (!_cache || _cache.midi !== midi || _cache.sig !== sig) {
     _cache = { midi, sig, steps: buildSteps(midi, useStore.getState().tracks) }
   }
@@ -93,6 +93,22 @@ export function targetStep(list: Step[], barStarts: number[], now: number, dir: 
   if (dir === 1) return list[indexAtOrAfter(list, now + EPS)] ?? null
   const i = indexAtOrAfter(list, now - EPS) - 1
   return i >= 0 ? list[i] : null
+}
+
+// ── Wait for notes: where the song moves once `held` covers the step it's waiting
+// on, null while it isn't. Keys are compared as the score and roll show them. ─
+export function nextWaitTime(list: Step[], now: number, held: Set<number>, transpose: number, end: number): number | null {
+  const i = indexAtOrAfter(list, now - EPS)
+  const step = list[i]
+  if (!step || !step.notes.every(n => held.has(n.midi + transpose))) return null
+  return list[i + 1]?.time ?? end
+}
+
+export function advanceIfPlayed(): void {
+  const s = useStore.getState()
+  if (!s.waitForNotes || !s.midi || s.playbackState === 'playing') return
+  const next = nextWaitTime(steps(), s.currentTime, s.midiHeldKeys, s.detectedKey?.transpose ?? 0, s.midi.duration)
+  if (next !== null) useStore.setState({ currentTime: next })
 }
 
 // ── Prepare General MIDI's track instruments once per song (Samples sets

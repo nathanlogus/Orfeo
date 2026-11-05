@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   scanMidiFolder:     (path: string) => ipcRenderer.invoke('fs:scanMidiFolder', path),
   getDemoFolder:      () => ipcRenderer.invoke('app:getDemoFolder'),
   loadMidiFromPath:   (path: string) => ipcRenderer.invoke('fs:loadMidiFromPath', path),
+  songServerQuery:    (address: string, query: Record<string, string | number>) => ipcRenderer.invoke('songServer:query', address, query),
+  songServerDownload: (address: string, path: string, size: number) => ipcRenderer.invoke('songServer:download', address, path, size),
+  songServerDiscover: () => ipcRenderer.invoke('songServer:discover'),
   saveExport:         (songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => ipcRenderer.invoke('export:save', songPath, libraryFolder, fileName, bytes),
   statFiles:          (paths: string[]) => ipcRenderer.invoke('fs:statFiles', paths),
   // MIDI Editor
@@ -76,6 +79,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Auto-update (GitHub Releases)
   getUpdateInfo:      () => ipcRenderer.invoke('update:info'),
   checkForUpdates:    () => ipcRenderer.invoke('update:check'),
+  getNewVersion:      () => ipcRenderer.invoke('update:new-version'),
   installUpdate:       () => ipcRenderer.invoke('update:install'),
   onUpdateStatus:      (fn: (data: any) => void) => ipcRenderer.on('update:status', (_e, data) => fn(data)),
   offUpdateStatus:     () => ipcRenderer.removeAllListeners('update:status'),

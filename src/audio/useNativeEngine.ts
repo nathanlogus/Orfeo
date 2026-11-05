@@ -10,19 +10,20 @@ import { useStore } from '../store'
 import { useMidiSettings, latencyOffsetSec } from '../store/midiSettings'
 import { NES } from '../utils/noteEditorState'
 import { pushHitEffect, amberHex } from '../utils/hitEffectQueue'
-import { isHomogeneousHandTrack, resolveHandAwareColor } from '../utils/handColors'
+import { isHomogeneousHandTrack } from '../utils/handColors'
+import { liveHandColor } from './liveHandColor'
 import { startNative, stopNative, nativeCall, isNativeRunning, useNativeAudio, onNativeRestart } from './nativeClient'
 import { programTimeline } from './programTimeline'
 import { volumeRatio } from './songVolume'
 import type { ControlEvent, ParsedTrack } from '../types'
 import { isShown } from '../utils/trackShown'
 
-// Brings Native to the Samples engine's loudness at the same master volume.
+// Brings Native to the Studio engine's loudness at the same master volume.
 // Measured from the speakers at a low master volume, where neither engine's
 // limiter acts (compressor off): matched there, both reach their limiters at
 // the same point, so loud passages keep the same punch. (Matching loudness at
 // a high volume instead hides a hotter engine behind its own limiter.)
-export const NATIVE_BOOST = 1.37
+export const NATIVE_BOOST = 1.69
 
 type Tracks = ReturnType<typeof useStore.getState>['tracks']
 const activeMidiData = (): any => (NES.dirty && NES.editMidi) ? NES.editMidi : useStore.getState().midi
@@ -206,7 +207,7 @@ const REFILL_MS = 400
 const _timers: ReturnType<typeof setTimeout>[] = []
 const _keyTimers = new Map<number, ReturnType<typeof setTimeout>>()
 let _refill: ReturnType<typeof setInterval> | null = null
-let _vis: { startPerf: number; startSec: number; ratio: number; transpose: number; cursors: Map<number, number>; tracks: Tracks; midi: any; hasSolo: boolean; scope: string; showHands: boolean; performance: boolean; homog: Map<number, boolean> } | null = null
+let _vis: { startPerf: number; startSec: number; ratio: number; transpose: number; cursors: Map<number, number>; tracks: Tracks; midi: any; hasSolo: boolean; scope: string; homog: Map<number, boolean> } | null = null
 
 export function nativeLightKey(midiNum: number, color: string, durMs: number) {
   const prev = _keyTimers.get(midiNum)
@@ -241,7 +242,7 @@ function startVisuals(startSec: number) {
   _vis = {
     startPerf: performance.now(), startSec, ratio: s.bpm / s.originalBpm || 1, transpose: s.detectedKey?.transpose ?? 0,
     cursors: new Map(), tracks: s.tracks, midi, hasSolo: s.tracks.some(t => t.solo), scope: s.hitEffectScope,
-    showHands: s.showHandLabels || (s.noteEditorActive && NES.reassignHandsMode), performance: s.handLabelMode === 'performance', homog: new Map(),
+    homog: new Map(),
   }
   for (const t of midi.tracks) {
     let i = t.notes.findIndex((n: any) => n.time >= startSec)
@@ -268,8 +269,8 @@ function refillVisuals() {
       const delay = Math.max(0, (n.time - now()) / v.ratio * 1000) + latencyMs
       const dur = Math.max(n.duration / v.ratio * 1000, 40)
       const key = n.midi + v.transpose
-      const color = resolveHandAwareColor(n, base, { homogeneousTrack: v.homog.get(t.index) ?? false, showHandLabels: v.showHands, performanceMode: v.performance })
       _timers.push(setTimeout(() => {
+        const color = liveHandColor(n, base, v.homog.get(t.index) ?? false)
         if (ts.showOnKeyboard) nativeLightKey(key, color, Math.min(dur + 30, 2500))
         else if (v.scope === 'all') pushHitEffect(key, color)
       }, delay))

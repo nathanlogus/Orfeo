@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject, type Dispatch, type SetStateAction } from 'react'
+import { clampModalPos } from '../utils/modalDrag'
 
 // ── Keeps a floating modal's dragged position on-screen after an app-zoom
 // change (Ctrl +/-/0 or Settings → Appearance). App zoom changes
@@ -20,22 +21,25 @@ export function useClampPositionOnZoom(
   posRef.current = pos
 
   useEffect(() => {
-    const onZoomChanged = () => {
+    const keepInView = () => {
       const el = panelRef.current
-      if (!el) return
+      // A hidden panel measures 0×0: it's clamped when it next moves or zooms
+      if (!el?.offsetWidth) return
       // getBoundingClientRect (fractional) rather than offsetWidth/Height
       // (integer) — at a non-100% zoom the rendered box is a fractional CSS
       // size, and clamping against the rounded integer left it up to ~2px
       // past the real edge.
       const { width: w, height: h } = el.getBoundingClientRect()
-      const maxX = Math.max(0, window.innerWidth - w)
-      const maxY = Math.max(0, window.innerHeight - h)
       const cur = posRef.current
-      const x = Math.min(Math.max(cur.x, 0), maxX)
-      const y = Math.min(Math.max(cur.y, 0), maxY)
+      const { x, y } = clampModalPos(cur, w, h, window.innerWidth, window.innerHeight)
       if (x !== cur.x || y !== cur.y) setPos({ x, y })
     }
-    window.electronAPI.onZoomChanged(onZoomChanged)
-    return () => window.electronAPI.offZoomChanged(onZoomChanged)
+    window.electronAPI.onZoomChanged(keepInView)
+    // Also a smaller window, or a phone rotating
+    window.addEventListener('resize', keepInView)
+    return () => {
+      window.electronAPI.offZoomChanged(keepInView)
+      window.removeEventListener('resize', keepInView)
+    }
   }, [setPos, panelRef])
 }

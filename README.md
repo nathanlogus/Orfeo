@@ -3,7 +3,7 @@
 **From MIDI to mastery.** Turn any MIDI file into an interactive piano-learning
 experience.
 
-[![Version](https://img.shields.io/github/v/release/Squarebow/Orfeo?label=Version&color=blue)](https://github.com/Squarebow/Orfeo/releases/latest) [![License](https://img.shields.io/badge/License-GPLv3-blue)](LICENSE.md) [![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey?logo=windows)](https://github.com/Squarebow/Orfeo/releases)
+[![Version](https://img.shields.io/github/v/release/Squarebow/Orfeo?label=Version&color=blue)](https://github.com/Squarebow/Orfeo/releases/latest) [![License](https://img.shields.io/badge/License-GPLv3-blue)](LICENSE.md) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/Squarebow/Orfeo/releases)
 
 📖 **User manual: [orfeo.cc/docs](https://orfeo.cc/docs)**
 
@@ -15,7 +15,7 @@ Orfeo is free and always will be. If it helps your playing, you can support it o
 
 ---
 
-Orfeo is a free, open-source desktop app that turns MIDI files into an
+Orfeo is a free, open-source, cross-platform desktop app that turns MIDI files into an
 interactive piano lesson: notes fall onto a virtual keyboard in real time, keys
 light up as they play, and you can slow down, loop, transpose, and explore any
 passage at your own pace. Real-time chord detection, hand-coloured keys,
@@ -48,6 +48,11 @@ telemetry; MIDI files are processed entirely on your device.
 - **Tempo control** — slow down or speed up without changing pitch; long-press
   the BPM arrows to glide to a target
 - **Change key** — transpose the whole piece by semitones
+- **Score view** — sheet music for MusicXML, Guitar Pro and Capella files, on its
+  own for reading practice or above the piano roll, with a cursor that follows
+  playback. Click a note to jump there.
+- **Wait for notes** — the song holds still until you play the next note or chord
+  on your MIDI keyboard.
 - **Loop region** — draw a loop directly on the waterfall and drill any section
 - **Metronome** — follows the file's embedded tempo map through mid-song changes;
   right-click for volume and count-in
@@ -155,15 +160,20 @@ Grab the latest build from the [Releases](https://github.com/Squarebow/Orfeo/rel
 page:
 
 <table width="100%">
-<colgroup><col width="34%"><col width="66%"></colgroup>
-<thead><tr><th>File</th><th>Use</th></tr></thead>
+<colgroup><col width="14%"><col width="40%"><col width="46%"></colgroup>
+<thead><tr><th>System</th><th>File</th><th>Use</th></tr></thead>
 <tbody>
-<tr><td><code>Orfeo-Setup-&lt;version&gt;.exe</code></td><td>Standard Windows installer — Start Menu shortcut, automatic updates</td></tr>
-<tr><td><code>Orfeo-&lt;version&gt;-portable.exe</code></td><td>Portable — no installation, runs from anywhere, manual updates</td></tr>
+<tr><td>Windows</td><td><code>Orfeo-Setup-&lt;version&gt;.exe</code></td><td>Installer — Start Menu shortcut, automatic updates</td></tr>
+<tr><td>Windows</td><td><code>Orfeo-&lt;version&gt;-portable.exe</code></td><td>Portable — no installation, runs from anywhere, manual updates</td></tr>
+<tr><td>macOS</td><td><code>Orfeo-&lt;version&gt;-mac-arm64.dmg</code></td><td>Apple Silicon (M1 and newer)</td></tr>
+<tr><td>macOS</td><td><code>Orfeo-&lt;version&gt;-mac-x64.dmg</code></td><td>Intel Macs</td></tr>
+<tr><td>Linux (experimental)</td><td><code>Orfeo-&lt;version&gt;-linux-amd64.deb</code></td><td>Ubuntu, Debian, Mint, Pop!_OS…</td></tr>
+<tr><td>Linux (experimental)</td><td><code>Orfeo-&lt;version&gt;-linux-x86_64.rpm</code></td><td>Fedora, openSUSE…</td></tr>
+<tr><td>Linux (experimental)</td><td><code>Orfeo-&lt;version&gt;-linux-x86_64.AppImage</code></td><td>Any other distribution, no installation</td></tr>
 </tbody>
 </table>
 
-Prefer the Store? Orfeo is also in the
+On Windows, Orfeo is also in the
 [Microsoft Store](https://apps.microsoft.com/detail/9NJ9Q01P8JQD), which keeps it
 up to date for you.
 
@@ -181,7 +191,7 @@ live)? See **[docs/INSTALLATION.md](docs/INSTALLATION.md)**.
 <tr><td><a href="https://orfeo.cc/docs">User manual</a></td><td>The complete guide — Play, Edit, Practice, Manage files, Extras (online at orfeo.cc)</td></tr>
 <tr><td><a href="https://orfeo.cc/docs/support/roadmap">Roadmap</a></td><td>What is being built next</td></tr>
 <tr><td><a href="docs/SHORTCUTS.md">Shortcuts</a></td><td>Every keyboard and mouse gesture</td></tr>
-<tr><td><a href="docs/INSTALLATION.md">Installation</a></td><td>Installer vs. portable, updates, where data lives</td></tr>
+<tr><td><a href="docs/INSTALLATION.md">Installation</a></td><td>Downloads for each system, updates, where data lives</td></tr>
 <tr><td><a href="docs/ARCHITECTURE.md">Architecture</a></td><td>How Orfeo is built and why</td></tr>
 <tr><td><a href="docs/CHANGELOG.md">Changelog</a></td><td>Technical release history</td></tr>
 <tr><td><a href="docs/CONTRIBUTING.md">Contributing</a></td><td>Build from source, cut a release</td></tr>
@@ -229,10 +239,11 @@ Orfeo only goes online when you ask it to, or to check for updates:
   in the installer; each is downloaded once, only when you press its download
   button in Settings → Audio, and kept in `%APPDATA%\Orfeo\soundfonts\`
   (your own imported `.sf2` / `.sf3` files go there too).
-- **Updates:** the installed version checks GitHub for a new release when it
-  starts; the portable version only shows a link, and *Check for updates* in the
-  Microsoft Store version opens Orfeo's Store page. Offline, this simply
-  doesn't happen.
+- **Updates:** the Windows installer, portable, Mac and Linux versions check
+  GitHub for a new release when they start. The installer version then updates
+  itself; the others show a dot on the update button that opens the download
+  page. *Check for updates* in the Microsoft Store version opens Orfeo's Store
+  page. Offline, this simply doesn't happen.
 - **Links** (user manual, GitHub) open in your web browser.
 
 </details>
@@ -240,10 +251,13 @@ Orfeo only goes online when you ask it to, or to check for updates:
 <details>
 <summary><b>What platforms does Orfeo run on?</b></summary>
 
-Windows 10/11 today, with an installer and a portable build. Orfeo is built on
-Electron, so macOS and Linux builds are possible and community-buildable — see
-[CONTRIBUTING.md](docs/CONTRIBUTING.md) — there just aren't official builds for
-those platforms yet.
+Windows 10/11, with an installer and a portable build; macOS on Apple
+Silicon and Intel Macs ([INSTALLATION.md → macOS](docs/INSTALLATION.md#macos));
+and Linux on x64 as AppImage, `.deb` and `.rpm`
+([INSTALLATION.md → Linux](docs/INSTALLATION.md#linux)). The Linux builds are
+**experimental** for now: they're built and start-checked automatically with
+every release, but still waiting for testing on real Linux machines with a MIDI
+keyboard.
 
 </details>
 
@@ -277,7 +291,7 @@ alternative that filled the gap became expensive and gamified, and hasn't
 meaningfully modernized in years.
 
 Orfeo picks up Rondo's idea, rebuilt from scratch as an actively maintained,
-cross-platform-capable app with one goal: **make the music itself — not the app
+cross-platform app with one goal: **make the music itself — not the app
 around it — the focus.** Free forever, no gamification, real rubato support,
 open source, and a modern interface.
 

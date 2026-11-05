@@ -1,0 +1,127 @@
+# Builds the Linux packages (AppImage, .deb, .rpm — x64) and checks that the
+# app actually opens. Used three ways:
+#   • by the Release workflow (release.yml → "2. Build (Linux)"), from the tag;
+#     release.yml then uploads the packages into the draft release;
+#   • on every push to dev and every pull request, as a check — so a change that
+#     breaks Linux shows up straight away, not on release day;
+#   • by hand: Actions → Linux build → Run workflow (once this file is on main).
+# The packages and a screenshot of the opened app are kept as run artifacts.
+#
+# Read-only and no secrets: it never uploads to a release itself.
+# The Native sound engine is Windows-only for now, so nothing native is built.
+name: Linux build
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Tag or branch to build"
+        type: string
+        required: true
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Package + does it open
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # rpmbuild for the .rpm; Xvfb + xdotool + ImageMagick for the start-up check
+      - name: Install packaging and test tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q rpm xvfb xdotool imagemagick
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package
+        run: npm run dist:linux -- --publish never
+
+      # The demo songs ship inside the app. Linux file names are case-sensitive,
+      # so a folder name that only matches on Windows/macOS shows up here.
+      - name: Demo songs included?
+        run: |
+          n=$(find release/linux-unpacked/resources/demo -type f 2>/dev/null | wc -l)
+          echo "Demo files in the package: $n"
+          [ "$n" -gt 0 ] || { echo "::error::No demo songs in the Linux package (resources/demo)"; exit 1; }
+
+      # Starts the packaged app on an invisible screen and waits for its window.
+      # No sound card or MIDI keyboard here — this proves it starts, not how it
+      # sounds. Two starts:
+      #   1. the unpacked app with --no-sandbox (the test copy has no privileged
+      #      sandbox helper) — must pass;
+      #   2. the AppImage exactly as a user starts it, sandbox on. Newer Ubuntu
+      #      (24.04+) can block Electron's sandbox for AppImages; this start
+      #      reports that as a warning rather than failing the release, since the
+      #      .deb/.rpm installers set the sandbox helper up properly.
+      - name: Does it open?
+        run: |
+          set -u
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1440x900x24 &
+          sleep 2
+          # try_start <label> <log> <screenshot> <command...> → 0 if a window opened and stayed
+          try_start() {
+            local label=$1 log=$2 shot=$3; shift 3
+            "$@" > "$log" 2>&1 &
+            local pid=$! found=""
+            for i in $(seq 1 60); do
+              kill -0 "$pid" 2>/dev/null || break
+              if xdotool search --name "Orfeo" > /dev/null 2>&1; then found=yes; break; fi
+              sleep 1
+            done
+            [ -n "$found" ] && sleep 8            # let the page draw, then keep a picture
+            import -window root "$shot" || true
+            local alive=no; kill -0 "$pid" 2>/dev/null && alive=yes
+            pkill -f orfeo 2>/dev/null; kill "$pid" 2>/dev/null; sleep 2
+            if [ -n "$found" ] && [ "$alive" = yes ]; then
+              echo "- **$label:** opened its window ✓ ($shot)" >> "$GITHUB_STEP_SUMMARY"; return 0
+            fi
+            echo "- **$label:** did NOT open (window: ${found:-none}, still running: $alive) — log: $log" >> "$GITHUB_STEP_SUMMARY"
+            tail -30 "$log"; return 1
+          }
+          echo "### Linux start-up check" >> "$GITHUB_STEP_SUMMARY"
+          echo "Ubuntu $(lsb_release -rs), unprivileged user namespaces restricted: $(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo n/a)" >> "$GITHUB_STEP_SUMMARY"
+
+          app=release/linux-unpacked/orfeo
+          test -x "$app" || { echo "::error::$app not found"; ls release; exit 1; }
+          if ! try_start "Unpacked app" app.log opened.png "$app" --no-sandbox; then
+            echo "::error::Orfeo did not open its window"; exit 1
+          fi
+
+          appimage=$(ls release/*.AppImage | head -1)
+          chmod +x "$appimage"
+          if ! try_start "AppImage, as a user starts it (sandbox on)" appimage.log appimage.png "$appimage" --appimage-extract-and-run; then
+            echo "::warning::The AppImage did not open with the sandbox on (newer Ubuntu can block it). The .deb/.rpm are unaffected — see appimage.log."
+          fi
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: linux-packages
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+            opened.png
+            appimage.png
+            app.log
+            appimage.log
+          if-no-files-found: warn

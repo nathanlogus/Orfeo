@@ -33,13 +33,15 @@ combinations, modifiers, and gestures that are not obvious from the UI.
 |---|---|
 | `Space` | Play / Pause (ignored while the Chord or Scale Explorer is open). During a count-in it stops the count-in. While tapping in a Tap Tempo session it's a tap instead; once the result is showing it plays/pauses as usual so you can listen back |
 | `Escape` | Stop playback. During a count-in it cancels the count-in; during a Tap Tempo session it cancels the session instead. If Presentation Mode, the Chord Explorer, the Scale Explorer, or the Locked-Chord modal is open, that closes first instead — without stopping playback |
-| `→` / `←` | Step to the next / previous played moment: a single note or a whole chord sounds, lights up and the playhead moves there. Notes that start within 30 ms count as one step; muted or hidden tracks and drums are skipped. Pressed while playing, it pauses on the next one; `Space` plays on from there. Ignored while a fader or knob has focus |
+| `→` / `←` | Step to the next / previous played moment: a single note or a whole chord sounds, lights up and the playhead moves there. Notes that start within 30 ms count as one step; tracks not shown on the piano roll (hidden, muted, or not the soloed one) and drums are skipped. Pressed while playing, it pauses on the next one; `Space` plays on from there. Ignored while a fader or knob has focus |
 | `Shift+→` / `Shift+←` | Step to the first note of the next / previous bar |
 | Click the amber ← / → in the keyboard bar | Same as `←` / `→` (Shift+click: a bar). Step Through can be switched off in Settings → Practice, which hides the arrows and frees the arrow keys |
 | `F11` | Toggle Presentation Mode |
+| `F12` / `Ctrl+Shift+I` | Open or close the developer tools — the console there is what bug reports ask for |
 | `Ctrl+O` | Open a MIDI file |
 | `Ctrl+Shift+M` | Toggle the Console Mixer |
 | Long-press the BPM `▲` / `▼` | Repeatedly nudge tempo by ±1 while held |
+| Double-click the BPM number | Type a tempo: `Enter` sets it, `Esc` cancels |
 | Click the **TAP** pad | Start a Tap Tempo session; click again to finish and see the result |
 | Right-click the **TAP** pad | List this song's kept tapped tempos — click one to adjust it, ✕ to remove it, or reset to the file's own tempo |
 | Right-click the metronome | Metronome volume, and Count-in on/off with 1–4 bars |
@@ -166,4 +168,4 @@ Available on the Piano Roll once Note Editor edit mode is active.
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the app is structured
 - [CONTRIBUTING.md](CONTRIBUTING.md) — building from source
-- [INSTALLATION.md](INSTALLATION.md) — installer vs. portable
+- [INSTALLATION.md](INSTALLATION.md) — downloads for each system, where data lives

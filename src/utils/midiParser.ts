@@ -2,7 +2,7 @@ import { buildFileGrid } from './beatGridBuild'
 import { Midi } from '@tonejs/midi'
 import type { ParsedMidi, ParsedTrack, ParsedNote } from '../types'
 import { getGMName, getGMGroup } from './gmInstruments'
-import { restoreHandTagsFromHints } from './handMetadata'
+import { restoreHandTagsFromHints, withHandSuffix } from './handMetadata'
 import { assignHands } from './handAssignment'
 import { useStore } from '../store'
 import { HAND_ASSIGN_GROUPS } from './keyboardGroups'
@@ -237,6 +237,20 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath 
   // When this returns false, no hint was found (or it was stale) and the
   // assignment engine still needs to run — that happens where the split/
   // color/merge UI actually calls it, not here in the parser.
+  // A notation import's hands come from its staves (foreignFormatImport.ts), so
+  // they're exact. ORFEO_TRACK_HAND:<channel>:<hand>, and a file whose tracks
+  // no longer match every hint (one staff empty, hands merged) ignores them.
+  const sheetHands = ((midi.header as any).meta ?? [])
+    .map((m: any) => typeof m.text === 'string' && m.text.match(/^ORFEO_TRACK_HAND:(\d+):([LR])$/))
+    .filter(Boolean)
+    .map((m: RegExpMatchArray) => ({ track: tracks.find(t => t.channel === Number(m[1])), hand: m[2] as 'L' | 'R' }))
+  if (sheetHands.every((h: any) => h.track)) {
+    for (const { track, hand } of sheetHands) {
+      track.name = withHandSuffix(track.gmName, hand)
+      orfeoTrackNames[track.index] = hand === 'L' ? 'Left Hand' : 'Right Hand'
+    }
+  }
+
   const handTagsRestored = restoreHandTagsFromHints(tracks, (midi.header as any).meta ?? [])
 
   // ── Tag whatever a hint didn't already cover — same engine as split/merge ──
@@ -312,13 +326,17 @@ export interface SoundingNote {
   trackIndex: number
   hand?: ParsedNote['hand']
 }
+// Notes starting this close after each other are one chord. Step Through groups
+// by it and the playhead reads by it, so a step always lights its whole chord.
+export const CHORD_GRACE_SEC = 0.03
+
 export function notesSoundingAt(tracks: ParsedTrack[], time: number, transpose = 0): SoundingNote[] {
-  const EPS = 0.02   // 20ms grace so a note landing right on the playhead counts
+  const END_EPS = 0.02   // a note ending right on the playhead is over
   const byMidi = new Map<number, SoundingNote>()
   for (const track of tracks) {
     if (track.isDrum) continue
     for (const n of track.notes) {
-      if (n.time - EPS <= time && time < n.time + n.duration - EPS) {
+      if (n.time - time <= CHORD_GRACE_SEC && (time <= n.time || time < n.time + n.duration - END_EPS)) {
         const midi = n.midi + transpose
         if (!byMidi.has(midi)) byMidi.set(midi, { midi, trackIndex: n.trackIndex, hand: n.hand })
       }

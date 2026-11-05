@@ -15,7 +15,7 @@ import { setLowLatency } from '../../../audio/useNativeEngine'
 import { useMidiSettings } from '../../../store/midiSettings'
 
 // Native engine (beta): Windows only for now
-const NATIVE_AVAILABLE = navigator.userAgent.includes('Windows')
+export const NATIVE_AVAILABLE = navigator.userAgent.includes('Windows')
 
 function SoundEngineControl() {
   const audioEngine = useStore((s) => s.audioEngine)
@@ -29,7 +29,7 @@ function SoundEngineControl() {
   )
 }
 
-// Windows' default output, by name ("Speakers (Realtek(R) Audio)") — what GM and
+// The system's default output, by name ("Speakers (Realtek(R) Audio)") — what GM and
 // Studio play through
 function useDefaultOutputName(): string {
   const [name, setName] = useState('')
@@ -95,10 +95,10 @@ function SoundEngineGlance() {
     return (
       <div>
         <div style={glanceBox}>
-        <InfoRow label={t`Sound card`} marquee={native.deviceName} />
+          <InfoRow label={t`Sound card`} marquee={native.deviceName} />
         <InfoRow label={t`Mode`} marquee={`${native.mode} ${native.rate} ${native.bufferFrames}`}>{native.mode === 'exclusive' ? amber(t`Exclusive (low latency)`) : t`Shared`} · {kHz(native.rate)} · {msOf(native.bufferFrames / native.rate)} {t`buffer`}</InfoRow>
-        {latency}
-        {soundfont}
+          {latency}
+          {soundfont}
         </div>
         {/* Exclusive asked for, but the card couldn't do it: say why */}
         {wantsExclusive && native.mode === 'shared' && native.fallbackReason && <HelpText>{t`Sharing the sound card instead of Exclusive:`} {native.fallbackReason}.</HelpText>}
@@ -108,7 +108,7 @@ function SoundEngineGlance() {
   const rate = getSamplesSampleRate(), buffer = getSamplesBufferSec()
   return (
     <div style={glanceBox}>
-      <InfoRow label={t`Sound card`} marquee={audioEngine === 'gm' && gmExternal ? gmExternal : defaultName || t`Windows' default output`} />
+      <InfoRow label={t`Sound card`} marquee={audioEngine === 'gm' && gmExternal ? gmExternal : defaultName || t`Default output`} />
       <InfoRow label={t`Mode`} marquee={`${audioEngine} ${gmExternal} ${samplesStatus} ${rate} ${buffer}`}>{audioEngine === 'gm' && gmExternal ? t`External instrument` : <>{t`Shared`}{audioEngine === 'samples' && samplesStatus === 'ready' && rate > 0 && <> · {kHz(rate)}{buffer > 0 && <> · {msOf(buffer)} {t`buffer`}</>}</>}</>}</InfoRow>
       {latency}
       {soundfont}
@@ -121,7 +121,7 @@ function SoundEngineDescription() {
   const audioEngine = useStore((s) => s.audioEngine)
   if (audioEngine === 'gm') return <>{t`The simple synth built into Orfeo: light, always ready, no sound set needed. It sounds basic — good for slow computers, or for playing through an external instrument (MIDI Keyboard › General MIDI sound).`}</>
   if (audioEngine === 'native') return <>{t`The same sound sets as Studio, played by Orfeo's own engine straight to your sound card: the shortest delay from key to sound. Windows only.`}</>
-  return <>{t`Real recorded instruments from a sound set (choose it under Sound Fonts). Plays through Windows' mixer like any other app, with its usual delay.`}</>
+  return <>{t`Real recorded instruments from a sound set (choose it under Sound Fonts). Plays through the system's mixer like any other app, with its usual delay.`}</>
 }
 
 // Native's Low latency mode: Shared (default) or Exclusive. A keyboard plugged in
@@ -195,8 +195,7 @@ function SoundFontsControl() {
   const audioEngine = useStore((s) => s.audioEngine)
   const selectedSoundfont = useStore((s) => s.selectedSoundfont)
   const extra = useSoundfontState((s) => s.extra)
-  const downloadingId = useSoundfontState((s) => s.downloadingId)
-  const downloadProgress = useSoundfontState((s) => s.downloadProgress)
+  const downloads = useSoundfontState((s) => s.downloads)
   const error = useSoundfontState((s) => s.error)
   const all = allSoundfonts(extra)
   return (
@@ -223,9 +222,9 @@ function SoundFontsControl() {
                 <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-ui)', textAlign: 'right' }}>bundled</span>
               ) : sf.downloaded ? (
                 <SoundfontActionLink label="remove" color="var(--text-dimmest)" tooltip={sf.custom ? 'Remove imported file' : 'Delete downloaded file'} onClick={() => void deleteSoundfont(sf.id)} />
-              ) : downloadingId === sf.id ? (
+              ) : downloads[sf.id] !== undefined ? (
                 <div style={{ width: 60, height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'var(--text-amber)', borderRadius: 2, width: `${Math.round(downloadProgress * 100)}%`, transition: 'width 0.1s' }} />
+                  <div style={{ height: '100%', background: 'var(--text-amber)', borderRadius: 2, width: `${Math.round(downloads[sf.id] * 100)}%`, transition: 'width 0.1s' }} />
                 </div>
               ) : (
                 <SoundfontActionLink label="download" color="var(--text-amber)" tooltip={`Download ${sf.name} (${sf.sizeMB} MB)`} onClick={() => void downloadSoundfont(sf.id)} />

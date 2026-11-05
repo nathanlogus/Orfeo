@@ -5,6 +5,40 @@
      list of 2–4 one-line bullets, then ### New / ### Changed / ### Fixed.
      Newest version at the top. -->
 
+## [Unreleased]
+
+### New
+- **Score view.** Songs opened from MusicXML, Guitar Pro or Capella files can now show their sheet music, on its own or above the piano roll, with a cursor that follows playback. Use the new *Score* button at the top to switch; on its own, the score hides the falling notes, and the keyboard no longer lights up or names chords, so you can practise reading. Click a note to jump there, Transpose rewrites the score in the new key, and the eye in the Track Panel chooses which parts are drawn. A piano written on two staves now opens as a Right Hand and a Left Hand track, taken from the sheet rather than guessed, so you can hide one hand on the score and the roll and have Wait follow the other. On the score, notes take the same hand colours as the roll, and keyboard parts show a suggested finger on every note; a fingering printed in the file is kept as written. MIDI files and saved edits have no score to show, so the button stays off for them.
+- **Wait for notes.** The new *Wait* button holds the song still until you play the next note or chord on your MIDI keyboard, for any song. Hide or mute a track to leave its notes out; pressing Play turns it off.
+- **Orfeo for Mac.** Every release now has downloads for Apple Silicon and Intel Macs, as a disk image or a zip. The first time you open a new version, macOS asks you to allow it once in *System Settings › Privacy & Security*. Mac versions don't update by themselves: *Check for updates* opens the download page. Sound: GM and Studio. Thanks to raiseCatError.
+- **Orfeo for Linux (experimental).** Every release now has Linux downloads for x64 computers: a `.deb` (Ubuntu, Debian, Mint…), an `.rpm` (Fedora, openSUSE…) and an AppImage. They're checked to start, but not yet tested on real Linux machines with a keyboard — reports welcome. Sound: GM and Studio.
+- **Song first in the Library.** A new button beside the favorites shows *Artist - Song* files as *Song — Artist*, sorted by song title, and back again with one click. It only changes what you see: your files keep their names. Files that aren't named *Artist - Song* stay as they are.
+- **Rebuild tempo.** For a song whose tempo or bar lines are wrong from the start, *File Info* now has a *Rebuild tempo* button. The song plays from the beginning so you can tap the beat, and one tempo then replaces any you kept before. Cancel and nothing changes. The file itself is never touched.
+- **Bars of different lengths.** After tapping a tempo, type how many beats are in a bar, or a repeating pattern like *3 3 3 4* for songs that keep changing. To change the bars at one point in a song, right-click the TAP pad and choose *Change bars from here*. The time panel, bar lines and metronome all follow. If the music repeats over a length your bars can't fit, the Tap result says so and offers a pattern to try.
+- **New version dot.** Mac, Linux and portable copies can't update themselves, so a blinking dot on the update button now tells you when a new version is out. Click it to open the download page.
+- **Copy bars from another version.** If your Library has a better copy of a song, *File Info* can use its bars and tempo for this one. Orfeo compares the notes, lines the two files up, and lets you listen before you keep it. Your files aren't changed.
+- **Type a tempo.** Double-click the BPM number, type the tempo you want and press *Enter*.
+- **Two meters for two hands.** With *Hand Assignment* on, a single piano track played by both hands shows a blue and a pink meter side by side in the Tracks panel, each following its own hand.
+
+### Fixed
+- **Downloading two sound sets at once.** Both now show their own progress bar. Before, they shared one bar that jumped between them, and starting the same download twice could end in an error message. Thanks to InAnYan.
+- **No more Windows wording on Mac and Linux.** The tooltips on the library folder path and on the Playback Editor's show-in-folder button no longer mention Windows Explorer. Thanks to InAnYan.
+- **Step Through lights the whole chord.** With *Reflect on keyboard* on, notes of a chord that started a moment after the first one could stay dark on the keyboard while you stepped, even though you heard them.
+- **Saving an imported song as MIDI works in a new library folder.** Opening a MusicXML, Guitar Pro or Capella file and choosing *Save as MID* could fail if the library had no *Orfeo* folder yet, and the song then didn't open. The folder is now created first. Thanks to Pat Ng.
+- **Hand colours on the keyboard follow the switch straight away.** Turning *Hand Assignment* on or off during playback changed the piano roll at once, but the keyboard kept its old colours until the next pause. New notes now take the current colours in every sound engine; a key already held keeps its colour until it's released.
+- **The Chord and Scales Explorers stay where you put them.** Switching between *Common*, *Power* and *Extended* moved the window up and down. The top edge now stays put and the window grows downward, moving up only if it would otherwise leave the screen. Both Explorers also remember where you dragged them, after closing Orfeo too.
+- **Native sound, very rarely wrong at start-up.** When two Native sounds started at exactly the same moment — say, an export beginning just as the Native engine started — one of them could play with a slightly wrong sound until restarted. They now start one after the other.
+- **Delay check:** long values no longer run over their labels, and a Bluetooth MIDI keyboard that sends unusable timing no longer shows delays of several seconds — its notes are left out of the figure, with a note saying how many. Thanks to raiseCatError.
+- *Ctrl+Shift+I* (or *F12*) opens the developer tools in the installed app again, for bug reports. It only worked in development builds.
+- **Exported files always stay in the Exports folder.** A song whose name carried a folder path, or characters Windows doesn't allow in a file name, could fail to save with an error you couldn't read. A name Windows keeps for itself — *CON*, *PRN*, *NUL*, *COM1*… — made a file that couldn't be opened. An export name is now always one plain file name inside the *Exports* folder, and a reserved name gets an underscore in front of it. Thanks to Uli König.
+- **An export that can't finish says so.** A long Studio export plays the song in sections, one per processor core. When a section failed, the export quietly started over in one slower pass; the bar now says *Exporting (single pass)*. And an export that produced nothing at all used to end as if you had pressed *Cancel* — now you get a message. Thanks to Uli König.
+- **A stuck or abandoned Native export no longer blocks Play.** An export whose sound engine stopped answering, or whose window was closed mid-way, could leave Space doing nothing until Orfeo was restarted. An export that makes no progress for 90 seconds is now reported as failed, and closing the window stops it. Thanks to Uli König.
+
+### Changed
+- **Native now sounds like Studio.** Native was quieter and duller than Studio, with a smaller room around the sound. It now has the same brightness, the same hall and the same stereo chorus, at the same loudness, so switching between the two no longer changes the mix. Audio files exported with Native sound the same way.
+- **A nearly silent export is refused instead of made loud.** Exports are still levelled so they never clip, but never raised by more than +20 dB. A song that is practically silent (master volume almost down, parts muted) now gets a clear message instead of a file full of hiss at full level. Thanks to Uli König.
+- **Transposed notes that fall off the end of the note range** do in the file exactly what the chosen sound does while playing: *Studio* leaves them out, *Native* moves them to the nearest end. Before, an export always moved them. Thanks to Uli König.
+
 ## [1.6] — 31. 10. 2026 — Export to audio, skip empty bars, your own hand colours
 
 **In short**

@@ -1,11 +1,13 @@
-# Orfeo — Installer vs. Portable
+# Orfeo — Installation
 
-*Orfeo ships two Windows builds from every release. Same app, same features —
-they differ only in how they land on your machine and where they keep your
-data.*
+*Every release of Orfeo comes for Windows, [macOS](#macos) and [Linux](#linux)
+(experimental). It's the same app on each system, apart from the Native sound
+engine, which is Windows-only for now. Windows has two builds, Setup and
+Portable, which differ only in how they land on your machine and where they
+keep your data.*
 
 > [!TIP]
-> **Not sure? Use the Setup installer.** It gives you Start Menu integration
+> **On Windows and not sure? Use the Setup installer.** It gives you Start Menu integration
 > and automatic updates with no extra effort. Reach for the portable build only
 > when you need to run Orfeo without installing anything.
 
@@ -13,12 +15,14 @@ data.*
 
 ## Contents
 
-- [At a glance](#at-a-glance)
-- [Where your data lives](#where-your-data-lives)
-- [Updating](#updating)
-- [Uninstalling](#uninstalling)
-- [Switching between the two builds](#switching-between-the-two-builds)
-- [macOS and Linux](#macos-and-linux)
+- **Windows**
+  - [At a glance](#at-a-glance)
+  - [Where your data lives](#where-your-data-lives)
+  - [Updating](#updating)
+  - [Uninstalling](#uninstalling)
+  - [Switching between the two builds](#switching-between-the-two-builds)
+- [macOS](#macos)
+- [Linux](#linux)
 
 ---
 
@@ -91,7 +95,7 @@ travel with it. A portable build never touches `%APPDATA%`.
 | Build | How updates work |
 |---|---|
 | **Setup** | Orfeo checks GitHub Releases about 5 seconds after startup. A found update downloads in the background; when it is ready, the update button at the bottom of the left panel changes to *"click to restart and install"*. You can also re-check manually there any time. |
-| **Portable** | No auto-update — even on Windows. Watch the [Releases](https://github.com/Squarebow/Orfeo/releases) page and download the new `Orfeo-<version>-portable.exe` when you want to update. Replace the old file; your settings and library are untouched because they live in `Orfeo-Data\`, not inside the `.exe`. |
+| **Portable** | No auto-update — even on Windows. When a new version is out, a blinking dot appears on the update button at the bottom of the left panel; click it to open the download page and get the new `Orfeo-<version>-portable.exe`. Replace the old file; your settings and library are untouched because they live in `Orfeo-Data\`, not inside the `.exe`. |
 
 ---
 
@@ -132,16 +136,70 @@ so it travels with the file no matter which build opens it.
 
 ---
 
-## macOS and Linux
+## macOS
 
-Orfeo does not currently publish official macOS or Linux builds — the
-auto-update pipeline is Windows-only. You can build from source on those
-platforms (see [CONTRIBUTING.md](CONTRIBUTING.md)); updates are then a manual
-`git pull` + rebuild, same as the portable Windows build.
+Every release also has Mac downloads, on the same
+[Releases](https://github.com/Squarebow/Orfeo/releases) page:
 
-Community-built macOS/Linux binaries may be attached to a release as extra
-assets — clearly marked unofficial and unsigned. See
-[CONTRIBUTING.md → Releases and auto-update](CONTRIBUTING.md#releases-and-auto-update).
+| Mac | Disk image | Or the zip |
+|---|---|---|
+| **Apple Silicon** (M1 and newer) | `Orfeo-<version>-mac-arm64.dmg` | `Orfeo-<version>-mac-arm64.zip` |
+| **Intel** | `Orfeo-<version>-mac-x64.dmg` | `Orfeo-<version>-mac-x64.zip` |
+
+Open the `.dmg` and drag Orfeo into *Applications* (or unzip the `.zip` and
+move `Orfeo.app` there).
+
+> [!IMPORTANT]
+> The Mac builds are ad-hoc signed but not notarized by Apple, so macOS blocks
+> Orfeo the first time you open a downloaded copy. Choose **Done**, then open
+> *System Settings › Privacy & Security*, scroll down to *"Orfeo" was
+> blocked*, click **Open Anyway** and confirm. You only do this once per
+> version.
+
+- **Sound:** GM and Studio. The Native engine is Windows-only.
+- **MIDI keyboards:** USB keyboards work straight away. A Bluetooth MIDI
+  keyboard has to be connected in *Audio MIDI Setup* first (*Window › Show MIDI
+  Studio*, then the Bluetooth button); Orfeo then sees it like a USB one.
+- **Your data:** `~/Library/Application Support/Orfeo/`.
+- **Updating:** no auto-update. When a new version is out, a blinking dot
+  appears on the update button at the bottom of the left panel. Click it to open
+  the download page, then replace `Orfeo.app` with the new one — your settings
+  stay.
+- **Uninstalling:** drag `Orfeo.app` to the Trash; delete the data folder above
+  too if you want everything gone.
+
+---
+
+## Linux
+
+> [!NOTE]
+> The Linux builds are **experimental**: every release builds them and checks
+> that they start, but they haven't been tested on real Linux machines with a
+> MIDI keyboard yet. Problems and successes are both welcome as
+> [issues](https://github.com/Squarebow/Orfeo/issues).
+
+Every release has Linux downloads (x64) on the same
+[Releases](https://github.com/Squarebow/Orfeo/releases) page:
+
+| Your system | Download | Install |
+|---|---|---|
+| **Ubuntu, Debian, Mint, Pop!_OS…** | `Orfeo-<version>-linux-amd64.deb` | open it, or `sudo apt install ./Orfeo-<version>-linux-amd64.deb` |
+| **Fedora, openSUSE…** | `Orfeo-<version>-linux-x86_64.rpm` | open it, or `sudo dnf install ./Orfeo-<version>-linux-x86_64.rpm` |
+| **Any other** (no install) | `Orfeo-<version>-linux-x86_64.AppImage` | make it executable (`chmod +x`), then run it |
+
+Prefer the `.deb` or `.rpm` where you can. On Ubuntu 24.04 and newer, the
+system's security settings can stop AppImages of apps like Orfeo from starting;
+the installers aren't affected.
+
+- **Sound:** GM and Studio. The Native engine is Windows-only for now.
+- **MIDI keyboards:** USB keyboards are picked up automatically.
+- **Your data:** `~/.config/Orfeo/`.
+- **Updating:** no auto-update. When a new version is out, a blinking dot
+  appears on the update button at the bottom of the left panel. Click it to open
+  the download page, then install the new version over the old one — your
+  settings stay.
+- **Uninstalling:** remove the `orfeo` package (or delete the AppImage); delete
+  the data folder above too if you want everything gone.
 
 ---
 
