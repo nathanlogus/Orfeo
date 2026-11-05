@@ -13,6 +13,7 @@ import Tooltip from '../Tooltip'
 import { getPianoRollCenterX, getPlaybarY } from '../../utils/modalAnchors'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../../utils/modalCloseButtonStyle'
 import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
+import { startModalDrag } from '../../utils/modalDrag'
 
 const DEFAULT_W = 860
 const MIN_W = 650
@@ -26,14 +27,14 @@ export default function FloatingKeyboard() {
   // edge aligned to the (fixed-ratio) playbar line — set once at open time,
   // never recalculated on side-panel toggle. y is finalized once height is
   // known (below); x can be computed immediately from the known default width. ──
-  const [pos, setPos] = useState({ x: Math.round(getPianoRollCenterX() - DEFAULT_W / 2), y: -1 })
+  const [pos, setPos] = useState({ x: Math.max(0, Math.round(getPianoRollCenterX() - DEFAULT_W / 2)), y: -1 })
   const [w, setW]     = useState(DEFAULT_W)
   const panelRef      = useRef<HTMLDivElement>(null)
   const initialised   = useRef(false)
   useClampPositionOnZoom(pos, setPos, panelRef)
 
   const dragState = useRef<{
-    type: 'move' | 'resize-e' | 'resize-w'
+    type: 'resize-e' | 'resize-w'
     startX: number
     startY: number
     startW: number
@@ -49,22 +50,9 @@ export default function FloatingKeyboard() {
     setPos(p => ({ ...p, y: Math.max(44, getPlaybarY() - h) }))
   }, [])
 
-  const onMouseMove = useCallback((e: MouseEvent) => {
+  const onPointerMove = useCallback((e: PointerEvent) => {
     const ds = dragState.current
     if (!ds) return
-
-    if (ds.type === 'move') {
-      const panelW = panelRef.current?.offsetWidth ?? w
-      const panelH = panelRef.current?.offsetHeight ?? 220
-      setPos({
-        x: Math.max(0, Math.min(window.innerWidth - panelW, ds.startPosX + (e.clientX - ds.startX))),
-        // 44, not 0 — keeps the top edge clear of the 40px titleBarOverlay
-        // (electron/main.ts) where Windows draws its own window controls on
-        // top of everything in the DOM.
-        y: Math.max(44, Math.min(window.innerHeight - panelH, ds.startPosY + (e.clientY - ds.startY))),
-      })
-      return
-    }
 
     const dx = e.clientX - ds.startX
     if (ds.type === 'resize-e') {
@@ -76,29 +64,27 @@ export default function FloatingKeyboard() {
     }
   }, [])
 
-  const onMouseUp = useCallback(() => { dragState.current = null }, [])
+  const onPointerUp = useCallback(() => { dragState.current = null }, [])
 
   useEffect(() => {
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
     return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
     }
-  }, [onMouseMove, onMouseUp])
+  }, [onPointerMove, onPointerUp])
 
-  const startMove = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('[data-no-drag]')) return
-    e.preventDefault()
-    dragState.current = { type: 'move', startX: e.clientX, startY: e.clientY, startW: w, startPosX: pos.x, startPosY: pos.y }
-  }
+  const startMove = (e: React.PointerEvent) => startModalDrag(e, panelRef.current, pos, setPos)
 
-  const startResizeE = (e: React.MouseEvent) => {
+  const startResizeE = (e: React.PointerEvent) => {
     e.preventDefault(); e.stopPropagation()
     dragState.current = { type: 'resize-e', startX: e.clientX, startY: e.clientY, startW: w, startPosX: pos.x, startPosY: pos.y }
   }
 
-  const startResizeW = (e: React.MouseEvent) => {
+  const startResizeW = (e: React.PointerEvent) => {
     e.preventDefault(); e.stopPropagation()
     dragState.current = { type: 'resize-w', startX: e.clientX, startY: e.clientY, startW: w, startPosX: pos.x, startPosY: pos.y }
   }
@@ -127,14 +113,15 @@ export default function FloatingKeyboard() {
       } as CSSProperties}
     >
       {/* Left resize handle */}
-      <div onMouseDown={startResizeW} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: HANDLE_PX, cursor: 'ew-resize', zIndex: 10 }} />
+      <div onPointerDown={startResizeW} style={{ touchAction: 'none', position: 'absolute', left: 0, top: 0, bottom: 0, width: HANDLE_PX, cursor: 'ew-resize', zIndex: 10 }} />
       {/* Right resize handle */}
-      <div onMouseDown={startResizeE} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: HANDLE_PX, cursor: 'ew-resize', zIndex: 10 }} />
+      <div onPointerDown={startResizeE} style={{ touchAction: 'none', position: 'absolute', right: 0, top: 0, bottom: 0, width: HANDLE_PX, cursor: 'ew-resize', zIndex: 10 }} />
 
       {/* Title bar */}
       <div
-        onMouseDown={startMove}
+        onPointerDown={startMove}
         style={{
+          touchAction: 'none',
           height: 36,
           background: 'var(--bg-modal-header)',
           borderBottom: '1px solid var(--border)',

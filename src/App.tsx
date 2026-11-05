@@ -10,7 +10,7 @@ import SettingsPanel from './components/SettingsPanel/SettingsPanel'
 import SettingsWindow from './components/Settings/SettingsWindow'
 import { useUpdateService } from './hooks/useUpdateCheck'
 import { useSoundfontService } from './hooks/useSoundfonts'
-import EmptyState from './components/EmptyState'
+import HomePage from './components/Home/HomePage'
 import { useStore } from './store'
 import FloatingKeyboard from './components/Keyboard/FloatingKeyboard'
 import ChordExplorer from './components/ChordExplorer'
@@ -63,6 +63,7 @@ export default function App() {
   useSoundfontService()
   useSupportNoteService()
   const midi = useStore((s) => s.midi)
+  const homeOpen = useStore((s) => s.homeOpen)
   const keyboardMode = useStore((s) => s.keyboardMode)
   const appTheme = useStore((s) => s.appTheme)
   const presentationMode = useStore((s) => s.presentationMode)
@@ -499,6 +500,9 @@ export default function App() {
     return () => document.removeEventListener('click', handleClick, true)
   }, [])
 
+  // A song that opens, by any route, is what the home page was for
+  useEffect(() => { if (midi) useStore.getState().setHomeOpen(false) }, [midi])
+
   return (
     <div className={appTheme === 'warm' ? 'theme-warm' : ''} style={{ width: '100vw', height: '100vh', background: appTheme === 'warm' ? 'var(--bg-warm)' : 'var(--bg-modal-header)', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-ui)' }}>
 
@@ -558,13 +562,14 @@ export default function App() {
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', paddingTop: 6, display: 'flex', flexDirection: 'column' }}>
             {showScore && <ScoreView bytes={scoreBytes} style={{ flex: showRoll ? '0 0 50%' : 1 }} />}
-            {showRoll && (midi ? <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div> : <EmptyState />)}
+            {showRoll && midi && <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div>}
             <CountInOverlay />
           </div>
           {keyboardMode === 'docked' && <Keyboard />}
           {keyboardMode === 'docked' && <KeyboardControls />}
         </div>
         {!presentationMode && <TrackPanel />}
+        {(!midi || homeOpen) && <HomePage />}
 
         {/* ── Drag-over highlight overlay — pointer-events none so it doesn't ─
             block any child interaction; visible only while dragging ── */}

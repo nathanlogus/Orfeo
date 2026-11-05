@@ -173,7 +173,7 @@ export async function resolveToMidiBase64(
 
 // ── Resolve a freshly-loaded file's bytes to playable MIDI, tracking + immediately
 // prompting to save any freshly-converted foreign format ("on load", not deferred
-// to the next file switch). Every load entry point (Ctrl+O / EmptyState open dialog,
+// to the next file switch). Every load entry point (Ctrl+O / home page open dialog,
 // drag-drop, library click) must route through this single function so the
 // save-as-midi prompt behaves identically everywhere. ─────────────────────────────
 export async function resolveAndTrackImport(

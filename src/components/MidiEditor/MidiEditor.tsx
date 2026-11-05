@@ -30,6 +30,7 @@ import { songKey } from '../../utils/songIdentity'
 import { carryCorrection } from '../../utils/tempoCorrection'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
+import { clampModalPos, startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
 import Tooltip from '../Tooltip'
 import PianoKeysIcon from '../PianoKeysIcon'
 
@@ -901,7 +902,6 @@ export default function MidiEditor() {
   const panelRef  = useRef<HTMLDivElement>(null)
   const positioned = useRef(false)
   useClampPositionOnZoom(pos, setPos, panelRef)
-  const dragState = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null)
   // ── Mounted only while midiEditorOpen && state (see `if (!midiEditorOpen
   // || !state) return null` below) — always active while this exists. ──────
   useFocusTrap(panelRef, true)
@@ -950,10 +950,7 @@ export default function MidiEditor() {
     // partially off-screen regardless of window size.
     if (!positioned.current) {
       positioned.current = true
-      setPos({
-        x: Math.max(0, Math.round((window.innerWidth - MODAL_W) / 2)),
-        y: 220,
-      })
+      setPos(clampModalPos({ x: Math.round((window.innerWidth - MODAL_W) / 2), y: 220 }, MODAL_W, MODAL_H, window.innerWidth, window.innerHeight))
     }
   }, [midiEditorOpen])
 
@@ -977,35 +974,7 @@ export default function MidiEditor() {
   }, [(midi as any)?._raw])
 
   // ── Drag: mousemove / mouseup ─────────────────────────────────────────────────
-  const onMouseMove = useCallback((e: MouseEvent) => {
-    const ds = dragState.current
-    if (!ds) return
-    const panelW = panelRef.current?.offsetWidth ?? MODAL_W
-    const panelH = panelRef.current?.offsetHeight ?? MODAL_H
-    setPos({
-      x: Math.max(0, Math.min(window.innerWidth - panelW, ds.startPosX + (e.clientX - ds.startX))),
-      // 44, not 0 — keeps the top edge clear of the 40px titleBarOverlay
-      // (electron/main.ts) where Windows draws its own window controls on
-      // top of everything in the DOM.
-      y: Math.max(44, Math.min(window.innerHeight - panelH, ds.startPosY + (e.clientY - ds.startY))),
-    })
-  }, [])
-  const onMouseUp = useCallback(() => { dragState.current = null }, [])
-
-  useEffect(() => {
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
-  }, [onMouseMove, onMouseUp])
-
-  const startMove = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('[data-no-drag]')) return
-    e.preventDefault()
-    dragState.current = { startX: e.clientX, startY: e.clientY, startPosX: pos.x, startPosY: pos.y }
-  }
+  const startMove = (e: React.PointerEvent) => startModalDrag(e, panelRef.current, pos, setPos)
 
 
   // ── Reload file after save/split ─────────────────────────────────────────────
@@ -1352,7 +1321,7 @@ export default function MidiEditor() {
       onMouseDown={() => setZIndex(bringToFront())}
       style={{
         position: 'fixed', left: pos.x, top: pos.y,
-        width: MODAL_W, height: MODAL_H,
+        width: MODAL_W, height: MODAL_H, maxHeight: MODAL_MAX_HEIGHT,
         zIndex,
         background: 'var(--bg-modal-header)',
         border: '1px solid var(--state-hover-bg)',
@@ -1369,9 +1338,9 @@ export default function MidiEditor() {
           header regardless of the left (logo+title) vs right (close button)
           content-width mismatch. See CLAUDE.md's CSS Grid layout convention. ── */}
       <div
-        onMouseDown={startMove}
+        onPointerDown={startMove}
         style={{
-          height: 36, flexShrink: 0,
+          height: 36, flexShrink: 0, touchAction: 'none',
           background: 'var(--bg-modal-header)',
           borderBottom: '1px solid var(--border)',
           display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)',

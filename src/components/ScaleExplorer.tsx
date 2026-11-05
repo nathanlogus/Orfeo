@@ -10,6 +10,7 @@ import OrfeoMark from './OrfeoMark'
 import ChevronPlayIcon from './ChevronPlayIcon'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { getKeyboardHeaderTop } from '../utils/modalAnchors'
+import { startModalDrag, MODAL_MAX_HEIGHT, type ModalPos } from '../utils/modalDrag'
 import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
@@ -415,7 +416,6 @@ export default function ScaleExplorer() {
   // the live speed without restarting the chain
   const speedRef = useRef<ProgSpeed>('med')
   const progRunningRef = useRef(false)
-  const dragRef = useRef<{ ox: number; oy: number; mx: number; my: number } | null>(null)
   const scalePlayTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const chordSeqTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const chordSeqRunningRef = useRef(false)
@@ -866,29 +866,12 @@ export default function ScaleExplorer() {
   }, [scaleExplorerOpen, selectedProg, progPlaying, stopProgression, startProgression, playChordsInSequence])
 
   // ── Window drag handler ───────────────────────────────────────────────────
-  const onDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    dragRef.current = { ox: pos.x, oy: pos.y, mx: e.clientX, my: e.clientY }
-    let moved: { x: number; y: number } | null = null
-    const onMove = (ev: MouseEvent) => {
-      if (!dragRef.current) return
-      setPos(moved = {
-        x: Math.max(0, dragRef.current.ox + ev.clientX - dragRef.current.mx),
-        // MIN_TOP, not 0 — same titleBarOverlay clearance as the initial
-        // position; dragging the header up to y=0 put it under Windows' native
-        // maximize/close buttons just as easily as the auto-computed position did.
-        y: Math.max(MIN_TOP, dragRef.current.oy + ev.clientY - dragRef.current.my),
-      })
-    }
-    const onUp = () => {
-      dragRef.current = null
+  const onDragStart = (e: React.PointerEvent) => {
+    let moved: ModalPos | null = null
+    startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
       if (moved) useStore.getState().setExplorerPosition('scale', moved)
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }, [pos])
+    })
+  }
 
   // ── CoF label helpers ─────────────────────────────────────────────────────
   // Major key name for outer ring position
@@ -956,7 +939,7 @@ export default function ScaleExplorer() {
         left: pos.x,
         top: pos.y,
         width: MODAL_WIDTH,
-        maxHeight: '96vh',
+        maxHeight: MODAL_MAX_HEIGHT,
         background: 'var(--bg-modal)',
         border: '1px solid var(--state-hover-bg)',
         borderRadius: 10,
@@ -969,7 +952,7 @@ export default function ScaleExplorer() {
       } as CSSProperties}
     >
       {/* Header — drag handle */}
-      <div onMouseDown={onDragStart} style={{
+      <div onPointerDown={onDragStart} style={{ touchAction: 'none',
         flexShrink: 0, height: 36, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 var(--space-3)',
         background: 'var(--bg-modal-header)', borderBottom: '1px solid var(--border)',

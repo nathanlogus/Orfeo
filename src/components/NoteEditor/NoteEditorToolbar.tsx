@@ -11,6 +11,7 @@ import { songKey } from '../../utils/songIdentity'
 import { carryCorrection } from '../../utils/tempoCorrection'
 import { detectKeyFromTracks, parseKeySignature } from '../../utils/keyDetection'
 import { getPianoRollAreaRect, getPianoRollCenterX } from '../../utils/modalAnchors'
+import { clampModalPos, startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../../utils/modalCloseButtonStyle'
 import { HAND_ASSIGN_GROUPS } from '../../utils/keyboardGroups'
 import OrfeoMark from '../OrfeoMark'
@@ -251,7 +252,6 @@ export default function NoteEditorToolbar() {
   const [pos, setPos]   = useState({ x: noteEditorToolbarX, y: noteEditorToolbarY })
   const posRef          = useRef({ x: noteEditorToolbarX, y: noteEditorToolbarY })
   const panelRef        = useRef<HTMLDivElement>(null)
-  const dragState       = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null)
 
   // ── Default position: horizontally centered on the piano roll. Always
   // recomputed on open, same as every other modal in the app. ──────────────
@@ -274,13 +274,7 @@ export default function NoteEditorToolbar() {
       const panelW = panelRef.current?.offsetWidth ?? 400
       const panelH = panelRef.current?.offsetHeight ?? 44
       setPos(p => {
-        const next = {
-          x: Math.max(0, Math.min(window.innerWidth - panelW, p.x)),
-          // 44, not 0 — keeps the top edge (and its close button) clear of
-          // the 40px titleBarOverlay (electron/main.ts) where Windows draws
-          // its own window controls on top of everything in the DOM.
-          y: Math.max(44, Math.min(window.innerHeight - panelH, p.y)),
-        }
+        const next = clampModalPos(p, panelW, panelH, window.innerWidth, window.innerHeight)
         if (next.x === p.x && next.y === p.y) return p
         posRef.current = next
         return next
@@ -292,33 +286,6 @@ export default function NoteEditorToolbar() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', clamp) }
   }, [])
 
-  const onMouseMove = useCallback((e: MouseEvent) => {
-    const ds = dragState.current
-    if (!ds) return
-    const panelW = panelRef.current?.offsetWidth ?? 400
-    const panelH = panelRef.current?.offsetHeight ?? 44
-    const next = {
-      x: Math.max(0, Math.min(window.innerWidth - panelW, ds.startPosX + (e.clientX - ds.startX))),
-      y: Math.max(44, Math.min(window.innerHeight - panelH, ds.startPosY + (e.clientY - ds.startY))),
-    }
-    posRef.current = next
-    setPos(next)
-  }, [])
-  const onMouseUp = useCallback(() => {
-    if (dragState.current) {
-      dragState.current = null
-      setNoteEditorToolbarPos(posRef.current.x, posRef.current.y)
-    }
-  }, [setNoteEditorToolbarPos])
-
-  useEffect(() => {
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup',   onMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup',   onMouseUp)
-    }
-  }, [onMouseMove, onMouseUp])
 
   // ── Close quantize dropdown on outside click ──────────────────────────────
   useEffect(() => {
@@ -450,6 +417,7 @@ export default function NoteEditorToolbar() {
         left: pos.x, top: pos.y,
         zIndex: 9700,
         width: 680,
+        maxHeight: MODAL_MAX_HEIGHT,
         background: 'var(--bg-modal-header)',
         border: '1px solid var(--state-hover-border)',
         borderRadius: 'var(--radius-md)',
@@ -470,11 +438,9 @@ export default function NoteEditorToolbar() {
           make the title clip or throw off centering (see CLAUDE.md's CSS
           Grid layout convention). ──────────────────────────────────────── */}
       <div
-        onMouseDown={e => {
-          e.preventDefault()
-          dragState.current = { startX: e.clientX, startY: e.clientY, startPosX: pos.x, startPosY: pos.y }
-        }}
-        style={{ display: 'grid', gridTemplateColumns: '168px 1fr 168px', alignItems: 'center', minHeight: 32, padding: '4px 8px', gap: 6, cursor: 'grab' }}
+        onPointerDown={e => startModalDrag(e, panelRef.current, pos, next => { posRef.current = next; setPos(next) },
+          () => setNoteEditorToolbarPos(posRef.current.x, posRef.current.y))}
+        style={{ display: 'grid', gridTemplateColumns: '168px 1fr 168px', alignItems: 'center', minHeight: 32, padding: '4px 8px', gap: 6, cursor: 'grab', touchAction: 'none' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -496,7 +462,6 @@ export default function NoteEditorToolbar() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
           <button
-            onMouseDown={e => e.stopPropagation()}
             onClick={() => void doClose()}
             style={modalCloseButtonStyle}
             onMouseEnter={e => { e.currentTarget.style.color = modalCloseButtonHoverColor; setIconHint('Close — exit edit mode') }}

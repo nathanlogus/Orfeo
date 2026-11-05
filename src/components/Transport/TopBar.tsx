@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect, useState } from 'react'
 import {
   Play, Pause, SkipBack, SkipForward, Repeat,
   FolderOpen, RotateCcw, ChevronUp, ChevronDown,
-  Rewind, FastForward, Music2, Hourglass,
+  Rewind, FastForward, Music2, Hourglass, Home,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
@@ -45,7 +45,8 @@ const SKIP_SECS = 5
 // `geometrychange`, so this tracks the real safe zone live. Falls back to a
 // conservative constant if the API isn't present yet (first paint, or a
 // non-Windows build).
-const OVERLAY_INSET_FALLBACK = 174
+// Android has no window buttons to clear, and the bar needs every pixel
+const OVERLAY_INSET_FALLBACK = /Android/.test(navigator.userAgent) ? 0 : 174
 
 function useTitlebarOverlayInset(): number {
   const [inset, setInset] = useState(OVERLAY_INSET_FALLBACK)
@@ -296,6 +297,16 @@ export default function TopBar() {
             </span>
           </Tooltip>
         </div>
+        {midi && <Tooltip title="Home" description={"Find another song.\nYour open song stays as it is."} placement="bottom">
+          <button
+            onClick={() => useStore.getState().setHomeOpen(true)}
+            aria-label="Home"
+            className="app-no-drag"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--text-amber)' }}
+          >
+            <Home size={18} strokeWidth={1.5} />
+          </button>
+        </Tooltip>}
         <Tooltip title="Open a file (Ctrl+O)" description={"Loads a supported file from\ndisk to start a new session."} placement="bottom">
           <button
             onClick={openFile}
