@@ -1,10 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
-import { Play, Pause, Repeat, Hourglass, ListTree, SlidersVertical, Music2, Compass, X, FolderOpen, SlidersHorizontal } from 'lucide-react'
+import { Play, Pause, Repeat, Hourglass, ListTree, SlidersVertical, Music2, Compass, X, FolderOpen, SlidersHorizontal, Square } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
 import { useMidiFile } from '../../hooks/useMidiFile'
 import { isCountingIn, cancelCountIn } from '../../utils/countInRunner'
-import { ContextMenu, ContextMenuItem, ContextMenuDivider, useMenuDismiss } from '../ContextMenu'
+import { ContextMenu, ContextMenuItem, useMenuDismiss } from '../ContextMenu'
+import { MetronomePopover } from './MetronomePopover'
+import { endPractice } from '../../utils/practiceSession'
+import { useUpdateState } from '../../hooks/useUpdateCheck'
 import { t } from '../../utils/i18n'
 import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
 import { confirmDiscardDirtyTempoKey } from '../../utils/tempoKeySave'
@@ -14,18 +17,18 @@ import OrfeoMark from '../OrfeoMark'
 import Tooltip from '../Tooltip'
 
 const NEXT_SCORE_MODE = { roll: 'both', both: 'score', score: 'roll' } as const
-const METRO_MENU_WIDTH = 220
+const METRO_H = 340
 
 // ── One rail tile: icon over a word. `on` is a toggle that stays pressed. ───
-function Tile({ label, icon, on, dot, disabled, blink, badge, title, description, onClick, onContextMenu }: {
+function Tile({ label, icon, on, dot, disabled, blink, badge, title, description, onClick, onContextMenu, expanded }: {
   label: string; icon: React.ReactNode; on?: boolean; dot?: boolean; disabled?: boolean; blink?: boolean
   badge?: React.ReactNode; title: string; description?: string
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void; expanded?: boolean
 }) {
   return (
     <Tooltip title={title} description={description} oneLine={!description} placement="right" wrapperStyle={{ flexShrink: 0 }}>
       <button className={`pr-tile${blink ? ' loop-nudge-blink' : ''}`} data-instant aria-label={title} aria-pressed={on === undefined ? undefined : on}
-        disabled={disabled} onClick={onClick} onContextMenu={onContextMenu}>
+        aria-expanded={expanded} disabled={disabled} onClick={onClick} onContextMenu={onContextMenu}>
         {dot && <span className="pr-tile-dot" />}
         {badge}
         {icon}
@@ -54,7 +57,8 @@ export default function PracticeRail() {
   const scoreViewMode = useStore((s) => s.scoreViewMode)
   const hasScore = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath))
   const settingsPanelOpen = useStore((s) => s.settingsPanelOpen)
-  const { play, pause, seek } = usePlayback()
+  const { play, pause, stop, toggleLoop } = usePlayback()
+  const newVersion = useUpdateState((s) => s.status.state === 'available' || s.status.state === 'ready')
   const { openFile } = useMidiFile()
   const [metroMenu, setMetroMenu] = useState<{ x: number; y: number } | null>(null)
   const [exploreMenu, setExploreMenu] = useState<{ x: number; y: number } | null>(null)
@@ -83,7 +87,7 @@ export default function PracticeRail() {
 
   const openMenuBeside = (e: React.MouseEvent<HTMLButtonElement>) => {
     const r = e.currentTarget.getBoundingClientRect()
-    return { x: r.right + 8, y: Math.max(8, Math.min(r.top, window.innerHeight - 340)) }
+    return { x: e.currentTarget.closest('nav')!.getBoundingClientRect().right + 8, y: Math.max(8, Math.min(r.top, window.innerHeight - METRO_H - 8)) }
   }
 
   return (
@@ -104,12 +108,7 @@ export default function PracticeRail() {
         description={loopStart !== null
           ? (loopRegionActive ? 'Click to disable looping.' : 'Click to enable looping.')
           : 'Click to loop the entire song, or Alt+Click & drag mouse on the piano roll to select a specific region.'}
-        onClick={() => {
-          const next = !loopRegionActive
-          useStore.getState().setLoopRegionActive(next)
-          // Jump to loop start when activating with a selection, without forcing playback
-          if (next && loopStart !== null) seek(loopStart)
-        }} />
+        onClick={toggleLoop} />
       <Tile label={t`Wait`} icon={<Hourglass size={20} strokeWidth={1.8} />} on={waitForNotes} dot={waitForNotes} disabled={!midi}
         title={waitForNotes ? t`Waiting for your notes` : t`Wait for notes`}
         description={t`The song plays and holds at each note until you play it on your MIDI keyboard. Hide or mute a track to leave its notes out.`}
@@ -118,8 +117,13 @@ export default function PracticeRail() {
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 11.4V9.1" /><path d="m12 17 6.59-6.59" /><path d="m15.05 5.7-.218-.691a3 3 0 0 0-5.663 0L4.418 19.695A1 1 0 0 0 5.37 21h13.253a1 1 0 0 0 .951-1.31L18.45 16.2" /><circle cx="20" cy="9" r="2" /></svg>}
         badge={countInEnabled ? <span className="pr-tile-badge" aria-label={t`Count-in ${countInBars} bars`}>{countInBars}</span> : undefined}
         title={metronomeEnabled ? 'Metronome on' : 'Metronome off'}
-        description={countInEnabled ? t`Click to toggle metronome ON/OFF. Right-click for volume and count-in.` : t`Click to turn it ON, right-click \nfor volume and count-in.`}
-        onClick={() => useStore.getState().setMetronomeEnabled(!metronomeEnabled)}
+        description={touchScreen ? t`Tap for the metronome, its volume and the count-in.` : countInEnabled ? t`Click to toggle metronome ON/OFF. Right-click for volume and count-in.` : t`Click to turn it ON, right-click \nfor volume and count-in.`}
+        expanded={!!metroMenu}
+        onClick={(e) => {
+          // No right-click on a tablet: the popover holds the switch too
+          if (touchScreen) setMetroMenu(metroMenu ? null : openMenuBeside(e))
+          else useStore.getState().setMetronomeEnabled(!metronomeEnabled)
+        }}
         onContextMenu={(e) => { e.preventDefault(); setMetroMenu(openMenuBeside(e)) }} />
       <Tile label={t`Tracks`} icon={<ListTree size={20} strokeWidth={1.8} />} on={trackPanelOpen}
         title={trackPanelOpen ? t`Close Tracks panel` : t`Open Tracks panel`} description={t`Shows every track with its mute, solo, and visibility controls.`}
@@ -141,14 +145,18 @@ export default function PracticeRail() {
         title="Open a file (Ctrl+O)" description={"Loads a supported file from\ndisk to start a new session."} onClick={openFile} />
       <Tile label={t`Close`} icon={<X size={20} strokeWidth={1.8} />}
         title="Reset" description={"Closes the file and resets tempo,\ntranspose, and playback to defaults."} onClick={handleReset} />
+      <Tile label={t`End`} icon={<Square size={20} strokeWidth={1.8} />} disabled={!midi}
+        title={t`End practice`} description={t`Stops the song, and shows how it went if you played along.`}
+        onClick={() => { if (isCountingIn()) cancelCountIn(); endPractice(); stop() }} />
       <Tooltip title={t`Open Setup`} description={t`The everyday switches — sound engine, note names, keyboard, piano roll and more.`} placement="right" wrapperStyle={{ flexShrink: 0 }}>
-        <button className="pr-rail-setup" aria-label={t`Setup and settings`} aria-expanded={settingsPanelOpen}
+        <button className="pr-rail-setup" aria-label={newVersion ? t`Setup and settings, new version available` : t`Setup and settings`} aria-expanded={settingsPanelOpen}
           onClick={() => useStore.getState().setSettingsPanelOpen(!settingsPanelOpen)}>
           <SlidersHorizontal size={18} strokeWidth={1.8} />
+          {newVersion && <span className="pr-update-dot" />}
         </button>
       </Tooltip>
 
-      {metroMenu && <MetronomeMenu x={metroMenu.x} y={metroMenu.y} onClose={closeMetroMenu} />}
+      {metroMenu && <MetronomePopover x={metroMenu.x} y={metroMenu.y} onClose={closeMetroMenu} />}
       {exploreMenu && <ExploreMenu x={exploreMenu.x} y={exploreMenu.y} onClose={closeExploreMenu} />}
     </nav>
   )
@@ -172,57 +180,7 @@ function ExploreMenu({ x, y, onClose }: { x: number; y: number; onClose: () => v
           {chordPrompterOpen ? t`Hide Chord Prompter` : t`Show Chord Prompter`}
         </ContextMenuItem>
       )}
-      {/* No Shift key on a tablet */}
-      {!touchScreen && <><ContextMenuDivider /><div className="pr-note-row">{t`Shift+Click three keys or more to build & lock a chord`}</div></>}
-    </ContextMenu>
-  )
-}
-
-// ── Metronome right-click — click volume (0–150%) and count-in (on/off +
-// 1–4 bars), both remembered between sessions. ───────────────────────────
-function MetronomeMenu({ x, y, onClose }: { x: number; y: number; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const volume = useStore((s) => s.metronomeVolume)
-  const setVolume = useStore((s) => s.setMetronomeVolume)
-  const countInEnabled = useStore((s) => s.countInEnabled)
-  const setCountInEnabled = useStore((s) => s.setCountInEnabled)
-  const countInBars = useStore((s) => s.countInBars)
-  const setCountInBars = useStore((s) => s.setCountInBars)
-  useMenuDismiss(true, ref, onClose)
-  const head: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 'var(--text-base)', color: 'var(--ui-text-soft)' }
-  return (
-    <ContextMenu ref={ref} x={x} y={y} minWidth={METRO_MENU_WIDTH} ariaLabel={t`Metronome options`} className="app-no-drag">
-      <div style={{ width: METRO_MENU_WIDTH, boxSizing: 'border-box', padding: '6px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={head}>
-          <span>{t`Volume`}</span>
-          <span style={{ color: 'var(--ui-text)' }}>{Math.round(volume * 100)}%</span>
-        </div>
-        <input
-          type="range" min={0} max={150} step={5} value={Math.round(volume * 100)}
-          onChange={(e) => setVolume(Number(e.target.value) / 100)}
-          aria-label={t`Metronome volume`}
-          className="orfeo-slider-amber"
-          style={{ '--fill': `${Math.round(volume * 100 / 1.5)}%` } as React.CSSProperties}
-        />
-      </div>
-      <ContextMenuItem onClick={() => setVolume(1)} disabled={volume === 1}>{t`Reset to 100%`}</ContextMenuItem>
-      <ContextMenuDivider />
-      <div style={{ width: METRO_MENU_WIDTH, boxSizing: 'border-box', padding: '6px 14px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={head}>
-          <span>{t`Count-in`}</span>
-          <button role="switch" aria-checked={countInEnabled} aria-label={t`Count-in`} className="o-switch" onClick={() => setCountInEnabled(!countInEnabled)}><span /></button>
-        </div>
-        {countInEnabled && (
-          <>
-            <div className="o-seg" style={{ display: 'flex' }}>
-              {[1, 2, 3, 4].map(n => (
-                <button key={n} onClick={() => setCountInBars(n)} aria-label={t`${n} bars`} aria-pressed={countInBars === n} style={{ padding: 0 }}>{n}</button>
-              ))}
-            </div>
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)', lineHeight: 1.3 }}>{t`Bars of clicks before Play`}</span>
-          </>
-        )}
-      </div>
+      <ContextMenuItem onClick={go(() => useStore.setState({ lockHintOpen: true }))}>{t`Lock a chord`}</ContextMenuItem>
     </ContextMenu>
   )
 }

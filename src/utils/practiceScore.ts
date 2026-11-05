@@ -4,7 +4,7 @@
 
 export const BARS_PER_PHRASE = 4
 export const FULL_LEVEL = 5
-const LEVEL_UP = 0.9
+export const LEVEL_UP = 0.9
 const LEVEL_DOWN = 0.6
 const WINS_TO_LEVEL_UP = 2
 

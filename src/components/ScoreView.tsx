@@ -170,8 +170,13 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       `}</style>
       <div ref={hostRef} />
       {failed && (
-        <div role="alert" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
-          {t`Couldn't draw this score. The song still plays on the piano roll.`}
+        <div role="alert" className="pr-score-failed theme-paper">
+          <div>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M3 6h18M3 10h18M3 14h18M3 18h18M4 4l16 16" /></svg>
+            <span className="pr-score-failed-title">{t`Couldn’t draw this score.`}</span>
+            <span className="o-note">{t`The song still plays on the piano roll.`}</span>
+            <button className="o-btn" onClick={() => useStore.getState().setScoreViewMode('roll')}>{t`Show the piano roll`}</button>
+          </div>
         </div>
       )}
     </div>

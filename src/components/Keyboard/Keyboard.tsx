@@ -20,6 +20,8 @@ const HAND_LH = 'var(--hand-lh)'
 const HAND_RH = 'var(--hand-rh)'
 const GLISSANDO_COLOR = 'var(--text-amber)'
 
+const LONG_PRESS_MS = 500
+const LONG_PRESS_SLOP = 10
 const CHORD_MIN_NOTES = 3
 const CHORD_DEBOUNCE_MS = 320
 const CHORD_HOLD_MS = 1600
@@ -595,6 +597,28 @@ export default function Keyboard() {
     }
   }, [lockedKeys, lockedColors, noteNaming, accidentals, chordNamingStyle, setLockedKeysStore, clearLockedKeys, lightGlissandoKey, chordExplorerOpen, scaleExplorerOpen])
 
+  // ── A finger has no Shift: holding a key starts a locked chord, and until
+  // it's let go every tap adds or removes a key, as Shift+Click does ─────────
+  const handleKeyClickRef = useRef(handleKeyClick)
+  handleKeyClickRef.current = handleKeyClick
+  const lockPress = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null)
+  const lockingByFinger = useRef(false)
+  const cancelLockPress = () => { if (lockPress.current) clearTimeout(lockPress.current.timer); lockPress.current = null }
+  const startLockPress = (e: React.PointerEvent, midi: number) => {
+    cancelLockPress()
+    if (e.pointerType !== 'touch' || lockingByFinger.current || chordExplorerOpen || scaleExplorerOpen) return
+    lockPress.current = {
+      x: e.clientX, y: e.clientY,
+      timer: setTimeout(() => { lockingByFinger.current = true; shiftHeldRef.current = true; handleKeyClickRef.current(midi) }, LONG_PRESS_MS),
+    }
+  }
+  const moveLockPress = (e: React.PointerEvent) => {
+    if (lockPress.current && Math.hypot(e.clientX - lockPress.current.x, e.clientY - lockPress.current.y) > LONG_PRESS_SLOP) cancelLockPress()
+  }
+  useEffect(() => {
+    if (lockedKeys.size === 0 && lockingByFinger.current) { lockingByFinger.current = false; shiftHeldRef.current = false }
+  }, [lockedKeys.size])
+
   const keyContainerRef = useRef<HTMLDivElement>(null)
   const [keyHeight, setKeyHeight] = useState(130)
   const floating = useStore((s) => s.keyboardMode === 'floating')
@@ -882,6 +906,11 @@ export default function Keyboard() {
                 // that key indefinitely — see docs/superpowers/specs
                 // (2026-08-20) for the real repro. ─────────────────────────
                 onMouseDown={e => { e.preventDefault(); isMouseDown.current = true; handleKeyClick(k.midi) }}
+                onPointerDown={e => startLockPress(e, k.midi)}
+                onPointerMove={moveLockPress}
+                onPointerUp={cancelLockPress}
+                onPointerCancel={cancelLockPress}
+                onContextMenu={e => e.preventDefault()}
                 onMouseEnter={() => { if (isMouseDown.current) handleKeyClick(k.midi, true) }}
                 tabIndex={0}
                 role="button"
@@ -968,6 +997,11 @@ export default function Keyboard() {
                 // that key indefinitely — see docs/superpowers/specs
                 // (2026-08-20) for the real repro. ─────────────────────────
                 onMouseDown={e => { e.preventDefault(); isMouseDown.current = true; handleKeyClick(k.midi) }}
+                onPointerDown={e => startLockPress(e, k.midi)}
+                onPointerMove={moveLockPress}
+                onPointerUp={cancelLockPress}
+                onPointerCancel={cancelLockPress}
+                onContextMenu={e => e.preventDefault()}
                 onMouseEnter={() => { if (isMouseDown.current) handleKeyClick(k.midi, true) }}
                 tabIndex={0}
                 role="button"

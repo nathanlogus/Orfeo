@@ -462,7 +462,7 @@ export default function MasterStrip() {
           />
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignContent: 'space-between', justifyItems: 'center' }}>
+        <div className="pr-master-grid">
           <MixerKnob
             value={chorus} onChange={handleChorus}
             accentColor="var(--paint-lime)" size={52}

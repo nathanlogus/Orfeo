@@ -3,11 +3,12 @@ import './styles/redesign-practice.css'
 import TopBar from './components/Transport/TopBar'
 import PracticeRail from './components/Transport/PracticeRail'
 import PresentationBar from './components/Transport/PresentationBar'
+import ResultsScreen from './components/Transport/ResultsScreen'
 import PianoRoll from './components/PianoRoll/PianoRoll'
 import ScoreView from './components/ScoreView'
 import { isScoreFor } from './utils/scoreSource'
 import Keyboard from './components/Keyboard/Keyboard'
-import KeyboardControls, { StepPill } from './components/Keyboard/KeyboardControls'
+import KeyboardControls, { LockHint, StepPill } from './components/Keyboard/KeyboardControls'
 import TrackPanel from './components/TrackPanel/TrackPanel'
 import SettingsPanel from './components/SettingsPanel/SettingsPanel'
 import SettingsWindow from './components/Settings/SettingsWindow'
@@ -17,6 +18,7 @@ import HomePage from './components/Home/HomePage'
 import LessonBanner from './components/Lessons/LessonBanner'
 import LessonPanel from './components/Lessons/LessonPanel'
 import { useStore } from './store'
+import { useMidiSettings } from './store/midiSettings'
 import FloatingKeyboard from './components/Keyboard/FloatingKeyboard'
 import ChordExplorer from './components/ChordExplorer'
 import ScaleExplorer from './components/ScaleExplorer'
@@ -92,6 +94,8 @@ export default function App() {
   const homeVisible = !midi || homeOpen
   // With the roll's own playbar hidden, notes land on the keys: this line marks it
   const playbarVisible = useStore((s) => s.playbarVisible)
+  const midiError = useMidiSettings((s) => s.accessError)
+  const [midiErrorSeen, setMidiErrorSeen] = useState(false)
   const { openFile } = useMidiFile()
   const { play, pause, stop } = usePlayback()
   useAudioEngine()
@@ -413,6 +417,11 @@ export default function App() {
         return
       }
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      // The Results screen sits over everything: Esc closes it, and nothing plays under it
+      if (useStore.getState().practiceResult) {
+        if (e.key === 'Escape') useStore.setState({ practiceResult: null })
+        return
+      }
       // Settings window open: only Esc (it closes itself) and Ctrl + , get through
       if (useStore.getState().settingsWindowOpen && e.key !== 'Escape' && !(e.ctrlKey && e.key === ',')) return
       const { playbackState } = useStore.getState()
@@ -594,9 +603,10 @@ export default function App() {
             {showScore && <ScoreView bytes={scoreBytes} style={{ flex: showRoll ? '0 0 50%' : 1 }} />}
             {showRoll && midi && <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div>}
             {!presentationMode && <StepPill />}
+            <LockHint />
             <CountInOverlay />
           </div>
-          {!playbarVisible && <div className="pr-playbar" aria-hidden="true" />}
+          {!playbarVisible && keyboardMode === 'docked' && <div className="pr-playbar" aria-hidden="true" />}
           {keyboardMode === 'docked' && <Keyboard />}
           {keyboardMode === 'docked' && <KeyboardControls />}
         </div>
@@ -648,10 +658,21 @@ export default function App() {
         </div>
       )}
 
+      {/* ── No Web MIDI: the top bar shows it too, this says what to do ── */}
+      {midiError && !midiErrorSeen && (
+        <div role="alert" className="o-toast">
+          <span className="o-dot o-dot-alert" />
+          {/Android/.test(navigator.userAgent) ? t`MIDI isn’t available: the tablet didn’t allow it. Check Orfeo’s permissions in Android settings.` : t`MIDI isn’t available: ${midiError}`}
+          <button className="o-btn" onClick={() => setMidiErrorSeen(true)}>{t`Dismiss`}</button>
+        </div>
+      )}
+
       <SupportNote />
 
       {/* ── Mixer Console — floating modal, toggled via Ctrl+Shift+M or Console drawer icon ── */}
       <MixerConsole />
+
+      <ResultsScreen />
 
       {/* ── MIDI Playback Editor — floating modal, opened via Track Panel pencil icon ── */}
       <MidiEditor />

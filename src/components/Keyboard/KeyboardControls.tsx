@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef, type CSSProperties } from 'react'
 import { useStore } from '../../store'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Lock } from 'lucide-react'
 import { stepEvents } from '../../utils/stepThrough'
 import { t } from '../../utils/i18n'
 import Tooltip from '../Tooltip'
@@ -13,6 +13,7 @@ import { getWhiteKeys, noteToLeftPct, computeTaggedBoundaryCurve, interpolateTag
 const SMOOTHING_FACTOR = 0.15
 
 const SIZES: KeyboardSize[] = [61, 73, 88]
+const LOCK_HINT_MS = 12000
 
 // ── Smooth the raw curve boundary (in keyboard-%) toward its target every
 // frame — a plain per-sample lookup would visibly jump every 0.25s. Null
@@ -74,6 +75,26 @@ export default function KeyboardControls() {
       <div style={{ position: 'absolute', top: 0, bottom: 0, width: 2, left: `${smoothedPct}%`, background: 'var(--accent)' }} />
       <div style={{ ...label, left: 0, width: `${smoothedPct}%`, justifyContent: 'flex-end', paddingRight: 6 }}>{t`Left hand`}</div>
       <div style={{ ...label, left: `${smoothedPct}%`, right: 0, paddingLeft: 8 }}>{t`Right hand`}</div>
+    </div>
+  )
+}
+
+// ── How to lock a chord, from the Explore menu: gone once a key is locked ────
+export function LockHint() {
+  const open = useStore((s) => s.lockHintOpen)
+  const locked = useStore((s) => s.lockedKeys.size > 0)
+  useEffect(() => {
+    if (!open) return
+    const close = () => useStore.setState({ lockHintOpen: false })
+    if (locked) { close(); return }
+    const id = setTimeout(close, LOCK_HINT_MS)
+    return () => clearTimeout(id)
+  }, [open, locked])
+  if (!open) return null
+  return (
+    <div role="status" className="pr-lock-hint">
+      <Lock size={16} strokeWidth={2} aria-hidden="true" />
+      <span>{t`Long-press a key, then tap two or more to lock a chord`} <span className="pr-soft">· {t`Shift-click on a computer`}</span></span>
     </div>
   )
 }

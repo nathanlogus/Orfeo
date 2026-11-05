@@ -4,6 +4,7 @@
 // listening, not a bad result, so it doesn't count.
 import { useStore } from '../store'
 import { accuracy, afterPhrase, mastery, phraseOf, phraseStarts, type PhraseProgress, type Press, type ScoredStep } from './practiceScore'
+import { buildPracticeResult, type PhraseRun } from './practiceResult'
 
 export const WINDOW_SEC = 0.25
 const FIRST_AUTO_LEVEL = 1
@@ -11,6 +12,8 @@ const FIRST_AUTO_LEVEL = 1
 const NEARLY_DONE = 0.9
 // Clocks wobble: only a real jump back is a seek
 const SEEK_SEC = 0.25
+// A frame can stall; a skip forward is a seek too, and says nothing of the phrase left
+const SKIP_SEC = 1
 
 export const AUTO_LEVEL = 0
 
@@ -23,6 +26,9 @@ let _presses: Press[] = []
 let _progress: PhraseProgress[] = []
 let _load = 0
 let _stepsAt: () => ScoredStep[] = () => []
+// Since the last summary: one result a phrase, the latest
+let _runs = new Map<number, PhraseRun>()
+let _masteryBefore = 0
 
 export function setPracticeSteps(stepsAt: () => ScoredStep[]) { _stepsAt = stepsAt }
 
@@ -45,6 +51,8 @@ function syncSong() {
   _now = 0
   _presses = []
   _progress = []
+  _runs = new Map()
+  _masteryBefore = 0
   publish()
   if (!midi) return
   const load = ++_load
@@ -52,7 +60,7 @@ function syncSong() {
   void window.electronAPI.getPrefs().then(p => {
     if (load !== _load) return
     const saved = p.practiceProgress?.[key]?.phrases
-    if (Array.isArray(saved)) { _progress = saved; publish() }
+    if (Array.isArray(saved)) { _progress = saved; _masteryBefore = mastery(saved.filter(Boolean), starts().length); publish() }
   })
 }
 
@@ -85,9 +93,48 @@ function finishPhrase() {
   const level = auto ? before.level : s.practiceLevel
   while (_progress.length <= _phrase) _progress.push(fresh())
   _progress[_phrase] = afterPhrase(before, played, level, auto)
+  const { level: levelAfter, wins } = _progress[_phrase]
+  _runs.set(_phrase, { phrase: _phrase, steps: phraseSteps.length, played, levelBefore: level, levelAfter: auto ? levelAfter : level, wins, auto, partway: false })
   useStore.setState({ phraseResult: { percent: Math.round(played * 100), level: _progress[_phrase].level, mastery: 0 } })
   publish()
   save()
+}
+
+// A phrase left partway counts in the summary, never for its level
+function scorePartway() {
+  const s = useStore.getState()
+  const list = starts()
+  const from = list[_phrase] ?? 0
+  const to = list[_phrase + 1] ?? s.midi?.duration ?? from
+  if (to > from && (_now - from) / (to - from) >= NEARLY_DONE) { finishPhrase(); return }
+  const presses = _presses
+  _presses = []
+  if (!presses.length || _runs.has(_phrase)) return
+  const phraseSteps = _stepsAt().filter(step => step.time >= from - 1e-4 && step.time <= _now)
+  const played = accuracy(phraseSteps, presses, WINDOW_SEC * (s.bpm / s.originalBpm || 1))
+  if (played === null) return
+  const auto = s.practiceLevel === AUTO_LEVEL
+  const level = auto ? (_progress[_phrase] ?? fresh()).level : s.practiceLevel
+  _runs.set(_phrase, { phrase: _phrase, steps: phraseSteps.length, played, levelBefore: level, levelAfter: level, wins: 0, auto, partway: true })
+}
+
+function showResult() {
+  const s = useStore.getState()
+  const list = starts()
+  const result = s.midi && !s.lessonRun ? buildPracticeResult({
+    song: s.midi.fileName.replace(/\.[^.]+$/, ''), level: s.practiceLevel, tempoPercent: Math.round(s.bpm / s.originalBpm * 100) || 100,
+    runs: [..._runs.values()], progress: _progress, starts: list, barCount: s.midi._barTimes?.length ?? 0, duration: s.midi.duration, masteryBefore: _masteryBefore,
+  }) : null
+  _runs = new Map()
+  _masteryBefore = mastery(_progress.filter(Boolean), list.length)
+  if (result) useStore.setState({ practiceResult: result })
+}
+
+// The End tile: nothing shows if you were only listening
+export function endPractice() {
+  syncSong()
+  scorePartway()
+  showResult()
 }
 
 // Every frame of playback, and every key
@@ -95,7 +142,7 @@ export function practiceClock(now: number) {
   syncSong()
   const list = starts()
   const phrase = phraseOf(list, now)
-  if (now < _now - SEEK_SEC) {
+  if (now < _now - SEEK_SEC || now > _now + SKIP_SEC) {
     const from = list[_phrase] ?? 0
     const to = list[_phrase + 1] ?? useStore.getState().midi?.duration ?? from
     if (to > from && (_now - from) / (to - from) >= NEARLY_DONE) finishPhrase()
@@ -112,6 +159,8 @@ useStore.subscribe((s, prev) => {
     const transpose = s.detectedKey?.transpose ?? 0
     for (const key of s.midiHeldKeys) if (!prev.midiHeldKeys.has(key)) _presses.push({ midi: key - transpose, time: s.currentTime })
   }
-  // The last phrase has no next one to cross into
-  if (s.playbackState === 'stopped' && prev.playbackState === 'playing' && s.midi && s.currentTime >= s.midi.duration - 0.01) finishPhrase()
+  // The last phrase has no next one to cross into. The engine can end a song by
+  // putting the clock back to 0, so go by where it was.
+  if (s.playbackState === 'stopped' && prev.playbackState === 'playing' && s.midi
+    && Math.max(s.currentTime, prev.currentTime) >= (_stepsAt().at(-1)?.time ?? s.midi.duration - 0.01)) { finishPhrase(); showResult() }
 })

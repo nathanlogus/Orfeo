@@ -3,7 +3,7 @@ import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import Tooltip from '../Tooltip'
 import OrfeoMark from '../OrfeoMark'
-import { GROUPS, QUICK_LAYOUT } from './catalog'
+import { GROUPS, QUICK_LAYOUT, type SettingId } from './catalog'
 import { GROUP_ICONS } from './groupIcons'
 import { CollapsibleSection } from './controls'
 import { QuickRow } from './QuickRow'
@@ -15,12 +15,14 @@ function MetronomeVolumeRow() {
   return (
     <div className="pr-setup-row">
       <div className="pr-setup-line">
-        <span className="pr-setup-name">{t`Metronome volume`}</span>
-        <span className="pr-setup-sub">{pct}%</span>
+        <span>
+          <div className="pr-setup-name">{t`Metronome volume`}</div>
+          <div className="pr-setup-sub">{t`How loud the clicks are`} · {pct}%</div>
+        </span>
+        <input type="range" min={0} max={150} step={5} value={pct} aria-label={t`Metronome volume`} className="orfeo-slider-amber"
+          onChange={e => useStore.getState().setMetronomeVolume(Number(e.target.value) / 100)}
+          style={{ width: 150, height: 44, '--fill': `${pct / 1.5}%` } as React.CSSProperties} />
       </div>
-      <input type="range" min={0} max={150} step={5} value={pct} aria-label={t`Metronome volume`} className="orfeo-slider-amber"
-        onChange={e => useStore.getState().setMetronomeVolume(Number(e.target.value) / 100)}
-        style={{ height: 32, '--fill': `${pct / 1.5}%` } as React.CSSProperties} />
     </div>
   )
 }
@@ -46,16 +48,30 @@ function KeyboardDockRow() {
   )
 }
 
-// ── Quick Settings — the drawer's Settings tab: the everyday switches only,
-// grouped as in the Settings window; the gear on each group opens that
-// group in the full window. ───────────────────────────────────────────────
+// Up top, in one flat list, because they're what a player reaches for most
+const FIRST: SettingId[] = ['soundEngine', 'focusMode', 'countIn', 'tapTempo', 'showNoteNames', 'keyRange', 'appZoom']
+
+// ── Quick Settings — the drawer's Settings tab: the everyday switches first,
+// then the rest grouped as in the Settings window; the arrow on each group
+// opens that group in the full window. ────────────────────────────────────
 export default function QuickSettings() {
   const collapsed = useStore(s => s.settingsGroupsCollapsed)
   const setCollapsed = useStore(s => s.setSettingsGroupCollapsed)
   return (
     <>
-      {GROUPS.filter(g => QUICK_LAYOUT[g.id].length > 0).map(g => {
+      <QuickRow id="soundEngine" />
+      <QuickRow id="focusMode" />
+      <MetronomeVolumeRow />
+      <QuickRow id="countIn" />
+      <QuickRow id="tapTempo" />
+      <QuickRow id="showNoteNames" />
+      <QuickRow id="keyRange" />
+      <KeyboardDockRow />
+      <QuickRow id="appZoom" />
+      {GROUPS.map(g => {
         const Icon = GROUP_ICONS[g.id]
+        const rest = QUICK_LAYOUT[g.id].filter(item => typeof item !== 'string' || !FIRST.includes(item))
+        if (!rest.length) return null
         return (
           <CollapsibleSection key={g.id} icon={<Icon size={11} />} label={g.name}
             collapsed={collapsed[g.id]} onToggle={() => setCollapsed(g.id, !collapsed[g.id])}
@@ -67,11 +83,9 @@ export default function QuickSettings() {
                 </button>
               </Tooltip>
             }>
-            {g.id === 'playback-editing' && <><MetronomeVolumeRow /><QuickRow id="countIn" /></>}
-            {QUICK_LAYOUT[g.id].map((item, i) => typeof item === 'string'
+            {rest.map((item, i) => typeof item === 'string'
               ? <QuickRow key={item} id={item} />
               : <div key={`h${i}`} className="pr-setup-group">{item.heading}</div>)}
-            {g.id === 'keyboard' && <KeyboardDockRow />}
           </CollapsibleSection>
         )
       })}

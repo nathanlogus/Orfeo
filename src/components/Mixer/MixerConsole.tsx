@@ -1,10 +1,9 @@
 import { useRef, useState, useEffect, useMemo, useCallback, type CSSProperties } from 'react'
-import { X } from 'lucide-react'
+import { ArrowLeft, X } from 'lucide-react'
 import { useStore } from '../../store'
 import { bringToFront, MODAL_BASE_Z } from '../../utils/modalFocus'
-import ChannelStrip, { CHANNEL_STRIP_W } from './ChannelStrip'
-import MasterStrip, { MASTER_STRIP_W } from './MasterStrip'
-import { getPianoRollCenterX, modalTopAboveKeyboard } from '../../utils/modalAnchors'
+import ChannelStrip from './ChannelStrip'
+import MasterStrip from './MasterStrip'
 import { confirmDialog } from '../../utils/confirmController'
 import { parseMidiBuffer } from '../../utils/midiParser'
 import { songKey } from '../../utils/songIdentity'
@@ -12,20 +11,26 @@ import { carryCorrection } from '../../utils/tempoCorrection'
 import { detectKeyFromTracks, parseKeySignature } from '../../utils/keyDetection'
 import { KEYBOARD_GROUPS } from '../../utils/keyboardGroups'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
-import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
-import { startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
+import { changedChannels } from '../../utils/mixerChanges'
+import { setChannelChorus, setChannelPan, setChannelReverb, setChannelVolume } from '../../audio/engine'
+import { t } from '../../utils/i18n'
 
-// ── MixerConsole — floating draggable modal ───────────────────────────────────
-// Opened via Ctrl+Shift+M or the Console (SlidersVertical) icon in the TrackPanel.
-// Width locked to show exactly 8 channel strips + master.
+// ── MixerConsole — the whole screen: every channel, then the master ───────────
+// Opened via Ctrl+Shift+M or the Mixer tile on the practice rail.
 
-// ── Modal dimensions — derived from strip geometry ────────────────────────────
-// n strips × 120px + (n−1) inter-strip gaps × 8px + body-gap 8px + master 160px + padding 2×16px
-const STRIP_W   = CHANNEL_STRIP_W
-const STRIP_GAP = 8
-const MASTER_W  = MASTER_STRIP_W
-const BODY_PAD  = 16
-const MAX_STRIPS = 8
+// Every channel back to the file's values, in the store and the sound alike
+function resetMix() {
+  const { tracks, mixerBaseline, midi, updateTrack } = useStore.getState()
+  for (const track of changedChannels(tracks, mixerBaseline)) {
+    const base = mixerBaseline[track.index]
+    const channel = midi?.tracks.find(m => m.index === track.index)?.channel ?? 0
+    updateTrack(track.index, base)
+    setChannelVolume(channel, base.volume)
+    setChannelPan(channel, base.pan)
+    setChannelChorus(channel, base.chorus)
+    setChannelReverb(channel, base.reverb)
+  }
+}
 
 // ── Track sort order — matches TrackPanel GROUP_ORDER ────────────────────────
 const GROUP_ORDER = [
@@ -34,8 +39,6 @@ const GROUP_ORDER = [
   'synth_lead', 'synth_pad', 'synth_fx', 'ethnic',
   'percussive', 'sfx', 'drums',
 ]
-
-const MODAL_H_APPROX = 678  // header 72 + body-pad 16*2 + strip 574
 
 // ── MixerConsole ──────────────────────────────────────────────────────────────
 export default function MixerConsole() {
@@ -64,24 +67,9 @@ export default function MixerConsole() {
   // everOpened keeps the component mounted after first open so all internal state
   // (pos, knob values, scroll) survives hide/show cycles.
   const [everOpened, setEverOpened] = useState(false)
-  const positioned = useRef(false)
-
-  // ── Mark ever-opened on first open; also finalize position then, using the
-  // real track count — the mount-time initializer below runs before any file
-  // is loaded (0 tracks), so its width guess was never right once a real
-  // file's tracks were in. ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!mixerOpen) return
-    setEverOpened(true)
-    if (positioned.current) return
-    positioned.current = true
-    const n = Math.min(Math.max(useStore.getState().tracks.length, 1), MAX_STRIPS)
-    const w = BODY_PAD * 2 + n * STRIP_W + (n - 1) * STRIP_GAP + STRIP_GAP + MASTER_W + 2
-    setPos({
-      x: Math.max(0, Math.round(getPianoRollCenterX() - w / 2)),
-      y: modalTopAboveKeyboard(MODAL_H_APPROX, 11),
-    })
-  }, [mixerOpen])
+  useEffect(() => { if (mixerOpen) setEverOpened(true) }, [mixerOpen])
+  const songName = useStore(s => s.midi?.fileName?.replace(/\.[^.]+$/, '') ?? '')
+  const mixChanged = useStore(s => mixerOpen && changedChannels(s.tracks, s.mixerBaseline).length > 0)
 
   // ── Close — diffs live channel values against the file-load baseline; if any
   // channel's volume/pan/reverb/chorus changed, offers to save before closing.
@@ -90,10 +78,7 @@ export default function MixerConsole() {
   // open. Nothing to diff (Master strip, mute/solo/etc.) — those stay session-only. ──
   const requestClose = useCallback(async () => {
     const { tracks: liveTracks, mixerBaseline, midi } = useStore.getState()
-    const changed = liveTracks.filter(t => {
-      const base = mixerBaseline[t.index]
-      return base && (base.volume !== t.volume || base.pan !== t.pan || base.chorus !== t.chorus || base.reverb !== t.reverb)
-    })
+    const changed = changedChannels(liveTracks, mixerBaseline)
     if (changed.length === 0 || !midi) { setMixerOpen(false); return }
 
     const filePath = (midi as any)._filePath ?? ''
@@ -103,7 +88,7 @@ export default function MixerConsole() {
       buttons: ['Save & Reload', 'Discard', 'Cancel'],
     })
     if (choice === 2) return // Cancel — leave mixer open
-    if (choice === 1) { setMixerOpen(false); return } // Discard — re-seeded from file next open
+    if (choice === 1) { resetMix(); setMixerOpen(false); return }
 
     try {
       const result = await window.electronAPI.saveMixerChannels({
@@ -203,31 +188,12 @@ export default function MixerConsole() {
     setCustomChannelOrder(without)
   }
 
-  // ── Modal width — adapts to track count, capped at MAX_STRIPS ────────────
-  const modalW = useMemo(() => {
-    const n = Math.min(Math.max(sortedTracks.length, 1), MAX_STRIPS)
-    // +2 accounts for 1px left + 1px right border (border-box sizing)
-    return BODY_PAD * 2 + n * STRIP_W + (n - 1) * STRIP_GAP + STRIP_GAP + MASTER_W + 2
-  }, [sortedTracks.length])
-
-  // ── Drag position — bottom edge on the keyboard header, horizontally
-  // centered on the piano roll; set once on first render. ───────────────────
-  const [pos, setPos] = useState(() => {
-    const n = Math.min(Math.max(useStore.getState().tracks.length, 1), MAX_STRIPS)
-    const w = BODY_PAD * 2 + n * STRIP_W + (n - 1) * STRIP_GAP + STRIP_GAP + MASTER_W + 2
-    return {
-      x: Math.max(0, Math.round(getPianoRollCenterX() - w / 2)),
-      y: modalTopAboveKeyboard(MODAL_H_APPROX, 11),
-    }
-  })
-
   // ── Z-index — bringToFront on mousedown so last-clicked modal is on top ────
   const [zIndex, setZIndex] = useState(MODAL_BASE_Z)
 
   // ── Modal semantics — focus trap while open, restores focus on close ──────
   const modalRef = useRef<HTMLDivElement>(null)
   useFocusTrap(modalRef, mixerOpen && everOpened)
-  useClampPositionOnZoom(pos, setPos, modalRef)
 
   // ── Drag-to-pan state for the channel strip row ───────────────────────────
   const scrollRef    = useRef<HTMLDivElement>(null)
@@ -266,9 +232,6 @@ export default function MixerConsole() {
     scrollRef.current.scrollLeft += e.deltaY
   }, [])
 
-  // ── Header drag — moves the whole modal ──────────────────────────────────
-  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => startModalDrag(e, modalRef.current, pos, setPos)
-
   // ── Close on Escape ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!mixerOpen) return
@@ -289,55 +252,35 @@ export default function MixerConsole() {
       className="orfeo-modal-glow app-no-drag touch-hit pr-mixer"
       data-instant
       onMouseDown={() => setZIndex(bringToFront())}
-      style={{
-        left: pos.x, top: pos.y,
-        width: modalW,
-        // ── Viewport width cap — the strip row below is flex:1/minWidth:0/
-        // overflowX:auto, so once the window is capped that row scrolls on its
-        // own. calc() tracks live window resizes with no JS listener needed. ──
-        maxWidth: 'calc(100vw - 24px)',
-        // A phone is shorter than the strips: they scroll, the header stays
-        maxHeight: MODAL_MAX_HEIGHT,
-        display: mixerOpen ? 'flex' : 'none',
-        zIndex,
-      } as CSSProperties}
+      style={{ display: mixerOpen ? 'flex' : 'none', zIndex } as CSSProperties}
     >
 
-      {/* ── Header — drag handle ─────────────────────────────────────────── */}
-      <div className="pr-mixer-head" onPointerDown={startDrag}>
-        <h2>Mixer</h2>
-        {modalW > 760 && <span className="o-note">Adjust track levels, apply effects and compress overall loudness</span>}
+      {/* ── Header ─ keeps the window movable, and clears its caption buttons ── */}
+      <div className="pr-mixer-head app-drag-region">
+        <button className="pr-mixer-back app-no-drag" onClick={requestClose}><ArrowLeft size={16} strokeWidth={2} />{t`Practice`}</button>
+        <h2>{t`Mixer`}</h2>
+        <span className="o-note">{songName} · {t`your mix is saved into the song`}</span>
         <div style={{ flex: 1 }} />
-        <button className="o-btn-primary" onClick={requestClose}>Done</button>
-        <button className="o-close" aria-label="Close mixer" onClick={requestClose}><X size={18} /></button>
+        <button className="o-btn app-no-drag" disabled={!mixChanged} onClick={resetMix}>{t`Reset mix`}</button>
+        <button className="o-btn-primary app-no-drag" onClick={requestClose}>{t`Done`}</button>
+        <button className="o-close app-no-drag" aria-label="Close mixer" onClick={requestClose}><X size={18} /></button>
       </div>
 
       {/* ── Body ──────────────────────────────────────────────────────────── */}
-      <div style={{
-        display: 'flex', gap: STRIP_GAP,
-        padding: `0 ${BODY_PAD}px ${BODY_PAD}px`,
-        alignItems: 'flex-start',
-        minHeight: 0, overflowY: 'auto',
-      }}>
+      <div className="pr-mixer-body">
 
         {/* ── Scrollable channel strip row ────────────────────────────────── */}
         <div
           ref={scrollRef}
-          className="mixer-scroll"
+          className="mixer-scroll pr-mixer-strips"
           onMouseDown={handleScrollMouseDown}
           onWheel={handleWheel}
-          style={{
-            flex: 1, minWidth: 0,
-            display: 'flex', gap: STRIP_GAP,
-            overflowX: 'auto',
-            paddingBottom: 8,
-            cursor: panning ? 'grabbing' : 'grab',
-          }}
+          style={{ cursor: panning ? 'grabbing' : 'grab' }}
         >
           {displayTracks.length === 0 ? (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              height: 574, flex: 1,
+              flex: 1,
               color: 'var(--stone)', fontSize: 'var(--text-md)',
             }}>
               No tracks — load a MIDI file
@@ -361,9 +304,7 @@ export default function MixerConsole() {
         </div>
 
         {/* ── Master strip — always visible, never scrolls ────────────────── */}
-        <div style={{ flexShrink: 0 }}>
-          <MasterStrip />
-        </div>
+        <MasterStrip />
 
       </div>
     </div>
