@@ -4,9 +4,7 @@ import { useStore } from '../../store'
 import { bringToFront, MODAL_BASE_Z } from '../../utils/modalFocus'
 import ChannelStrip, { CHANNEL_STRIP_W } from './ChannelStrip'
 import MasterStrip, { MASTER_STRIP_W } from './MasterStrip'
-import OrfeoMark from '../OrfeoMark'
 import { getPianoRollCenterX, modalTopAboveKeyboard } from '../../utils/modalAnchors'
-import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../../utils/modalCloseButtonStyle'
 import { confirmDialog } from '../../utils/confirmController'
 import { parseMidiBuffer } from '../../utils/midiParser'
 import { songKey } from '../../utils/songIdentity'
@@ -16,7 +14,6 @@ import { KEYBOARD_GROUPS } from '../../utils/keyboardGroups'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
 import { startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
-import { touchScreen } from '../../utils/touchScreen'
 
 // ── MixerConsole — floating draggable modal ───────────────────────────────────
 // Opened via Ctrl+Shift+M or the Console (SlidersVertical) icon in the TrackPanel.
@@ -38,7 +35,7 @@ const GROUP_ORDER = [
   'percussive', 'sfx', 'drums',
 ]
 
-const MODAL_H_APPROX = 650  // header 40 + body-pad 16*2 + strip 574 + scrollbar ~4
+const MODAL_H_APPROX = 678  // header 72 + body-pad 16*2 + strip 574
 
 // ── MixerConsole ──────────────────────────────────────────────────────────────
 export default function MixerConsole() {
@@ -232,36 +229,6 @@ export default function MixerConsole() {
   useFocusTrap(modalRef, mixerOpen && everOpened)
   useClampPositionOnZoom(pos, setPos, modalRef)
 
-  // ── Header description marquee — the description only needs to scroll when
-  // a narrow modal (few tracks loaded → fewer strips → less header width)
-  // can't fit the full sentence. Measured against the live layout rather than
-  // assumed, since strip count changes at runtime. 0 = fits, no marquee. ────
-  const headerDescWrapRef = useRef<HTMLDivElement>(null)
-  const headerDescRef     = useRef<HTMLSpanElement>(null)
-  const [headerDescOverflow, setHeaderDescOverflow] = useState(0)
-  useEffect(() => {
-    const wrap = headerDescWrapRef.current, text = headerDescRef.current
-    if (!wrap || !text) return
-    const measure = () => setHeaderDescOverflow(Math.max(0, text.scrollWidth - wrap.clientWidth))
-    measure()
-    // Self-hosted fonts load async — an initial measure can run against
-    // fallback-font metrics before JetBrains Mono swaps in, under-reporting
-    // the text's real width. Re-measure once fonts settle to catch that.
-    document.fonts?.ready?.then(measure)
-    // Observe the TEXT, not just the wrap: overflow:hidden means the text's
-    // own width changing (font swap, content edits) never changes the wrap's
-    // clientWidth, so a wrap-only observer would never refire for it.
-    const ro = new ResizeObserver(measure)
-    ro.observe(wrap)
-    ro.observe(text)
-    return () => ro.disconnect()
-    // everOpened, not mixerOpen: the component returns null until everOpened
-    // flips true (see line ~299), so the render where mixerOpen first goes
-    // true has no DOM yet — refs are null and this bails out silently. By
-    // the time mixerOpen is stable, this effect's old dependency never
-    // reran, so headerDescOverflow stayed stuck at its initial 0 forever.
-  }, [everOpened])
-
   // ── Drag-to-pan state for the channel strip row ───────────────────────────
   const scrollRef    = useRef<HTMLDivElement>(null)
   const dragStartX   = useRef(0)
@@ -319,108 +286,36 @@ export default function MixerConsole() {
       role="dialog"
       aria-modal="true"
       aria-label="Console Mixer"
-      className="orfeo-modal-glow app-no-drag touch-hit"
+      className="orfeo-modal-glow app-no-drag touch-hit pr-mixer"
       data-instant
       onMouseDown={() => setZIndex(bringToFront())}
       style={{
-        position: 'fixed',
         left: pos.x, top: pos.y,
         width: modalW,
-        // ── Viewport width cap — at high channel counts (8 strips ≈1218px)
-        // the computed width can exceed the app's documented 900px minimum
-        // window width and render clipped off-window. The channel strip row
-        // below is flex:1/minWidth:0/overflowX:auto, so once the modal
-        // itself is capped, that row becomes the sole overflow mechanism
-        // (internal horizontal scroll) instead of the whole modal. calc()
-        // tracks live window resizes with no JS listener needed. ───────────
+        // ── Viewport width cap — the strip row below is flex:1/minWidth:0/
+        // overflowX:auto, so once the window is capped that row scrolls on its
+        // own. calc() tracks live window resizes with no JS listener needed. ──
         maxWidth: 'calc(100vw - 24px)',
         // A phone is shorter than the strips: they scroll, the header stays
         maxHeight: MODAL_MAX_HEIGHT,
-        background: 'var(--bg-modal-header)',
-        border: '1px solid var(--border2)',
-        borderRadius: 10,
         display: mixerOpen ? 'flex' : 'none',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        userSelect: 'none',
         zIndex,
-        '--_modal-shadow': 'var(--elevation-modal)',
       } as CSSProperties}
     >
 
       {/* ── Header — drag handle ─────────────────────────────────────────── */}
-      <div
-        onPointerDown={startDrag}
-        style={{
-          height: touchScreen ? 48 : 36, flexShrink: 0, touchAction: 'none',
-          background: 'var(--bg-modal-header)',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center',
-          padding: '0 var(--space-3)',
-          cursor: 'grab',
-        }}
-      >
-        {/* ── Logo mark ──────────────────────────────────────────────────── */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', marginRight: 10 }}>
-          <OrfeoMark height={22} />
-        </div>
-
-        {/* ── Title ──────────────────────────────────────────────────────── */}
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700,
-          color: 'var(--text-amber)', letterSpacing: '0.14em', textTransform: 'uppercase',
-          flexShrink: 0,
-        }}>
-          Console Mixer
-        </span>
-
-        {/* ── Permanent description — centered in whatever space is left between
-            the title and the close button, not a hover tooltip (this one's
-            always visible). When a narrow modal (few tracks) can't fit the
-            full sentence, it marquee-scrolls on hover instead of ellipsis-
-            truncating; when it fits, it just sits centered and static. ──── */}
-        <div
-          ref={headerDescWrapRef}
-          className="orfeo-marquee-track"
-          style={{
-            flex: 1, minWidth: 0, overflow: 'hidden',
-            display: 'flex', justifyContent: headerDescOverflow > 0 ? 'flex-start' : 'center',
-            padding: '0 var(--space-3)',
-          }}
-        >
-          {/* No hover on a touch screen, so a clipped sentence could never scroll */}
-          {!touchScreen && <span
-            ref={headerDescRef}
-            className={headerDescOverflow > 0 ? 'orfeo-marquee-text is-overflowing' : 'orfeo-marquee-text'}
-            style={{
-              fontFamily: 'var(--font-ui)', fontSize: 12,
-              color: 'var(--text-muted)', whiteSpace: 'nowrap',
-              ...(headerDescOverflow > 0 ? { '--marquee-distance': `-${headerDescOverflow}px` } as CSSProperties : {}),
-            }}
-          >
-            Adjust track levels, apply effects and compress overall loudness
-          </span>}
-        </div>
-
-        {/* ── Close button — bottom-aligned so the dash sits at X level ─────── */}
-        <div
-          style={{ display: 'flex', alignItems: touchScreen ? 'center' : 'flex-end', gap: 2, paddingBottom: touchScreen ? 0 : 2 }}
-        >
-          <button
-            onClick={requestClose}
-            style={modalCloseButtonStyle}
-            onMouseEnter={e => e.currentTarget.style.color = modalCloseButtonHoverColor}
-            onMouseLeave={e => e.currentTarget.style.color = modalCloseButtonIdleColor}
-          >
-            <X size={14} />
-          </button>
-        </div>
+      <div className="pr-mixer-head" onPointerDown={startDrag}>
+        <h2>Mixer</h2>
+        {modalW > 760 && <span className="o-note">Adjust track levels, apply effects and compress overall loudness</span>}
+        <div style={{ flex: 1 }} />
+        <button className="o-btn-primary" onClick={requestClose}>Done</button>
+        <button className="o-close" aria-label="Close mixer" onClick={requestClose}><X size={18} /></button>
       </div>
 
       {/* ── Body ──────────────────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', gap: STRIP_GAP,
-        padding: BODY_PAD,
+        padding: `0 ${BODY_PAD}px ${BODY_PAD}px`,
         alignItems: 'flex-start',
         minHeight: 0, overflowY: 'auto',
       }}>
@@ -443,8 +338,7 @@ export default function MixerConsole() {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               height: 574, flex: 1,
-              color: 'var(--text-dimmest)', fontSize: 12, fontFamily: 'var(--font-mono)',
-              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--stone)', fontSize: 'var(--text-md)',
             }}>
               No tracks — load a MIDI file
             </div>

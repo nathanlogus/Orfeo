@@ -162,15 +162,15 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
   }, [bytes])
 
   return (
-    <div ref={scrollerRef} data-score-view style={{ ...style, minHeight: 0, overflow: 'auto', position: 'relative', background: '#fff' }}>
+    <div ref={scrollerRef} data-score-view style={{ ...style, minHeight: 0, overflow: 'auto', position: 'relative', background: 'var(--paper-card)' }}>
       <style>{`
-        [data-score-view] .at-cursor-bar { background: rgba(245, 158, 11, 0.12); }
-        [data-score-view] .at-cursor-beat { background: rgba(217, 119, 6, 0.85); width: 3px; }
-        .lesson-hide-bar [data-score-view] .at-cursor-bar { background: #fff; opacity: 1 !important; }
+        [data-score-view] .at-cursor-bar { background: rgba(255, 222, 59, 0.55); }
+        [data-score-view] .at-cursor-beat { background: #000000; width: 2px; }
+        .lesson-hide-bar [data-score-view] .at-cursor-bar { background: var(--paper-card); opacity: 1 !important; }
       `}</style>
       <div ref={hostRef} />
       {failed && (
-        <div role="alert" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333', fontFamily: 'var(--font-ui)' }}>
+        <div role="alert" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
           {t`Couldn't draw this score. The song still plays on the piano roll.`}
         </div>
       )}

@@ -92,7 +92,7 @@ function resolvePianoRollColorsFromCSS() {
   KEY_ROW_COLOR        = readNum('--pianoroll-key-row', KEY_ROW_COLOR)
   KEY_ROW_DARK_COLOR   = readNum('--bg-modal-header', KEY_ROW_DARK_COLOR)
   OCTAVE_DIVIDER_COLOR = readNum('--pianoroll-octave-divider', OCTAVE_DIVIDER_COLOR)
-  PLAYHEAD_COLOR       = readNum('--text-default', PLAYHEAD_COLOR)
+  PLAYHEAD_COLOR       = readNum('--paint-yellow', PLAYHEAD_COLOR)
   NOTE_HIGHLIGHT_COLOR = readNum('--text-white', NOTE_HIGHLIGHT_COLOR)
   CANVAS_BG_COLOR      = readNum('--bg-modal-header', CANVAS_BG_COLOR)
   CANVAS_BG_WARM_COLOR = readNum('--bg-warm', CANVAS_BG_WARM_COLOR)

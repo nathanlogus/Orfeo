@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../../store'
 import { isScoreOnly } from '../../utils/scoreSource'
 import { isBlackKey } from '../../utils/midiParser'
@@ -14,7 +15,6 @@ import Tooltip, { useTooltip } from '../Tooltip'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { outputLatencySec } from '../../audio/engine'
 import { isShown } from '../../utils/trackShown'
-import { touchScreen } from '../../utils/touchScreen'
 
 const HAND_LH = 'var(--hand-lh)'
 const HAND_RH = 'var(--hand-rh)'
@@ -597,6 +597,7 @@ export default function Keyboard() {
 
   const keyContainerRef = useRef<HTMLDivElement>(null)
   const [keyHeight, setKeyHeight] = useState(130)
+  const floating = useStore((s) => s.keyboardMode === 'floating')
 
   useEffect(() => {
     const el = keyContainerRef.current
@@ -604,18 +605,16 @@ export default function Keyboard() {
     const update = () => {
       const w = el.clientWidth
       if (!w) return
-      // Proportional to key width — ratio 4.0 gives natural-looking keys on screen
-      // (real piano is 1:6.4 but that's too tall for a UI element)
-      // Hard cap: min 80px, max 140px
-      const whiteW = w / whiteKeys.length
-      const h = Math.round(Math.max(80, Math.min(140, whiteW * 4.0)))
-      setKeyHeight(h)
+      // Docked, the keys are a share of the screen (224 at 800 tall); floating, of the panel's width
+      const h = floating ? w * 0.29 : window.innerHeight * (presentationMode ? 0.3 : 0.28)
+      setKeyHeight(Math.round(Math.max(96, Math.min(presentationMode ? 240 : 224, h))))
     }
     update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
-    return () => ro.disconnect()
-  }, [whiteKeys.length])
+    window.addEventListener('resize', update)
+    return () => { ro.disconnect(); window.removeEventListener('resize', update) }
+  }, [whiteKeys.length, floating, presentationMode])
 
   // ── Live keyboard top-edge tracking (Phase 1: hidable playbar) ─────────────
   // Only runs while the playbar is actually hidden — zero overhead (no rAF
@@ -647,132 +646,46 @@ export default function Keyboard() {
     return () => cancelAnimationFrame(rafId)
   }, [playbarVisible])
 
+  // ── The chord disc on the roll, in place of a strip over the keys. It sits in
+  // the roll area whether the keyboard is docked or floating. ─────────────────
+  const [rollArea, setRollArea] = useState<Element | null>(null)
+  useEffect(() => { setRollArea(document.querySelector('[data-piano-roll-area]')) }, [])
+  const chordName = explorerDisplay?.chordLabel ?? heldChordEvent?.name ?? displayedChord ?? null
+  const nextChord = !explorerDisplay && currentIndex >= 0 ? chordSequence[currentIndex + 1]?.name : undefined
+  const slashAt = chordName?.indexOf('/') ?? -1
+  const chordRoot = chordName && slashAt >= 0 ? chordName.slice(0, slashAt) : chordName
+  const chordPx = !chordRoot ? 0 : chordRoot.length <= 2 ? 84 : chordRoot.length <= 4 ? 54 : chordRoot.length <= 6 ? 40 : 30
+  const chordDisc = rollArea && chordName && (!chordPrompterOpen || presentationMode) ? createPortal(
+    <div
+      className="pr-chord"
+      data-instant
+      onContextMenu={handleChordContextMenu}
+      ref={showChordTooltip && !explorerDisplay ? chordTooltip.ref : undefined}
+      onMouseEnter={showChordTooltip && !explorerDisplay ? chordTooltip.onMouseEnter : undefined}
+      onMouseLeave={showChordTooltip && !explorerDisplay ? chordTooltip.onMouseLeave : undefined}
+    >
+      {showChordTooltip && !explorerDisplay && chordTooltip.box}
+      <span className="pr-chord-name" style={{ fontSize: `calc(${chordPx}px * var(--pr-chord-scale))` }}>
+        {chordRoot}{slashAt >= 0 && <small>{chordName.slice(slashAt)}</small>}
+      </span>
+      {explorerDisplay?.ordinal
+        ? <span className="pr-chord-next">{explorerDisplay.ordinal}{ordinalSuffix(Number(explorerDisplay.ordinal))} inv</span>
+        : nextChord && <span className="pr-chord-next">next {nextChord}</span>}
+    </div>,
+    rollArea,
+  ) : null
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* ── Chord bar — hidden in Presentation Mode; fixed 36px so toggling the
-          prompter never shifts the row above it ── */}
-      {!presentationMode && <div data-keyboard-header className="touch-hit touch-chordbar" data-instant style={{
-        height: touchScreen ? 48 : 36,
-        background: 'var(--bg-modal-header)',
-        borderTop: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        transition: 'height 0.2s ease',
-        overflow: 'hidden',
-      }}>
-
-        {/* ── SIMPLE MODE: single chord name centred ──────────────────────────── */}
-        {!chordPrompterOpen && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', padding: '0 var(--space-3)', position: 'relative' }}>
-            {/* ── Left: CHORDS trigger + prompter toggle ────────────────────────── */}
-            <div style={{ position: 'absolute', left: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Tooltip title="Chords Explorer" description="Opens a dedicated view for browsing and detecting chords across the full keyboard.">
-                <span
-                  onClick={() => setChordExplorerOpen(true)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={activateOnKey(() => setChordExplorerOpen(true))}
-                  style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  Chords
-                </span>
-              </Tooltip>
-              {/* ── Prompter toggle — amber when open, dim when closed, faded when no file ─ */}
-              {chordPrompterEnabled && (
-                <Tooltip title="Chord Prompter" description="Shows a scrolling past → current → next chord sequence alongside the chord name, synced to playback.">
-                  <div
-                    onClick={() => midi && setChordPrompterOpen(!chordPrompterOpen)}
-                    role="button"
-                    tabIndex={midi ? 0 : -1}
-                    aria-pressed={chordPrompterOpen}
-                    onKeyDown={activateOnKey(() => midi && setChordPrompterOpen(!chordPrompterOpen))}
-                    style={{ cursor: midi ? 'pointer' : 'default', color: chordPrompterOpen ? 'var(--text-amber)' : 'var(--text-default)', opacity: midi ? 1 : 0.35, display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="8" x="7" y="8" rx="1"/></svg>
-                  </div>
-                </Tooltip>
-              )}
-            </div>
-
-            {/* Centre: chord name — priority: explorer > sequence > manual > empty */}
-            <div
-              onContextMenu={handleChordContextMenu}
-              ref={showChordTooltip && !explorerDisplay ? chordTooltip.ref : undefined}
-              onMouseEnter={showChordTooltip && !explorerDisplay ? chordTooltip.onMouseEnter : undefined}
-              onMouseLeave={showChordTooltip && !explorerDisplay ? chordTooltip.onMouseLeave : undefined}
-              style={{ display: 'flex', alignItems: 'baseline', gap: 5, minWidth: 80, justifyContent: 'center' }}
-            >
-              {showChordTooltip && !explorerDisplay && chordTooltip.box}
-              {explorerDisplay ? (
-                // ── Explorer chord: chord/bass amber + ordinal grey ────────────
-                <>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.05em', userSelect: 'none' }}>
-                    {explorerDisplay.chordLabel}
-                  </span>
-                  {explorerDisplay.ordinal && (
-                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-default)', userSelect: 'none' }}>
-                      {explorerDisplay.ordinal}
-                      <span style={{ fontSize: 7, verticalAlign: 'super' }}>{ordinalSuffix(Number(explorerDisplay.ordinal))}</span>
-                      {' inv'}
-                    </span>
-                  )}
-                </>
-              ) : (heldChordEvent || displayedChord) ? (
-                // ── Sequence (playback) or manual chord: slash-split rendered ──
-                // Brief glow on genuine change — heldChordEvent already enforces
-                // the minimum legible display duration (see effect above).
-                (() => {
-                  const name = heldChordEvent?.name ?? displayedChord ?? ''
-                  const flash = chordJustChanged && !!heldChordEvent
-                  const slashIdx = name.indexOf('/')
-                  const mainStyle: React.CSSProperties = {
-                    fontFamily: 'var(--font-mono)', fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.05em', userSelect: 'none',
-                    textShadow: flash ? '0 0 8px var(--text-amber)' : 'none',
-                    transition: 'text-shadow 0.35s ease-out',
-                  }
-                  if (slashIdx < 0) {
-                    return <span style={mainStyle}>{name}</span>
-                  }
-                  return (
-                    <>
-                      <span style={mainStyle}>{name.slice(0, slashIdx)}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-active)', letterSpacing: '0.04em', userSelect: 'none' }}>
-                        {name.slice(slashIdx)}
-                      </span>
-                    </>
-                  )
-                })()
-              ) : (
-                // ── Empty state ────────────────────────────────────────────────
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 400, color: 'var(--text-chord-placeholder)', letterSpacing: '0.03em', transition: 'color 0.2s' }}>
-                  {'— — —'}
-                </span>
-              )}
-            </div>
-
-            {/* ── Right: SCALES trigger ─────────────────────────────────────────── */}
-            <div style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <Tooltip title="Scales Explorer" description="Opens a dedicated view for exploring scales and highlighting their notes on the keyboard.">
-                <span
-                  onClick={() => setScaleExplorerOpen(true)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={activateOnKey(() => setScaleExplorerOpen(true))}
-                  style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  Scales
-                </span>
-              </Tooltip>
-            </div>
-          </div>
-        )}
-
+      {chordDisc}
+      {/* ── Modals anchor to this marker. It only has height while the Chord
+          Prompter's strip is open; the Explorers open from the rail. ── */}
+      {!presentationMode && <div data-keyboard-header className={chordPrompterOpen ? 'touch-hit pr-chord-strip' : undefined} data-instant>
         {/* ── EXTENDED MODE: single-row layout — CHORDS + icon | sequence | SCALES ─ */}
         {chordPrompterOpen && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 10px', gap: 6, minWidth: 0, overflow: 'hidden' }}>
 
-            {/* ── Left: CHORDS trigger + prompter toggle ────────────────────── */}
+            {/* ── Left: Chords trigger + prompter toggle ────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
               <Tooltip title="Chords" description="Opens a dedicated view for browsing and detecting chords across the full keyboard.">
                 <span
@@ -780,7 +693,7 @@ export default function Keyboard() {
                   role="button"
                   tabIndex={0}
                   onKeyDown={activateOnKey(() => setChordExplorerOpen(true))}
-                  style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none' }}
+                  style={{ fontSize: 'var(--text-base)', color: 'var(--accent)', cursor: 'pointer', userSelect: 'none' }}
                 >
                   Chords
                 </span>
@@ -821,7 +734,6 @@ export default function Keyboard() {
                 // heldChordEvent (not raw sequenceChord) enforces the minimum
                 // legible display duration — see the effect above.
                 const centreChord = explorerDisplay?.chordLabel ?? heldChordEvent?.name ?? '—'
-                const centreFlash = chordJustChanged && !explorerDisplay && !!heldChordEvent
                 const pastChords = currentIndex > 0 ? chordSequence.slice(Math.max(0, currentIndex - 4), currentIndex) : []
                 const nextChords = currentIndex >= 0 ? chordSequence.slice(currentIndex + 1, currentIndex + 3) : []
 
@@ -880,9 +792,7 @@ export default function Keyboard() {
                       style={{ flexShrink: 0, minWidth: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}
                     >
                       <span style={{
-                        fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--text-amber)', lineHeight: 1, whiteSpace: 'nowrap',
-                        textShadow: centreFlash ? '0 0 10px var(--text-amber)' : 'none',
-                        transition: 'text-shadow 0.35s ease-out',
+                        fontSize: 'var(--text-xl)', color: 'var(--accent)', lineHeight: 1, whiteSpace: 'nowrap',
                       }}>
                         {centreChord}
                       </span>
@@ -928,7 +838,7 @@ export default function Keyboard() {
                   role="button"
                   tabIndex={0}
                   onKeyDown={activateOnKey(() => setScaleExplorerOpen(true))}
-                  style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', userSelect: 'none' }}
+                  style={{ fontSize: 'var(--text-base)', color: 'var(--accent)', cursor: 'pointer', userSelect: 'none' }}
                 >
                   Scales
                 </span>
@@ -943,7 +853,7 @@ export default function Keyboard() {
         ref={keyContainerRef}
         style={{
           position: 'relative', width: '100%', userSelect: 'none',
-          height: keyHeight, background: 'var(--bg-deep)', borderTop: '1px solid var(--state-hover-bg)', transition: 'height 0.15s',
+          height: keyHeight, background: '#000000',
         }}
       >
         {/* White keys */}
@@ -985,10 +895,7 @@ export default function Keyboard() {
                   background: color ?? 'var(--key-white-bg)',
                   borderRight: !color ? '1px solid var(--key-white-border)' : allActiveKeys.has(whiteKeys[i + 1]?.midi) ? '1px solid var(--key-active-border)' : '1px solid transparent',
                   borderLeft: color && allActiveKeys.has(whiteKeys[i - 1]?.midi) ? '1px solid var(--key-active-border)' : 'none',
-                  boxShadow: color
-                    ? `0 0 ${locked ? 18 : 12}px ${locked ? 6 : 4}px color-mix(in srgb, ${color} ${locked ? 80 : 53}%, transparent)`
-                    : 'inset 0 -3px 6px rgba(0,0,0,0.1)',
-                  transition: 'background 0.04s, box-shadow 0.04s',
+                  borderRadius: '0 0 5px 5px',
                   minWidth: 0,
                   }}
               >
@@ -1025,7 +932,7 @@ export default function Keyboard() {
                 )}
                 {label && (
                   <span
-                    style={{ fontWeight: 600, pointerEvents: 'none', color: color ? 'var(--text-white)' : 'var(--key-label-dim)', fontFamily: 'var(--font-mono)', fontSize: (chordExplorerOpen || scaleExplorerOpen) ? 11 : 9 }}>
+                    style={{ pointerEvents: 'none', color: color ? 'var(--text-white)' : '#000000', fontSize: 'var(--text-xs)' }}>
                     {label}
                   </span>
                 )}
@@ -1071,8 +978,8 @@ export default function Keyboard() {
                 style={{
                   position: 'absolute', top: 0, cursor: 'pointer', pointerEvents: 'auto',
                   left: `${leftPct}%`, width: `${widthPct}%`, height: '65%',
-                  background: color ?? 'var(--border-row)',
-                  borderRadius: '0 0 4px 4px',
+                  background: color ?? '#000000',
+                  borderRadius: '0 0 5px 5px',
                   // Longhand per side (not `border` shorthand + `borderTop`
                   // override) — mixing them made React warn "conflicting
                   // style property" on every re-render, and this element
@@ -1080,14 +987,10 @@ export default function Keyboard() {
                   // playback, so that warning (and its cost — DevTools
                   // formats a full stack trace per occurrence) fired
                   // continuously while a file played.
-                  borderLeft:   color ? '1px solid var(--key-black-active-border)' : '1px solid var(--bg-modal-header)',
-                  borderRight:  color ? '1px solid var(--key-black-active-border)' : '1px solid var(--bg-modal-header)',
-                  borderBottom: color ? '1px solid var(--key-black-active-border)' : '1px solid var(--bg-modal-header)',
+                  borderLeft:   color ? '1px solid var(--key-black-active-border)' : '1px solid #000000',
+                  borderRight:  color ? '1px solid var(--key-black-active-border)' : '1px solid #000000',
+                  borderBottom: color ? '1px solid var(--key-black-active-border)' : '1px solid #000000',
                   borderTop: 'none',
-                  boxShadow: color
-                    ? `0 0 ${locked ? 14 : 10}px ${locked ? 4 : 3}px color-mix(in srgb, ${color} ${locked ? 73 : 60}%, transparent)`
-                    : '0 4px 8px rgba(0,0,0,0.7)',
-                  transition: 'background 0.04s, box-shadow 0.04s',
                   zIndex: 2,
                 }}
               >
@@ -1121,9 +1024,9 @@ export default function Keyboard() {
                   <span style={{
                     position: 'absolute', bottom: 3, left: '50%',
                     transform: 'translateX(-50%)',
-                    fontSize: (chordExplorerOpen || scaleExplorerOpen) ? 8 : 7, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                    fontSize: 'var(--text-xs)',
                     color: 'var(--key-note-name-color)', pointerEvents: 'none',
-                    whiteSpace: 'nowrap', textShadow: '0 1px 2px rgba(0,0,0,0.95)',
+                    whiteSpace: 'nowrap',
                   }}>
                     {getNoteName(k.midi, noteNaming, accidentals)}
                   </span>

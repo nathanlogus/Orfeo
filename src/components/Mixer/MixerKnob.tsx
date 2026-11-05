@@ -64,10 +64,6 @@ export interface MixerKnobProps {
   onDragChange?: (dragging: boolean) => void  // fires on drag start/end — for a
                               // caller-owned live-value tooltip that should stay
                               // visible through a drag, not just on hover (Master Volume)
-  labelOffset?: number       // shifts the label vertically (negative = up), compensated
-                              // with equal opposite margin on the other side so the
-                              // wrapper's total height — and everything below it — never
-                              // moves. Default 0 (no shift).
 }
 
 // ── MixerKnob — tick-arc knob with triangle notch indicator ──────────────────
@@ -75,7 +71,7 @@ export default function MixerKnob({
   value, onChange, accentColor, size = 40,
   disabled = false, bipolar = false, label,
   dotCount = DOT_COUNT, tickMajorEvery = 0, tickScale = 1, tickStrokeScale = 1, triScale = 1,
-  title, description, disabledHint, onDragChange, labelOffset = 0,
+  title, description, disabledHint, onDragChange,
 }: MixerKnobProps) {
   const svgRef  = useRef<SVGSVGElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -113,7 +109,7 @@ export default function MixerKnob({
   })
 
   // ── Mouse interaction ─────────────────────────────────────────────────────
-  const getValueFromMouse = useCallback((e: MouseEvent): number => {
+  const getValueFromMouse = useCallback((e: PointerEvent): number => {
     if (!svgRef.current) return value
     const rect  = svgRef.current.getBoundingClientRect()
     const scale = rect.width / 52
@@ -129,7 +125,7 @@ export default function MixerKnob({
     return n
   }, [value, bipolar])
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (disabled) return
     e.preventDefault()
     e.stopPropagation()
@@ -139,13 +135,13 @@ export default function MixerKnob({
   }, [disabled, onChange, getValueFromMouse, onDragChange])
 
   useEffect(() => {
-    const onMove = (e: MouseEvent) => { if (dragging.current) onChange(getValueFromMouse(e)) }
+    const onMove = (e: PointerEvent) => { if (dragging.current) onChange(getValueFromMouse(e)) }
     const onUp   = () => { if (dragging.current) { dragging.current = false; onDragChange?.(false) } }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup',   onUp)
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup',   onUp)
     return () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup',   onUp)
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup',   onUp)
     }
   }, [onChange, getValueFromMouse, onDragChange])
 
@@ -170,7 +166,7 @@ export default function MixerKnob({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         opacity: disabled ? 0.3 : 1,
         // Stays 'auto' even while disabled — pointer-events:none here would
         // also block this wrapper's own onMouseEnter/onMouseLeave, so a
@@ -191,8 +187,9 @@ export default function MixerKnob({
         ref={svgRef}
         width={size} height={size}
         viewBox="0 0 52 52"
-        style={{ cursor: disabled ? 'default' : 'pointer', display: 'block', flexShrink: 0 }}
-        onMouseDown={handleMouseDown}
+        style={{ cursor: disabled ? 'default' : 'pointer', display: 'block', flexShrink: 0, touchAction: 'none' }}
+        onPointerDown={handlePointerDown}
+        onMouseDown={e => e.stopPropagation()}
         tabIndex={disabled ? -1 : 0}
         role="slider"
         aria-label={label || title}
@@ -202,33 +199,36 @@ export default function MixerKnob({
         aria-disabled={disabled}
         onKeyDown={handleKeyDown}
       >
-        {/* Tick ring — bottom-aligned, active ticks in accent color */}
-        {ticks.map((t, i) => (
-          <line
-            key={i}
-            x1={t.inner.x} y1={t.inner.y}
-            x2={t.outer.x} y2={t.outer.y}
-            strokeWidth={STROKE_TICK * tickStrokeScale}
-            strokeLinecap="round"
-            style={{ stroke: t.active ? accentColor : DIM_TICK }}
-          />
-        ))}
-        {/* Central knob body */}
-        <circle cx={CX} cy={CY} r={KNOB_R} style={{ fill: accentColor }} />
-        {/* Triangle notch indicator */}
-        <polygon points={triPts} style={{ fill: 'var(--bg-deep)' }} />
+        {dotCount === DOT_COUNT ? (
+          <>
+            {/* Black disc, coloured ring, white pointer */}
+            <circle cx={CX} cy={CY} r={23.5} strokeWidth={3} style={{ fill: 'var(--pr-knob-body, #000000)', stroke: accentColor }} />
+            <line
+              x1={CX + 9 * Math.cos(notchRad)} y1={CY + 9 * Math.sin(notchRad)}
+              x2={CX + 19 * Math.cos(notchRad)} y2={CY + 19 * Math.sin(notchRad)}
+              strokeWidth={2} strokeLinecap="round" stroke="#ffffff"
+            />
+          </>
+        ) : (
+          <>
+            {/* A knob with fixed stops keeps its ticks: each one is a preset */}
+            {ticks.map((t, i) => (
+              <line
+                key={i}
+                x1={t.inner.x} y1={t.inner.y}
+                x2={t.outer.x} y2={t.outer.y}
+                strokeWidth={STROKE_TICK * tickStrokeScale}
+                strokeLinecap="round"
+                style={{ stroke: t.active ? accentColor : DIM_TICK }}
+              />
+            ))}
+            <circle cx={CX} cy={CY} r={KNOB_R} style={{ fill: accentColor }} />
+            <polygon points={triPts} style={{ fill: 'var(--bg-deep)' }} />
+          </>
+        )}
       </svg>
 
-      {label && (
-        <span style={{
-          fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em',
-          textTransform: 'uppercase', color: 'var(--text-dimmest)',
-          userSelect: 'none', lineHeight: '9px',
-          marginTop: labelOffset, marginBottom: -labelOffset,
-        }}>
-          {label}
-        </span>
-      )}
+      {label && <span className="pr-knob-label">{label}</span>}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
-import { ChevronRight, Eye, Volume2, VolumeX, ChevronDown, AudioLines, ListTree, SlidersVertical, GripVertical, Sparkles } from 'lucide-react'
+import { Eye, Volume2, VolumeX, ChevronDown, GripVertical, Music2, Focus, X, Pencil } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import { GM_GROUPS } from '../../utils/gmInstruments'
@@ -9,9 +9,7 @@ import { usePlayback } from '../../hooks/usePlayback'
 import { NES } from '../../utils/noteEditorState'
 import Tooltip from '../Tooltip'
 import PianoKeysIcon from '../PianoKeysIcon'
-import { touchScreen } from '../../utils/touchScreen'
-
-const RAIL_W = touchScreen ? 44 : 32
+import { NoteCounter } from '../Keyboard/KeyboardControls'
 
 const GROUP_ORDER = [
   'piano', 'chromatic', 'organ', 'guitar', 'bass',
@@ -19,9 +17,6 @@ const GROUP_ORDER = [
   'synth_lead', 'synth_pad', 'synth_fx', 'ethnic',
   'percussive', 'sfx', 'drums',
 ]
-
-// Groups that show on keyboard by default
-const KEYBOARD_GROUPS = new Set(['piano', 'chromatic', 'organ'])
 
 // ── EyeClosed — custom icon replacing lucide EyeOff ──────────────────────────
 function EyeClosed({ size = 24, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
@@ -81,11 +76,7 @@ export default function TrackPanel() {
   // ── Global visibility toggle — same allVisible pattern as the Console
   // Mixer's MasterStrip, reading/writing the same track.visible field so
   // both controls always agree. ─────────────────────────────────────────
-  const allVisible = tracks.length > 0 && tracks.every((t) => t.visible)
-  const handleVisibleAll = () => {
-    const target = !allVisible
-    tracks.forEach((t) => updateTrack(t.index, { visible: target }))
-  }
+  const setAllVisible = (visible: boolean) => tracks.forEach((t) => updateTrack(t.index, { visible }))
   const midiEditorOpen          = useStore((s) => s.midiEditorOpen)
   const noteEditorEnabled       = useStore((s) => s.noteEditorEnabled)
   const noteEditorActive        = useStore((s) => s.noteEditorActive)
@@ -202,302 +193,36 @@ export default function TrackPanel() {
     tracks.filter(t => t.group === groupKey).every(t => t.muted)
 
   return (
-    <div
-      style={{
-        width: trackPanelOpen ? (touchScreen ? 310 : 260) : RAIL_W, // the touch rail is wider, and the panel keeps its room
-        background: 'var(--bg-modal)',
-        borderLeft: '1px solid var(--border2)',
-        transition: 'width 0.2s ease',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        position: 'relative',
-      }}
-      className="touch-hit touch-big"
-    >
-      {/* ── Closed state: 3-icon column ────────────────────────────────────── */}
-      {!trackPanelOpen && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          height: '100%', paddingTop: 10,
-        }}>
-          <Tooltip title="Open Tracks panel" description="Shows every track with its mute, solo, and visibility controls.">
-          <button
-            onClick={() => setTrackPanelOpen(true)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-dimmest)', padding: 4,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dimmest)'}
-          >
-            <ListTree size={18} />
-          </button>
-          </Tooltip>
-          <Tooltip
-            title={!midi ? 'Open a MIDI file first' : midiEditorOpen ? 'MIDI Playback Editor is open' : 'MIDI Playback Editor'}
-            description={!midi ? 'Load a MIDI file to edit its playback.' : midiEditorOpen ? "Already open — check for it among your other windows." : 'Edit what you want to hear and see: rename tracks, reassign instruments, merge/split ...'}
-            wrapperStyle={{ marginTop: 8 }}
-          >
-          <button
-            onClick={midi && !midiEditorOpen ? handleOpenEditor : undefined}
-            style={{
-              background: 'none', border: 'none',
-              cursor: !midi || midiEditorOpen ? 'default' : 'pointer',
-              color: midiEditorOpen ? 'var(--text-amber)' : !midi ? 'var(--state-disabled)' : 'var(--text-dimmest)',
-              padding: 4,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => { if (midi && !midiEditorOpen) e.currentTarget.style.color = 'var(--text-amber)' }}
-            onMouseLeave={e => { if (midi && !midiEditorOpen) e.currentTarget.style.color = 'var(--text-dimmest)'; else (e.currentTarget as HTMLElement).style.color = midiEditorOpen ? 'var(--text-amber)' : !midi ? 'var(--state-disabled)' : 'var(--text-dimmest)' }}
-          >
-            <PencilSparklesIcon size={18} />
-          </button>
-          </Tooltip>
-          {noteEditorEnabled && midi && (
+    <aside className="pr-tracks" data-open={trackPanelOpen} aria-label={t`Tracks`}>
+      {trackPanelOpen && (
+        <div className="pr-tracks-inner touch-hit">
+          <div className="pr-tracks-head">
+            <h2>{t`Tracks`}</h2>
+            <span className="o-note"><NoteCounter /></span>
+            <button className="o-close" aria-label={t`Close tracks`} onClick={() => setTrackPanelOpen(false)}><X size={16} strokeWidth={2} /></button>
+          </div>
+
+          {/* ── Mute-filter quick toggle — visible only when Selective Tracks Playback is on in Settings ── */}
+          {midi && autoMuteNonKeyboard && (
             <Tooltip
-              title={noteEditorActive ? 'Exit note edit mode' : 'MIDI note editor'}
-              description={noteEditorActive ? 'Returns to normal playback view.' : 'Edit individual notes directly on the piano roll.'}
-              wrapperStyle={{ marginTop: 8 }}
+              title={isCurrentlyFiltered ? t`Focus on the keys` : t`Playing all tracks`}
+              description={isCurrentlyFiltered ? t`Hearing keys, bass & drums, seeing only the keys.\nClick to bring back all tracks as they were.` : t`Click to hear only keys, bass & drums\nand see only the keys — good for practising`}
+              wrapperStyle={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}
             >
-            <button
-              onClick={handleToggleNoteEditor}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: noteEditorActive ? 'var(--text-amber)' : 'var(--text-dimmest)',
-                padding: 4,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => { if (!noteEditorActive) e.currentTarget.style.color = 'var(--text-amber)' }}
-              onMouseLeave={e => { if (!noteEditorActive) e.currentTarget.style.color = 'var(--text-dimmest)' }}
-            >
-              {/* strokeWidth compensates for this icon's larger render size (22 vs
-                  siblings' 18) — same 24-unit viewBox means a fixed strokeWidth
-                  renders visibly thicker at a bigger size; this keeps the actual
-                  on-screen stroke weight matching its neighbors. ──────────────── */}
-              <AudioLines size={22} strokeWidth={1.64} />
-            </button>
+              <button className="pr-focus" data-instant aria-pressed={isCurrentlyFiltered} onClick={() => setTrackMuteFilter(!isCurrentlyFiltered)}>
+                <Focus size={22} strokeWidth={1.8} />
+                <span className="pr-focus-text">
+                  <span>{t`Focus on the keys`}</span>
+                  <span>{isCurrentlyFiltered ? t`Hearing keys, bass & drums · seeing only the keys` : t`Playing all tracks`}</span>
+                </span>
+                <span style={{ fontSize: 'var(--text-base)' }}>{isCurrentlyFiltered ? t`On` : t`Off`}</span>
+              </button>
             </Tooltip>
           )}
-          <Tooltip title="Console Mixer" description="Adjust volume, pan, and effects for every track individually." wrapperStyle={{ marginTop: 8 }}>
-          <button
-            onClick={() => useStore.getState().setMixerOpen(true)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-dimmest)', padding: 4,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dimmest)'}
-          >
-            <SlidersVertical size={18} />
-          </button>
-          </Tooltip>
-          {/* ── Dashed outline + low opacity — a same-shade disabled icon read as
-              a normal, clickable nav icon until hovered; this makes "not yet
-              shipped" visible at rest, not just on tooltip. ──────────────── */}
-          <Tooltip title="A dedicated Practice mode is planned but not built yet." oneLine wrapperStyle={{ marginTop: 8 }}>
-          <div
-            style={{
-              color: 'var(--state-disabled)', padding: 3,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'default', opacity: 0.55,
-              border: '1px dashed var(--border2)', borderRadius: 4,
-            }}
-          >
-            <Sparkles size={18} />
-          </div>
-          </Tooltip>
-        </div>
-      )}
-
-      {trackPanelOpen && (
-        <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-
-          {/* ── Left icon strip: chevron + coming soon + MIDI editor ──────── */}
-          <div style={{
-            width: RAIL_W, flexShrink: 0,
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            paddingTop: touchScreen ? 2 : 10,
-            borderRight: '1px solid var(--bg-tile)',
-          }}>
-            <Tooltip title="Close panel" oneLine placement="left">
-            <button
-              onClick={() => setTrackPanelOpen(false)}
-              style={{
-                background: 'var(--bg-tile)', border: '1px solid var(--border2)', borderRight: 'none',
-                borderRadius: '0 4px 4px 0',
-                cursor: 'pointer', color: 'var(--text-dimmest)', padding: '4px 5px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dimmest)'}
-            >
-              <ChevronRight size={15} />
-            </button>
-            </Tooltip>
-            <Tooltip
-              title={!midi ? 'Open a MIDI file first' : midiEditorOpen ? 'MIDI Playback Editor is open' : 'MIDI Playback Editor'}
-              description={!midi ? 'Load a MIDI file to edit its playback.' : midiEditorOpen ? "Already open — check for it among your other windows." : 'Edit what you want to hear and see: rename tracks, reassign instruments, merge/split ...'}
-              wrapperStyle={{ marginTop: 8 }}
-            >
-            <button
-              onClick={midi && !midiEditorOpen ? handleOpenEditor : undefined}
-              style={{
-                background: 'none', border: 'none',
-                cursor: !midi || midiEditorOpen ? 'default' : 'pointer',
-                color: midiEditorOpen ? 'var(--text-amber)' : !midi ? 'var(--state-disabled)' : 'var(--text-dimmest)',
-                padding: 4,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => { if (midi && !midiEditorOpen) e.currentTarget.style.color = 'var(--text-amber)' }}
-              onMouseLeave={e => { if (midi && !midiEditorOpen) e.currentTarget.style.color = 'var(--text-dimmest)'; else (e.currentTarget as HTMLElement).style.color = midiEditorOpen ? 'var(--text-amber)' : !midi ? 'var(--state-disabled)' : 'var(--text-dimmest)' }}
-            >
-              <PencilSparklesIcon size={16} />
-            </button>
-            </Tooltip>
-            {noteEditorEnabled && midi && (
-              <Tooltip
-                title={noteEditorActive ? 'Exit note edit mode' : 'MIDI note editor'}
-                description={noteEditorActive ? 'Returns to normal playback view.' : 'Add, delete and move individual notes directly on the piano roll. Assign notes to Left/Right hand.'}
-                wrapperStyle={{ marginTop: 8 }}
-              >
-              <button
-                onClick={handleToggleNoteEditor}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: noteEditorActive ? 'var(--text-amber)' : 'var(--text-dimmest)',
-                  padding: 4,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'color 0.15s',
-                }}
-                onMouseEnter={e => { if (!noteEditorActive) e.currentTarget.style.color = 'var(--text-amber)' }}
-                onMouseLeave={e => { if (!noteEditorActive) e.currentTarget.style.color = 'var(--text-dimmest)' }}
-              >
-                {/* strokeWidth compensates for this icon's larger render size (20 vs
-                    siblings' 16) — see collapsed-rail instance above for why. ──── */}
-                <AudioLines size={20} strokeWidth={1.6} />
-              </button>
-              </Tooltip>
-            )}
-            <Tooltip title="Console Mixer" description={"Adjust volume, pan, chorus, and reverb \nfor every track and apply compression."} wrapperStyle={{ marginTop: 8 }}>
-            <button
-              onClick={() => useStore.getState().setMixerOpen(true)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-dimmest)', padding: 4,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dimmest)'}
-            >
-              <SlidersVertical size={16} />
-            </button>
-            </Tooltip>
-            {/* ── Dashed outline + low opacity — see collapsed-strip twin above ── */}
-            <Tooltip title="Practice mode - coming soon" oneLine wrapperStyle={{ marginTop: 8 }}>
-            <div
-              style={{
-                color: 'var(--state-disabled)', padding: 3,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'default', opacity: 0.55,
-                border: '1px dashed var(--border2)', borderRadius: 4,
-              }}
-            >
-              {/* strokeWidth compensates for this icon's larger render size (20 vs
-                  siblings' 16), same reason as the AudioLines note-editor instances above. */}
-              <Sparkles size={20} strokeWidth={1.6} />
-            </div>
-            </Tooltip>
-          </div>
-
-          {/* ── Track content ─────────────────────────────────────────────── */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-          {/* Header */}
-          <div style={{
-            height: touchScreen ? 48 : 40, display: 'flex', alignItems: 'center',
-            padding: touchScreen ? '0 6px 0 8px' : '0 10px 0 14px',
-            borderBottom: '1px solid var(--border)', flexShrink: 0,
-            gap: touchScreen ? 2 : 'var(--space-2)',
-          }}>
-            <ListTree size={14} style={{ color: 'var(--text-inactive)', flexShrink: 0 }} />
-            <span style={{ color: 'var(--text-dimmest)', fontSize: 'var(--text-sm)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Tracks
-            </span>
-            {midi && (
-              <>
-                <span style={{ color: 'var(--text-inactive)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>
-                  {tracks.length}
-                </span>
-                <Tooltip
-                  title={allVisible ? 'Hide all tracks' : 'Show all tracks'}
-                  description={allVisible ? 'Hide every track’s notes on the Piano Roll \n— turn individual ones back on anytime' : 'Show every track’s notes \non the Piano Roll again'}
-                >
-                <button
-                  onClick={handleVisibleAll}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    padding: '2px 4px', display: 'flex', alignItems: 'center',
-                    color: allVisible ? 'var(--text-muted)' : 'var(--text-amber)',
-                  }}
-                >
-                  {allVisible ? <EyeClosed size={13} /> : <Eye size={13} />}
-                </button>
-                </Tooltip>
-                {/* ── Mute-filter quick toggle — visible only when Selective Tracks Playback is on in Settings ── */}
-                {autoMuteNonKeyboard && (
-                  <Tooltip
-                    title={isCurrentlyFiltered ? t`Focus on the keys` : t`Playing all tracks`}
-                    description={isCurrentlyFiltered ? t`Hearing keys, bass & drums, seeing only the keys.\nClick to bring back all tracks as they were.` : t`Click to hear only keys, bass & drums\nand see only the keys — good for practising`}
-                    wrapperStyle={{ marginLeft: 'auto' }}
-                  >
-                  <button
-                    className="touch-pill"
-                    onClick={() => setTrackMuteFilter(!isCurrentlyFiltered)}
-                    style={{
-                      padding: '2px 8px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: 'none',
-                      background: 'var(--text-amber)',
-                      color: 'var(--text-on-amber)',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      fontFamily: 'var(--font-ui)',
-                      letterSpacing: '0.02em',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      lineHeight: '18px',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <svg width="6" height="7" viewBox="0 0 6 7" style={{ marginRight: 3, flexShrink: 0 }}><polygon points="0,0 6,3.5 0,7" fill="currentColor"/></svg>
-                    {isCurrentlyFiltered ? 'Focus ON' : 'Focus OFF'}
-                  </button>
-                  </Tooltip>
-                )}
-              </>
-            )}
-          </div>
 
           {/* Track list */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-            {!midi && (
-              <div style={{ padding: '12px 14px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                Open a MIDI file to see tracks
-              </div>
-            )}
+          <div className="pr-track-list">
+            {!midi && <div className="o-note">{t`Open a MIDI file to see tracks`}</div>}
 
             {grouped.map(({ key, label, tracks: groupTracks }) => {
               const collapsed = collapsedGroups.has(key)
@@ -508,71 +233,48 @@ export default function TrackPanel() {
               return (
                 <div
                   key={key}
-                  style={{ marginBottom: 2, opacity: draggedGroup === key ? 0.4 : 1 }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: draggedGroup === key ? 0.4 : 1 }}
                   onDragOver={!isPiano ? (e) => e.preventDefault() : undefined}
                   onDrop={!isPiano ? () => { if (draggedGroup) reorderGroups(draggedGroup, key); setDraggedGroup(null) } : undefined}
                 >
                   {/* Group header row */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '5px 10px 5px 10px',
-                    background: 'var(--bg-row)',
-                    borderTop: '1px solid var(--bg-tile)',
-                    borderBottom: '1px solid var(--bg-tile)',
-                  }}>
+                  <div className="pr-track-group">
                     <button
+                      className="pr-track-group-name"
+                      aria-expanded={!collapsed}
                       onClick={() => toggleGroupCollapse(key)}
                       draggable={!isPiano}
                       onDragStart={!isPiano ? (e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ''); setDraggedGroup(key) } : undefined}
                       onDragEnd={() => setDraggedGroup(null)}
                       onMouseEnter={() => setHoveredHandle(handleId)}
                       onMouseLeave={() => setHoveredHandle(h => h === handleId ? null : h)}
-                      style={{
-                        background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center',
-                        color: 'var(--text-inactive)',
-                        cursor: isPiano ? 'pointer' : (hoveredHandle === handleId ? 'grab' : 'pointer'),
-                      }}
+                      style={{ cursor: isPiano ? 'pointer' : (hoveredHandle === handleId ? 'grab' : 'pointer') }}
                     >
                       {!isPiano && hoveredHandle === handleId
-                        ? <GripVertical size={11} />
-                        : <ChevronDown size={11} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s' }} />}
+                        ? <GripVertical size={14} />
+                        : <ChevronDown size={14} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }} />}
+                      {label} · {groupTracks.length}
                     </button>
 
-                    <span style={{ flex: 1, fontSize: 11, fontWeight: 700, lineHeight: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-dimmest)' }}>
-                      {label}
-                    </span>
-
-                    {/* ── Collapsed: colored square per track — visual legend only. Its
-                        onClick used to duplicate the chevron button's own toggle —
-                        redundant, and its cursor:pointer falsely implied the swatches
-                        themselves were individually clickable. ─────────────────── */}
+                    {/* ── Collapsed: colored square per track — visual legend only ── */}
                     {collapsed && (
-                      <div style={{ display: 'flex', gap: 2 }}>
+                      <div className="pr-track-swatches">
                         {groupTracks.map(t => (
                           <Tooltip key={t.index} title={t.trackName ?? t.gmName} description="Track's color in the piano roll">
-                            <div style={{ width: 7, height: 7, borderRadius: 2, background: t.color, flexShrink: 0 }} />
+                            <span style={{ display: 'block', background: t.color }} />
                           </Tooltip>
                         ))}
                       </div>
                     )}
 
-                    <span style={{ fontSize: 10, color: 'var(--text-track-count)', fontFamily: 'var(--font-mono)' }}>
-                      {groupTracks.length}
-                    </span>
                     <Tooltip
                       title={groupMuted ? `Unmute all ${label}` : `Mute all ${label}`}
                       description={groupMuted ? t`Unmute and show every track in ${label}` : t`Mute and hide every track in ${label} at once`}
                     >
-                    <button
-                      onClick={() => muteGroup(key, !groupMuted)}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        padding: '2px 4px', display: 'flex', alignItems: 'center',
-                        color: groupMuted ? 'var(--text-amber)' : 'var(--text-muted)',
-                      }}
-                    >
-                      {groupMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-                    </button>
+                      <button aria-label={groupMuted ? `Unmute all ${label}` : `Mute all ${label}`} onClick={() => muteGroup(key, !groupMuted)}
+                        style={{ width: 44, height: 36, justifyContent: 'center', color: groupMuted ? 'var(--paint-pink)' : 'inherit' }}>
+                        {groupMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                      </button>
                     </Tooltip>
                   </div>
 
@@ -613,14 +315,39 @@ export default function TrackPanel() {
               )
             })}
           </div>
+          <div className="pr-track-cols" aria-hidden="true"><span>{t`Sound`}</span><span>{t`Solo`}</span><span>{t`Roll`}</span><span>{t`Keys`}</span></div>
+
+          <div className="pr-tracks-actions">
+            <Tooltip
+              title={!midi ? 'Open a MIDI file first' : midiEditorOpen ? 'MIDI Playback Editor is open' : 'MIDI Playback Editor'}
+              description={!midi ? 'Load a MIDI file to edit its playback.' : midiEditorOpen ? "Already open — check for it among your other windows." : 'Edit what you want to hear and see: rename tracks, reassign instruments, merge/split ...'}
+              wrapperStyle={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}
+            >
+              <button className="pr-paper-btn" aria-pressed={midiEditorOpen} disabled={!midi} onClick={midi && !midiEditorOpen ? handleOpenEditor : undefined}><PencilSparklesIcon size={18} />{t`Playback Editor`}</button>
+            </Tooltip>
+            {noteEditorEnabled && midi && (
+              <Tooltip
+                title={noteEditorActive ? 'Exit note edit mode' : 'MIDI note editor'}
+                description={noteEditorActive ? 'Returns to normal playback view.' : 'Add, delete and move individual notes directly on the piano roll. Assign notes to Left/Right hand.'}
+                wrapperStyle={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}
+              >
+                <button className="pr-paper-btn" aria-pressed={noteEditorActive} onClick={handleToggleNoteEditor}><Pencil size={18} strokeWidth={1.8} />{t`Note Editor`}</button>
+              </Tooltip>
+            )}
           </div>
+          {midi && (
+            <div className="pr-tracks-actions">
+              <button className="o-btn" onClick={() => setAllVisible(true)}>{t`Show all tracks`}</button>
+              <button className="o-btn" onClick={() => setAllVisible(false)}>{t`Hide all tracks`}</button>
+            </div>
+          )}
         </div>
       )}
-    </div>
+    </aside>
   )
 }
 
-// ── Track row — three-line layout: name (top, full width) / track# + controls (mid) / ch+prog (bottom)
+// ── Track row: drag handle, colour meter, name and details, four toggles
 function TrackRow({
   track, dimmed, onMute, onSolo, onVisible, onKeyboard, onSoloForEdit, isSoloedForEdit,
   isDragging, isHandleHovered, onHandleHover, onDragStart, onDragEnd, onDragOverRow, onDropRow,
@@ -691,7 +418,7 @@ function TrackRow({
   // The colour pill beside the name: a VU meter, or a plain bar with the meters off
   const pill = (color: string, fillRef: React.RefObject<HTMLDivElement | null>, style?: React.CSSProperties) => trackVuColorEnabled ? (
     <div style={{
-      width: 3, height: 20, borderRadius: 2, flexShrink: 0,
+      width: 12, height: 44, borderRadius: 3, flexShrink: 0,
       opacity: dimmed ? 0.6 : 1, position: 'relative', overflow: 'hidden', ...style,
     }}>
       {/* Dim tint — fills the whole pill so it always reads as this track's color ── */}
@@ -705,128 +432,77 @@ function TrackRow({
       }} />
     </div>
   ) : (
-    <div style={{ width: 3, height: 20, background: color, borderRadius: 2, flexShrink: 0, opacity: dimmed ? 0.6 : 1, ...style }} />
+    <div style={{ width: 12, height: 44, background: color, borderRadius: 3, flexShrink: 0, opacity: dimmed ? 0.6 : 1, ...style }} />
   )
 
   return (
     <div
+      className="pr-track-row"
       data-instant
+      data-edit={!!isSoloedForEdit}
+      data-pick={!!onSoloForEdit}
       onClick={onSoloForEdit}
       onDragOver={onDragOverRow}
       onDrop={onDropRow}
-      style={{
-        padding: '6px 10px 5px 8px',
-        borderBottom: '1px solid var(--border-row)',
-        opacity: isDragging ? 0.4 : dimmed ? 0.45 : 1,
-        transition: 'opacity 0.15s, background 0.1s',
-        cursor: onSoloForEdit ? 'pointer' : 'default',
-        background: isSoloedForEdit ? 'var(--accent-amber-selected-bg)' : 'transparent',
-        borderLeft: isSoloedForEdit ? '2px solid var(--text-amber)' : '2px solid transparent',
-      }}
-      onMouseEnter={e => { if (onSoloForEdit && !isSoloedForEdit) (e.currentTarget as HTMLElement).style.background = 'var(--state-row-hover-overlay)' }}
-      onMouseLeave={e => { if (onSoloForEdit && !isSoloedForEdit) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+      style={{ opacity: isDragging ? 0.4 : dimmed ? 0.55 : 1 }}
     >
-      {/* ── Row 1: drag handle + color bar + instrument name ──────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div
-          draggable
-          onDragStart={e => {
-            e.stopPropagation()
-            // Reorder is driven entirely by React state (draggedTrack), not
-            // dataTransfer — but leaving dataTransfer completely untouched
-            // made the OS/Chromium drag cursor default to the "not allowed"
-            // no-drop badge for the whole drag, even over valid drop
-            // targets with dropEffect='move' set. Declaring a real payload
-            // + effectAllowed here is what actually lets the browser show
-            // a plain "move" cursor instead.
-            e.dataTransfer.effectAllowed = 'move'
-            e.dataTransfer.setData('text/plain', '')
-            onDragStart?.()
-          }}
-          onDragEnd={() => onDragEnd?.()}
-          onMouseEnter={() => onHandleHover?.(true)}
-          onMouseLeave={() => onHandleHover?.(false)}
-          onClick={e => e.stopPropagation()}
-          style={{
-            width: 11, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, cursor: isHandleHovered ? 'grab' : 'default',
-            color: isHandleHovered ? 'var(--text-inactive)' : 'transparent',
-          }}
-        >
-          <GripVertical size={11} />
-        </div>
-        {/* Left hand left of right hand; the left pill sits in the row's gap, so names stay put */}
-        {twoHands && pill('var(--hand-lh)', vuFillLhRef, { marginLeft: -5, marginRight: -4 })}
-        {pill(twoHands ? 'var(--hand-rh)' : track.color, vuFillRef)}
-        <MarqueeText name={track.trackName ?? track.gmName} spanStyle={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-muted)' }} />
+      <div
+        className="pr-track-grip"
+        draggable
+        onDragStart={e => {
+          e.stopPropagation()
+          // Reorder is driven entirely by React state (draggedTrack), not
+          // dataTransfer — but leaving dataTransfer completely untouched
+          // made the OS/Chromium drag cursor default to the "not allowed"
+          // no-drop badge for the whole drag, even over valid drop
+          // targets with dropEffect='move' set. Declaring a real payload
+          // + effectAllowed here is what actually lets the browser show
+          // a plain "move" cursor instead.
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', '')
+          onDragStart?.()
+        }}
+        onDragEnd={() => onDragEnd?.()}
+        onMouseEnter={() => onHandleHover?.(true)}
+        onMouseLeave={() => onHandleHover?.(false)}
+        onClick={e => e.stopPropagation()}
+        style={{ color: isHandleHovered ? 'var(--stone)' : undefined }}
+      >
+        <GripVertical size={12} />
       </div>
-
-      {/* ── Row 2: track number (left) + M/S/V/K controls (right) ─────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, paddingLeft: touchScreen ? 0 : 26 }}>
-        {/* the four 44px buttons take the whole row on a touch screen */}
-        {!touchScreen && <span style={{ fontSize: 10, color: 'var(--text-inactive)', fontFamily: 'var(--font-mono)' }}>track {track.index + 1}</span>}
-        <div style={{ display: 'flex', alignItems: 'center', gap: touchScreen ? 0 : 'var(--space-1)', marginLeft: 'auto' }}>
-          <IBtn onClick={onMute} active={track.muted}
-            title={track.muted ? 'Unmute' : 'Mute'}
-            description={track.muted ? t`Unmute audio` : t`Mute audio`}
-            activeColor="var(--status-error)">
-            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>M</span>
-          </IBtn>
-          <IBtn onClick={onSolo} active={track.solo}
-            title={track.solo ? 'Unsolo' : 'Solo'}
-            description={track.solo ? 'Unsolo track' : 'Solo track'}
-            activeColor="var(--text-amber)">
-            <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>S</span>
-          </IBtn>
-          <IBtn onClick={onVisible} active={!track.visible}
-            title={track.visible ? 'Hide in roll' : 'Show in roll'}
-            description={track.visible ? 'Hide notes on the Piano Roll' : "Show notes on the Piano Roll"}
-            activeColor="var(--status-error-hover)" inactiveColor="var(--status-success-text)">
-            {track.visible ? <Eye size={12} /> : <EyeClosed size={12} />}
-          </IBtn>
-          <IBtn onClick={onKeyboard} active={track.showOnKeyboard}
-            title={track.showOnKeyboard ? 'Lit on keyboard' : 'Not lit on keyboard'}
-            description={track.showOnKeyboard ? 'Notes light up on keyboard' : "Notes are not lit on keyboard"}
-            activeColor="var(--text-amber)">
-            <PianoKeysIcon width={13} height={9} />
-          </IBtn>
-        </div>
+      {/* Left hand left of right hand */}
+      {twoHands && pill('var(--hand-lh)', vuFillLhRef, { width: 6 })}
+      {pill(twoHands ? 'var(--hand-rh)' : track.color, vuFillRef, twoHands ? { width: 6 } : undefined)}
+      <div className="pr-track-info">
+        <MarqueeText name={track.trackName ?? track.gmName} spanStyle={{ fontSize: 17, letterSpacing: '-0.03em', color: '#ffffff' }} />
+        {track.trackName && track.trackName !== track.gmName && <span className="pr-track-meta">{track.gmName}</span>}
+        <span className="pr-track-meta">#{track.index + 1} · ch {ch} · {prog} · {noteCount} notes</span>
       </div>
-
-      {/* ── Row 3: MIDI channel + program + note count ────────────────────── */}
-      <div style={{ display: 'flex', gap: touchScreen ? 3 : 6, marginTop: 2, paddingLeft: touchScreen ? 0 : 26, whiteSpace: 'nowrap' }}>
-        <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>{touchScreen && `#${track.index + 1} · `}ch {ch}</span>
-        <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>·</span>
-        <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>{prog}</span>
-        <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>·</span>
-        <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>{noteCount} notes</span>
+      <div className="pr-track-btns">
+        <IBtn onClick={onMute} on={track.muted ? 'mute' : undefined} label={track.muted ? t`Unmute audio` : t`Mute audio`}>
+          {track.muted ? <VolumeX size={18} strokeWidth={1.8} /> : <Volume2 size={18} strokeWidth={1.8} />}
+        </IBtn>
+        <IBtn onClick={onSolo} on={track.solo ? 'solo' : undefined} label={track.solo ? 'Unsolo track' : 'Solo track'}>
+          <Music2 size={18} strokeWidth={1.8} />
+        </IBtn>
+        <IBtn onClick={onVisible} on={track.visible ? 'paper' : undefined} label={track.visible ? 'Hide notes on the Piano Roll' : 'Show notes on the Piano Roll'}>
+          {track.visible ? <Eye size={18} strokeWidth={1.8} /> : <EyeClosed size={18} strokeWidth={1.8} />}
+        </IBtn>
+        <IBtn onClick={onKeyboard} on={track.showOnKeyboard ? 'paper' : undefined} label={track.showOnKeyboard ? 'Notes light up on keyboard' : 'Notes are not lit on keyboard'}>
+          <PianoKeysIcon width={18} height={13} />
+        </IBtn>
       </div>
     </div>
   )
 }
 
-// ── IBtn — icon button for track controls: color driven by active state ───
-function IBtn({ children, onClick, active, title, description, activeColor = 'var(--text-amber)', inactiveColor = 'var(--text-icon-inactive)' }: {
-  children: React.ReactNode; onClick: () => void
-  active?: boolean; title?: string; description?: string; activeColor?: string; inactiveColor?: string
-}) {
-  const button = (
-    <button
-      onClick={e => { e.stopPropagation(); onClick() }}
-      style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 22, height: 22, background: 'none', border: 'none', cursor: 'pointer',
-        color: active ? activeColor : inactiveColor,
-        borderRadius: 4, transition: 'color 0.1s',
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-icon-hover)' }}
-      onMouseLeave={e => { e.currentTarget.style.color = active ? activeColor : inactiveColor }}
-    >
-      {children}
-    </button>
+// ── IBtn — one 44px toggle in a track row; `on` names its filled colour ──────
+function IBtn({ children, onClick, on, label }: { children: React.ReactNode; onClick: () => void; on?: 'mute' | 'solo' | 'paper'; label: string }) {
+  return (
+    <Tooltip title={label} oneLine muted>
+      <button className="pr-track-btn" aria-label={label} aria-pressed={!!on} data-on={on} onClick={e => { e.stopPropagation(); onClick() }}>
+        {children}
+      </button>
+    </Tooltip>
   )
-  // oneLine tooltips take a single string — description is the more useful
-  // half (what clicking actually does), title alone is just the button's
-  // own state name (e.g. "Mute"), so it's the fallback, not the default.
-  return title ? <Tooltip title={description ?? title} oneLine muted>{button}</Tooltip> : button
 }

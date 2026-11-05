@@ -4,18 +4,16 @@
  * Width-only resize; keyboard height follows proportionally via its own ResizeObserver.
  */
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react'
-import { X, Pin } from 'lucide-react'
+import { GripVertical, ArrowDownToLine } from 'lucide-react'
 import { useStore } from '../../store'
 import Keyboard from './Keyboard'
-import KeyboardControls from './KeyboardControls'
-import OrfeoMark from '../OrfeoMark'
+import KeyboardControls, { KeyboardSizeSeg, NoteCounter } from './KeyboardControls'
 import Tooltip from '../Tooltip'
 import { getPianoRollCenterX, getPlaybarY } from '../../utils/modalAnchors'
-import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../../utils/modalCloseButtonStyle'
 import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
 import { startModalDrag } from '../../utils/modalDrag'
 
-const DEFAULT_W = 860
+const DEFAULT_W = 820
 const MIN_W = 650
 const MAX_W = 1200
 const HANDLE_PX = 8
@@ -94,23 +92,8 @@ export default function FloatingKeyboard() {
       ref={panelRef}
       role="region"
       aria-label="Floating virtual keyboard"
-      className="orfeo-modal-glow app-no-drag"
-      style={{
-        position: 'fixed',
-        left: pos.x,
-        top: pos.y,
-        width: w,
-        // NO fixed height — shrinks to content
-        zIndex: 200,
-        background: 'var(--bg-modal-header)',
-        border: '1px solid var(--state-hover-bg)',
-        borderRadius: 10,
-        overflow: 'hidden',
-        userSelect: dragState.current ? 'none' : 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        '--_modal-shadow': 'var(--elevation-floating-light)',
-      } as CSSProperties}
+      className="orfeo-modal-glow app-no-drag pr-float"
+      style={{ left: pos.x, top: pos.y, width: w, maxWidth: 'calc(100vw - 16px)', userSelect: dragState.current ? 'none' : 'auto' } as CSSProperties}
     >
       {/* Left resize handle */}
       <div onPointerDown={startResizeW} style={{ touchAction: 'none', position: 'absolute', left: 0, top: 0, bottom: 0, width: HANDLE_PX, cursor: 'ew-resize', zIndex: 10 }} />
@@ -118,58 +101,24 @@ export default function FloatingKeyboard() {
       <div onPointerDown={startResizeE} style={{ touchAction: 'none', position: 'absolute', right: 0, top: 0, bottom: 0, width: HANDLE_PX, cursor: 'ew-resize', zIndex: 10 }} />
 
       {/* Title bar */}
-      <div
-        onPointerDown={startMove}
-        style={{
-          touchAction: 'none',
-          height: 36,
-          background: 'var(--bg-modal-header)',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 var(--space-3)',
-          cursor: 'grab',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <OrfeoMark height={22} />
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Keyboard
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 'var(--space-1)' }} data-no-drag="true">
-          <Tooltip title="Dock keyboard" description="Reattaches the keyboard to the bottom of the window.">
-          <button
-            onClick={() => setKeyboardMode('docked')}
-            data-no-drag="true"
-            style={{ width: 18, height: 18, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', transition: 'color 0.12s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-          >
-            <Pin size={10} strokeWidth={1.8} />
+      <div className="pr-float-head" onPointerDown={startMove}>
+        <span className="pr-float-grip" aria-hidden="true"><GripVertical size={18} /></span>
+        <div data-no-drag="true"><KeyboardSizeSeg /></div>
+        <span className="pr-float-note"><NoteCounter /></span>
+        <div className="o-spacer" style={{ flex: 1 }} />
+        <Tooltip title="Dock keyboard" description="Reattaches the keyboard to the bottom of the window.">
+          <button className="pr-paper-btn" data-no-drag="true" style={{ height: 44, padding: '0 16px', fontSize: 15 }} onClick={() => setKeyboardMode('docked')}>
+            <ArrowDownToLine size={16} strokeWidth={1.8} />{'Dock keyboard'}
           </button>
-          </Tooltip>
-          <Tooltip title="Close" description="Docks the keyboard back to the bottom of the window.">
-          <button
-            onClick={() => setKeyboardMode('docked')}
-            data-no-drag="true"
-            style={modalCloseButtonStyle}
-            onMouseEnter={e => e.currentTarget.style.color = modalCloseButtonHoverColor}
-            onMouseLeave={e => e.currentTarget.style.color = modalCloseButtonIdleColor}
-          >
-            <X size={14} strokeWidth={1.8} />
-          </button>
-          </Tooltip>
-        </div>
+        </Tooltip>
       </div>
 
       {/* Content — height determined by children, no flex-grow */}
-      <div data-no-drag="true">
+      <div className="pr-float-body" data-no-drag="true">
         <Keyboard />
         <KeyboardControls />
       </div>
+      <span className="pr-float-corner" aria-hidden="true" />
     </div>
   )
 }

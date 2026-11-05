@@ -1,18 +1,21 @@
-// ── Loop Region Strip — interactive 24px timeline strip below the scrub bar ──
-// Canvas-based; width matches the scrub slider via identical spacer layout.
-// Draws: note density ticks, selection region with handles, live playhead.
-// Drag to create a region; drag handles to adjust; click outside to clear.
-// Selection endpoints snap to nearest bar boundary on release.
+// ── Loop Region Strip — the bar picker in the black band under the transport.
+// Canvas-based. Draws: bar numbers, note density ticks, selection region with
+// handles, live playhead. Drag to create a region; drag handles to adjust;
+// click outside to clear. Selection endpoints snap to nearest bar boundary on
+// release. The list button opens the exact From / to pill, floating on the roll.
 
 import React, { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronUp, ChevronDown, ListOrdered } from 'lucide-react'
+import { Plus, Minus, ListOrdered } from 'lucide-react'
 import { useStore } from '../store'
 import Tooltip from './Tooltip'
+import { getPianoRollAreaRect } from '../utils/modalAnchors'
+import { touchScreen } from '../utils/touchScreen'
 
-const STRIP_H       = 24
-const HANDLE_VIS_W  = 4   // drawn width — thin enough not to hide small selections
-const HANDLE_HIT_W  = 8   // mouse hit radius — wider for usability
+const STRIP_H       = touchScreen ? 44 : 36
+const HANDLE_VIS_W  = 6
+const HANDLE_HIT_W  = touchScreen ? 18 : 8
+const MIN_BAR_LABEL_PX = 28
 
 // ── Canvas colors resolved from CSS custom properties ─────────────────────────
 // Canvas2D ctx.fillStyle can't resolve a var() string directly, so these are
@@ -26,20 +29,24 @@ let SELECTION_FILL     = 'rgba(232, 160, 39, 0.15)'  // --accent-amber-strip-fil
 let SELECTION_BORDER   = 'rgba(232, 160, 39, 0.85)'  // --accent-amber-strip-border
 let HANDLE_COLOR       = '#e8a027'  // --text-amber
 let PLAYHEAD_LINE_COLOR = '#e8e8e8' // --key-white-bg (exact match, shared with Keyboard.tsx)
+let BAR_LINE_COLOR     = '#3d3935'  // --line-700
+let BAR_LABEL_COLOR    = '#c3b7ac'  // --stone
 
 function resolveLoopStripColorsFromCSS() {
   const cs = getComputedStyle(document.documentElement)
   const read = (name: string, fallback: string) => cs.getPropertyValue(name).trim() || fallback
-  BG_COLOR            = read('--bg-row', BG_COLOR)
-  DENSITY_TICK_COLOR  = read('--text-dim', DENSITY_TICK_COLOR)
+  BG_COLOR            = read('--ink', BG_COLOR)
+  DENSITY_TICK_COLOR  = read('--line-600', DENSITY_TICK_COLOR)
   SELECTION_FILL      = read('--accent-amber-strip-fill', SELECTION_FILL)
   SELECTION_BORDER    = read('--accent-amber-strip-border', SELECTION_BORDER)
-  HANDLE_COLOR        = read('--text-amber', HANDLE_COLOR)
+  HANDLE_COLOR        = read('--accent', HANDLE_COLOR)
+  BAR_LINE_COLOR      = read('--line-700', BAR_LINE_COLOR)
+  BAR_LABEL_COLOR     = read('--stone', BAR_LABEL_COLOR)
   PLAYHEAD_LINE_COLOR = read('--key-white-bg', PLAYHEAD_LINE_COLOR)
 }
 
 // ── Long-press chevron: click = single step, hold = accelerating repeat ───────
-function LongPressChevron({ children, onStep }: { children: React.ReactNode; onStep: () => void }) {
+function LongPressChevron({ children, onStep, label }: { children: React.ReactNode; onStep: () => void; label: string }) {
   const onStepRef = useRef(onStep)
   useEffect(() => { onStepRef.current = onStep }, [onStep])
 
@@ -71,7 +78,7 @@ function LongPressChevron({ children, onStep }: { children: React.ReactNode; onS
       onMouseDown={start}
       onMouseUp={stop}
       onMouseLeave={stop}
-      style={{ background: 'none', border: 'none', color: 'var(--text-amber)', cursor: 'pointer', padding: '1px 2px', lineHeight: 0, display: 'flex' }}
+      aria-label={label}
     >
       {children}
     </button>
@@ -208,6 +215,23 @@ export default function LoopRegionStrip() {
         }
       }
 
+      // ── Bar lines + numbers, as often as they fit ─────────────────────────
+      if (duration > 0 && barStarts.length > 0) {
+        const barPx = W / barStarts.length
+        let every = 1
+        while (barPx * every < MIN_BAR_LABEL_PX) every *= 2
+        ctx.font = '12px "Inter Tight", system-ui, sans-serif'
+        ctx.textBaseline = 'bottom'
+        for (let i = 0; i < barStarts.length; i += every) {
+          const x = (barStarts[i] / duration) * W
+          const inLoop = displayStart !== null && displayEnd !== null && barStarts[i] >= displayStart && barStarts[i] < displayEnd
+          ctx.fillStyle = BAR_LINE_COLOR
+          ctx.fillRect(Math.round(x), 0, 1, H)
+          ctx.fillStyle = inLoop ? HANDLE_COLOR : BAR_LABEL_COLOR
+          if (x + MIN_BAR_LABEL_PX <= W) ctx.fillText(String(i + 1), x + 4, H - 3)
+        }
+      }
+
       // ── Loop selection region ─────────────────────────────────────────────
       if (displayStart !== null && displayEnd !== null && duration > 0) {
         const x1 = (displayStart / duration) * W
@@ -263,7 +287,7 @@ export default function LoopRegionStrip() {
       return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * (storeRef.current.midi?.duration ?? 0)
     }
 
-    const onMove = (e: MouseEvent) => {
+    const onMove = (e: PointerEvent) => {
       const drag = dragRef.current
       if (!drag) return
       const canvas = canvasRef.current
@@ -292,7 +316,7 @@ export default function LoopRegionStrip() {
       }
     }
 
-    const onUp = (e: MouseEvent) => {
+    const onUp = (e: PointerEvent) => {
       const drag = dragRef.current
       dragRef.current = null
       if (!drag) return
@@ -338,11 +362,11 @@ export default function LoopRegionStrip() {
       )
     }
 
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup',   onUp)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup',   onUp)
     return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup',   onUp)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup',   onUp)
     }
   }, [])
 
@@ -400,11 +424,12 @@ export default function LoopRegionStrip() {
     // loopEnd = start of bar (to+1); if to is the last bar, use midi.duration
     const endTime   = to < totalBars ? barStarts[to] : midi.duration
     useStore.getState().setLoopRegion(startTime, endTime)
+    useStore.getState().setLoopRegionActive(true)   // the button says "Loop N bars"
     setPopupOpen(false)
   }
 
   // ── Canvas mousedown — determine drag mode ─────────────────────────────────
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const { loopStart, loopEnd, midi } = storeRef.current
     if (!midi) return
     e.preventDefault()
@@ -446,28 +471,17 @@ export default function LoopRegionStrip() {
     e.currentTarget.style.cursor = near ? 'ew-resize' : 'crosshair'
   }
 
-  // ── Reactive selection state: icon color + bars label DOM element ────────
   // All selectors return primitives or stable refs — never new objects.
   // A selector returning `{ startBar, endBar }` breaks useSyncExternalStore
   // (new reference each call → React detects snapshot inconsistency → crash).
   const hasSelection   = useStore(s => s.loopStart !== null)
   const totalBars      = useStore(s => s.barStarts.length) || 999
-  const loopStartLabel = useStore(s => s.loopStart)
-  const loopEndLabel   = useStore(s => s.loopEnd)
-  const barStartsLabel = useStore(s => s.barStarts)
-
-  // Derived in render body — safe since it's not passed through useStore
-  const loopBarRange = (loopStartLabel !== null && loopEndLabel !== null)
-    ? (() => {
-        const sb = timeToBar(loopStartLabel, barStartsLabel)
-        const eb = displayEndBar(loopEndLabel, barStartsLabel, sb)
-        return { startBar: sb, endBar: eb }
-      })()
-    : null
+  const stepFrom = (d: number) => setFromBar(v => { const n = Math.max(1, Math.min(totalBars, v + d)); setToBar(to => Math.max(to, n)); return n })
+  const stepTo   = (d: number) => setToBar(v => Math.max(fromBar, Math.min(totalBars, v + d)))
+  const roll = popupOpen ? getPianoRollAreaRect() : null
 
   return (
-    <>
-      {/* ── Canvas — fills the shared 400px wrapper in TopBar ─────────────── */}
+    <div className="pr-loopband app-no-drag">
       <Tooltip
         title={hasSelection ? 'Loop region set' : 'Select a bar range'}
         description={hasSelection
@@ -477,178 +491,76 @@ export default function LoopRegionStrip() {
       >
       <canvas
         ref={canvasRef}
-        className="app-no-drag"
-        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
         onMouseMove={handleMouseMoveCanvas}
         onDoubleClick={() => useStore.getState().clearLoopRegion()}
         onDragStart={e => e.preventDefault()}
         draggable={false}
-        style={{ display: 'block', width: '100%', height: STRIP_H, cursor: 'crosshair' }}
+        aria-label="Loop region: drag across the bars"
+        style={{ display: 'block', width: '100%', height: STRIP_H, cursor: 'crosshair', touchAction: 'none' }}
       />
       </Tooltip>
 
-      {/* ── Icon + bars + popup — anchored outside the wrapper's right edge ── */}
-      {/* app-no-drag: this whole strip sits inside TopBar's app-drag-region
-          (Electron -webkit-app-region: drag, for native window dragging).
-          Without this class, real OS-level mouse clicks on the icon are
-          intercepted as a window-drag gesture before React ever sees them —
-          the button still LOOKS clickable and synthetic JS-dispatched click
-          events still fire (they bypass the native OS interception), which
-          is what made this so easy to falsely "verify" as working. ────────── */}
-      <div className="app-no-drag" style={{ position: 'absolute', left: 'calc(100% + 8px)', top: 0, height: STRIP_H, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Tooltip title="Select bar range" description="Type an exact start/end bar for the loop region.">
-          <button
-            ref={iconBtnRef}
-            onClick={handleIconClick}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 20, height: STRIP_H,
-              background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-              color: hasSelection || popupOpen ? 'var(--text-amber)' : 'var(--text-inactive)',
-              transition: 'color 0.12s',
-            }}
-            onMouseEnter={e => { if (!hasSelection && !popupOpen) e.currentTarget.style.color = 'var(--text-muted)' }}
-            onMouseLeave={e => { if (!hasSelection && !popupOpen) e.currentTarget.style.color = 'var(--text-inactive)' }}
-          >
-            <ListOrdered size={14} strokeWidth={2} />
+      <div className="pr-loop-tools">
+        <Tooltip title="Select bar range" description="Type an exact start/end bar for the loop region.">
+          <button ref={iconBtnRef} onClick={handleIconClick} aria-label="Select bar range" aria-expanded={popupOpen} data-on={hasSelection}>
+            <ListOrdered size={18} strokeWidth={1.8} />
           </button>
-          </Tooltip>
-
-          {/* Bars range label — visible only when selection exists, always amber */}
-          {loopBarRange && (
-            <span style={{
-              color: 'var(--text-amber)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.02em',
-            }}>
-              bars {loopBarRange.startBar}–{loopBarRange.endBar}
-            </span>
-          )}
-
-        {/* ── Bar range popup ──────────────────────────────────────────────── */}
-        {/* Portaled to document.body, position: fixed off the icon button's
-            real screen rect — the popup used to be position:absolute inside
-            TopBar, which clipped/buried it behind the piano roll (a later,
-            higher-painting sibling in the DOM) instead of floating above
-            everything. Same escape-the-parent-stacking-context pattern as
-            every other floating panel in the app (ScaleExplorer, FileInfoModal). */}
-        {popupOpen && createPortal(
-          <div
-            ref={popupRef}
-            className="orfeo-modal-glow"
-            style={{
-              position: 'fixed',
-              top: (iconBtnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
-              left: iconBtnRef.current?.getBoundingClientRect().left ?? 0,
-              background: 'var(--bg)',
-              border: '1px solid var(--border-popup)',
-              borderRadius: 6,
-              padding: '10px 12px',
-              zIndex: 200,
-              width: 158,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-              '--_modal-shadow': 'var(--elevation-strip)',
-            } as CSSProperties}
-          >
-            {/* Header */}
-            <div style={{
-              fontSize: 9,
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-ui)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-            }}>
-              Bar Range
-            </div>
-
-            {/* From row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 10, color: 'var(--text-dimmest)', fontFamily: 'var(--font-ui)', minWidth: 28 }}>From</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={fromBar}
-                onChange={e => {
-                  const raw = e.target.value.replace(/[^0-9]/g, '')
-                  if (!raw) return
-                  const v = Math.max(1, Math.min(totalBars, parseInt(raw, 10)))
-                  setFromBar(v)
-                  if (toBar < v) setToBar(v)
-                }}
-                style={{
-                  width: 48, background: 'var(--bg-row)', border: '1px solid var(--border-popup)',
-                  borderRadius: 4, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-sm)', padding: '3px 6px', outline: 'none', textAlign: 'center',
-                  flexShrink: 0,
-                }}
-              />
-              {/* Amber chevron steppers */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <LongPressChevron onStep={() => { setFromBar(v => { const n = Math.min(totalBars, v + 1); if (toBar < n) setToBar(n); return n }) }}>
-                  <ChevronUp size={11} strokeWidth={2.5} />
-                </LongPressChevron>
-                <LongPressChevron onStep={() => setFromBar(v => Math.max(1, v - 1))}>
-                  <ChevronDown size={11} strokeWidth={2.5} />
-                </LongPressChevron>
-              </div>
-            </div>
-
-            {/* To row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 10, color: 'var(--text-dimmest)', fontFamily: 'var(--font-ui)', minWidth: 28 }}>To</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={toBar}
-                onChange={e => {
-                  const raw = e.target.value.replace(/[^0-9]/g, '')
-                  if (!raw) return
-                  const v = Math.max(fromBar, Math.min(totalBars, parseInt(raw, 10)))
-                  setToBar(v)
-                }}
-                style={{
-                  width: 48, background: 'var(--bg-row)', border: '1px solid var(--border-popup)',
-                  borderRadius: 4, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-sm)', padding: '3px 6px', outline: 'none', textAlign: 'center',
-                  flexShrink: 0,
-                }}
-              />
-              {/* Amber chevron steppers */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <LongPressChevron onStep={() => setToBar(v => Math.min(totalBars, v + 1))}>
-                  <ChevronUp size={11} strokeWidth={2.5} />
-                </LongPressChevron>
-                <LongPressChevron onStep={() => setToBar(v => Math.max(fromBar, v - 1))}>
-                  <ChevronDown size={11} strokeWidth={2.5} />
-                </LongPressChevron>
-              </div>
-            </div>
-
-            {/* Apply */}
-            <button
-              onClick={applyBarRange}
-              style={{
-                background: 'var(--accent-amber-strip-apply-bg)', border: '1px solid var(--accent-amber-strong)',
-                borderRadius: 4, color: 'var(--text-amber)', fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-xs)', padding: '4px 0', cursor: 'pointer',
-                transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-amber-strip-apply-bg-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'var(--accent-amber-strip-apply-bg)'}
-            >
-              Apply
-            </button>
-          </div>,
-          document.body,
-        )}
-        </div>
+        </Tooltip>
       </div>
-    </>
+
+      {/* Portaled, so it floats above the roll rather than behind it */}
+      {popupOpen && createPortal(
+        <div
+          ref={popupRef}
+          role="group"
+          aria-label="Loop bars"
+          className="pr-loop-pill orfeo-modal-glow app-no-drag"
+          style={{
+            left: (roll ? roll.left + roll.width / 2 : window.innerWidth / 2),
+            top: Math.max(8, (roll ? roll.top : 0) + 16),
+            transform: 'translateX(-50%)',
+          } as CSSProperties}
+        >
+          <span>From bar</span>
+          <div className="pr-loop-step">
+            <LongPressChevron label="Start one bar earlier" onStep={() => stepFrom(-1)}><Minus size={18} /></LongPressChevron>
+            <input
+              type="text"
+              inputMode="numeric"
+              aria-label="First bar"
+              value={fromBar}
+              onChange={e => {
+                const raw = e.target.value.replace(/[^0-9]/g, '')
+                if (!raw) return
+                const v = Math.max(1, Math.min(totalBars, parseInt(raw, 10)))
+                setFromBar(v)
+                if (toBar < v) setToBar(v)
+              }}
+            />
+            <LongPressChevron label="Start one bar later" onStep={() => stepFrom(1)}><Plus size={18} /></LongPressChevron>
+          </div>
+          <span>to</span>
+          <div className="pr-loop-step">
+            <LongPressChevron label="End one bar earlier" onStep={() => stepTo(-1)}><Minus size={18} /></LongPressChevron>
+            <input
+              type="text"
+              inputMode="numeric"
+              aria-label="Last bar"
+              value={toBar}
+              onChange={e => {
+                const raw = e.target.value.replace(/[^0-9]/g, '')
+                if (!raw) return
+                setToBar(Math.max(fromBar, Math.min(totalBars, parseInt(raw, 10))))
+              }}
+            />
+            <LongPressChevron label="End one bar later" onStep={() => stepTo(1)}><Plus size={18} /></LongPressChevron>
+          </div>
+          <button className="pr-loop-clear" onClick={() => { useStore.getState().clearLoopRegion(); setPopupOpen(false) }}>Clear</button>
+          <button className="o-btn-primary" style={{ height: 'var(--control-h-lg)' }} onClick={applyBarRange}>Loop {toBar - fromBar + 1} {toBar === fromBar ? 'bar' : 'bars'}</button>
+        </div>,
+        document.body,
+      )}
+    </div>
   )
 }
