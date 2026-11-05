@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, createContext, useContext, type ReactNode } from 'react'
 import {
-  ChevronDown, ChevronLeft, ChevronRight, Palette, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, RotateCcw, CloudDownload, Star,
+  ChevronDown, ChevronLeft, ChevronRight, Palette, ZoomIn, ZoomOut, RotateCcw, CloudDownload, Star,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { TRACK_COLOR_PALETTE } from '../../utils/colors'
@@ -37,24 +37,14 @@ export function EyeClosed({ size = 24, strokeWidth = 2 }: { size?: number; strok
 // ── BETA badge — inline label pill for settings still being refined ──────────
 export function BetaBadge() {
   return (
-    <span style={{
-      fontSize: 8, fontWeight: 700, fontFamily: 'var(--font-ui)',
-      letterSpacing: '0.1em', textTransform: 'uppercase',
-      color: 'var(--status-error)',
-      border: '1px solid var(--status-error)',
-      borderRadius: 'var(--radius-sm)',
-      padding: '1px 4px',
-      lineHeight: 1,
-      opacity: 0.85,
-      flexShrink: 0,
-    }}>
-      BETA
+    <span className="o-tag" style={{ flexShrink: 0, background: 'var(--paint-rose)', fontSize: 'var(--text-xs)', lineHeight: 1.2 }}>
+      Beta
     </span>
   )
 }
 
-// ── Collapsible section — clickable header row (amber icon + label + chevron) that
-// mounts/unmounts children; amber color applied once here, propagates to all 7 groups.
+// ── Collapsible section — clickable header row (icon + label + chevron) that
+// mounts/unmounts children.
 export function CollapsibleSection({ icon, label, defaultCollapsed = false, collapsed: controlledCollapsed, onToggle, action, children }: {
   icon: React.ReactNode
   label: string
@@ -74,34 +64,14 @@ export function CollapsibleSection({ icon, label, defaultCollapsed = false, coll
   return (
     <div>
       {/* ── Header row — click anywhere to expand/collapse ── */}
-      <div
-        onClick={toggle}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '5px 10px',
-          background: 'var(--bg-row)',
-          borderTop: '1px solid var(--bg-tile)',
-          borderBottom: '1px solid var(--bg-tile)',
-          cursor: 'pointer', userSelect: 'none',
-          transition: 'background 0.1s',
-        }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-tile)'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-row)'}
-      >
-        {/* ── Group icon — amber ── */}
-        <span style={{ color: 'var(--text-amber)', display: 'flex', alignItems: 'center' }}>{icon}</span>
-        {/* ── Group label — amber uppercase ── */}
-        <span style={{
-          flex: 1, fontSize: 12, fontWeight: 700, lineHeight: '12px',
-          textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-amber)',
-        }}>
-          {label}
-        </span>
+      <div onClick={toggle} className="o-group-head">
+        <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>
+        <span style={{ flex: 1 }}>{label}</span>
         {action && <span onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>{action}</span>}
-        {/* ── Chevron — amber; down = expanded, right = collapsed ── */}
+        {/* ── Chevron — down = expanded, right = collapsed ── */}
         {collapsed
-          ? <ChevronRight size={11} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
-          : <ChevronDown  size={11} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
+          ? <ChevronRight size={14} style={{ flexShrink: 0 }} />
+          : <ChevronDown  size={14} style={{ flexShrink: 0 }} />
         }
       </div>
       {/* ── Content — unmounted when collapsed ── */}
@@ -110,36 +80,20 @@ export function CollapsibleSection({ icon, label, defaultCollapsed = false, coll
   )
 }
 
-// ── Option button — amber-tinted pill toggle for multi-choice settings rows
-// activeColor: 'accent' (default, amber) | 'error' (red — used for Hide/EyeOff)
+// ── Option button — one choice of a multi-choice setting. Wrap a row of them in
+// <OptionGroup> for the design's segmented pill; alone, each is its own pill.
+// activeColor: 'accent' (default) | 'error' (used for Hide/EyeOff)
 export function OptionBtn({ active, onClick, children, title, oneLine, comingSoon, activeColor = 'accent' }: {
   active: boolean; onClick: () => void; children: React.ReactNode
   title?: string; oneLine?: boolean; comingSoon?: boolean; activeColor?: 'accent' | 'error'
 }) {
-  // ── Active colour tokens — amber for selections, red for the Hide exception ──
-  const activeBorder = activeColor === 'error' ? 'var(--status-error)' : 'var(--accent-amber-strong)'
-  const activeBg    = activeColor === 'error' ? 'var(--status-error-tint-bg)' : 'var(--accent-amber-medium)'
-  const activeText  = activeColor === 'error' ? 'var(--status-error)'    : 'var(--text-amber)'
-
   const btn = (
     <button
-      onClick={comingSoon ? undefined : onClick}
-      style={{
-        flex: 1, padding: '4px 0', borderRadius: 4,
-        border: active ? `1px solid ${activeBorder}` : '1px solid var(--border2)',
-        background: active ? activeBg : 'var(--bg-modal)',
-        color: active ? activeText : 'var(--text-inactive)',
-        fontSize: 'var(--text-xs)',
-        fontFamily: 'var(--font-ui)',
-        fontWeight: active ? 700 : 400,
-        cursor: comingSoon ? 'default' : 'pointer',
-        opacity: comingSoon ? 0.4 : 1,
-        transition: 'all 0.12s',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-      onMouseEnter={e => { if (!active && !comingSoon) e.currentTarget.style.color = 'var(--text-muted)' }}
-      onMouseLeave={e => { if (!active && !comingSoon) e.currentTarget.style.color = 'var(--text-inactive)' }}
+      className="o-option"
+      aria-pressed={active}
+      data-tone={activeColor === 'error' ? 'error' : undefined}
+      disabled={comingSoon}
+      onClick={onClick}
     >
       {children}
     </button>
@@ -151,32 +105,20 @@ export function OptionBtn({ active, onClick, children, title, oneLine, comingSoo
   return title ? <Tooltip title={title} oneLine={oneLine} wrapperStyle={{ flex: 1 }}>{btn}</Tooltip> : btn
 }
 
+// ── OptionGroup — the segmented pill around a row of OptionBtn ───────────────
+export function OptionGroup({ label, children }: { label: string; children: ReactNode }) {
+  return <div role="group" aria-label={label} className="o-seg">{children}</div>
+}
+
 // ── FingerStepper — compact "< 4 >" toggle between the only two valid max-
 // finger values (4/5). Replaces two full-width OptionBtn pills with a
 // single small control, ~1/3 the footprint. ────────────────────────────────
 export function FingerStepper({ value, onChange }: { value: 4 | 5; onChange: (v: 4 | 5) => void }) {
-  const chevronStyle = (disabled: boolean): React.CSSProperties => ({
-    background: 'none', border: 'none', padding: 1, display: 'flex', alignItems: 'center',
-    cursor: disabled ? 'default' : 'pointer',
-    color: disabled ? 'var(--state-disabled)' : 'var(--text-inactive)',
-  })
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border2)', borderRadius: 4, padding: '1px 3px' }}>
-      <button
-        onClick={() => onChange(4)}
-        disabled={value === 4}
-        style={chevronStyle(value === 4)}
-        onMouseEnter={e => { if (value !== 4) e.currentTarget.style.color = 'var(--text-amber)' }}
-        onMouseLeave={e => { e.currentTarget.style.color = value === 4 ? 'var(--state-disabled)' : 'var(--text-inactive)' }}
-      ><ChevronLeft size={11} /></button>
-      <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-amber)', minWidth: 10, textAlign: 'center' }}>{value}</span>
-      <button
-        onClick={() => onChange(5)}
-        disabled={value === 5}
-        style={chevronStyle(value === 5)}
-        onMouseEnter={e => { if (value !== 5) e.currentTarget.style.color = 'var(--text-amber)' }}
-        onMouseLeave={e => { e.currentTarget.style.color = value === 5 ? 'var(--state-disabled)' : 'var(--text-inactive)' }}
-      ><ChevronRight size={11} /></button>
+    <div className="o-stepper">
+      <button className="o-step o-step-plain" aria-label="4 fingers" onClick={() => onChange(4)} disabled={value === 4}><ChevronLeft size={14} /></button>
+      <span className="o-stepper-value" style={{ minWidth: 12 }}>{value}</span>
+      <button className="o-step o-step-plain" aria-label="5 fingers" onClick={() => onChange(5)} disabled={value === 5}><ChevronRight size={14} /></button>
     </div>
   )
 }
@@ -199,42 +141,17 @@ export function ZoomStepper({ percent, steps, max, onStep, onReset, tooltips = t
 }) {
   const atMin = percent <= steps[0]
   const atMax = percent >= max
-  const chevronStyle = (disabled: boolean): React.CSSProperties => ({
-    background: 'none', border: 'none', padding: 1, display: 'flex', alignItems: 'center',
-    cursor: disabled ? 'default' : 'pointer',
-    color: disabled ? 'var(--state-disabled)' : 'var(--text-inactive)',
-  })
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: '1px solid var(--border2)', borderRadius: 4, padding: '1px 6px' }}>
-        <MaybeTip on={tooltips} title="Zoom out">
-        <button
-          onClick={() => onStep(-1)}
-          disabled={atMin}
-          style={chevronStyle(atMin)}
-          onMouseEnter={e => { if (!atMin) e.currentTarget.style.color = 'var(--text-amber)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = atMin ? 'var(--state-disabled)' : 'var(--text-inactive)' }}
-        ><ZoomOut size={12} strokeWidth={1.5} /></button>
-        </MaybeTip>
-        <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-amber)', minWidth: 34, textAlign: 'center' }}>{percent}%</span>
-        <MaybeTip on={tooltips} title="Zoom in">
-        <button
-          onClick={() => onStep(1)}
-          disabled={atMax}
-          style={chevronStyle(atMax)}
-          onMouseEnter={e => { if (!atMax) e.currentTarget.style.color = 'var(--text-amber)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = atMax ? 'var(--state-disabled)' : 'var(--text-inactive)' }}
-        ><ZoomIn size={12} strokeWidth={1.5} /></button>
-        </MaybeTip>
-      </div>
+    <div className="o-stepper">
+      <MaybeTip on={tooltips} title="Zoom out">
+        <button className="o-step" aria-label="Zoom out" onClick={() => onStep(-1)} disabled={atMin}><ZoomOut size={14} strokeWidth={1.5} /></button>
+      </MaybeTip>
+      <span className="o-stepper-value">{percent}%</span>
+      <MaybeTip on={tooltips} title="Zoom in">
+        <button className="o-step" aria-label="Zoom in" onClick={() => onStep(1)} disabled={atMax}><ZoomIn size={14} strokeWidth={1.5} /></button>
+      </MaybeTip>
       <MaybeTip on={tooltips} title="Reset to 100%">
-      <button
-        onClick={onReset}
-        disabled={percent === 100}
-        style={chevronStyle(percent === 100)}
-        onMouseEnter={e => { if (percent !== 100) e.currentTarget.style.color = 'var(--text-amber)' }}
-        onMouseLeave={e => { e.currentTarget.style.color = percent === 100 ? 'var(--state-disabled)' : 'var(--text-inactive)' }}
-      ><RotateCcw size={12} strokeWidth={1.5} /></button>
+        <button className="o-step o-step-plain" aria-label="Reset to 100%" onClick={onReset} disabled={percent === 100}><RotateCcw size={14} strokeWidth={1.5} /></button>
       </MaybeTip>
     </div>
   )
@@ -277,19 +194,19 @@ export function HitEffectColorSwatch({ color, onChange }: { color: string | null
           border: 'none', background: 'none', cursor: 'pointer',
         }}
       >
-        <Palette size={13} strokeWidth={1.5} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}>Color</span>
+        <Palette size={14} strokeWidth={1.5} style={{ color: 'var(--ui-text)', flexShrink: 0 }} />
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ui-text-soft)', whiteSpace: 'nowrap' }}>Color</span>
         <span style={{
           width: 14, height: 14, borderRadius: 3, flexShrink: 0,
           background: color ?? 'var(--hand-lh)',
-          border: '1px solid var(--border2)',
+          border: '1px solid var(--ui-line)',
         }} />
       </button>
       </Tooltip>
       {open && (
         <div style={{
           position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 20,
-          background: 'var(--panel)', border: '1px solid var(--border-popover)', borderRadius: 'var(--radius-md)',
+          background: 'var(--ui-surface)', border: '1px solid var(--ui-line)', borderRadius: 'var(--radius-md)',
           boxShadow: 'var(--elevation-popover)', padding: 10, width: 150,
           display: 'flex', flexDirection: 'column', gap: 8,
         }}>
@@ -300,7 +217,7 @@ export function HitEffectColorSwatch({ color, onChange }: { color: string | null
                 onClick={() => { commitHex(c); onChange(c) }}
                 style={{
                   height: 22, background: c, borderRadius: 3, cursor: 'pointer', boxSizing: 'border-box',
-                  border: `2px solid ${c.toLowerCase() === color?.toLowerCase() ? '#ffffff' : 'transparent'}`,
+                  border: `2px solid ${c.toLowerCase() === color?.toLowerCase() ? 'var(--ui-text)' : 'transparent'}`,
                 }}
               />
             ))}
@@ -311,9 +228,9 @@ export function HitEffectColorSwatch({ color, onChange }: { color: string | null
             placeholder="#e8a027"
             aria-label="Hit-effect color, hex value"
             style={{
-              width: '100%', padding: '4px 6px', borderRadius: 4, border: '1px solid var(--border2)',
-              background: 'var(--bg-modal)', color: 'var(--text-default)', fontSize: 'var(--text-xs)',
-              fontFamily: 'var(--font-mono)', boxSizing: 'border-box',
+              width: '100%', padding: '4px 6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--ui-line)',
+              background: 'var(--bg-field)', color: 'var(--ui-text)', fontSize: 'var(--text-xs)',
+              fontFamily: 'var(--font-code)', boxSizing: 'border-box',
             }}
           />
         </div>
@@ -342,7 +259,8 @@ export function SoundfontActionLink({ label, tooltip, color, onClick }: {
         onMouseEnter={tt.onMouseEnter}
         onMouseLeave={tt.onMouseLeave}
         onClick={onClick}
-        style={{ fontSize: 9, color, fontFamily: 'var(--font-ui)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'right' }}
+        className="o-link"
+        style={{ color, fontSize: 'var(--text-xs)', textAlign: 'right' }}
       >{label}</button>
       {tt.box}
     </>
@@ -351,9 +269,7 @@ export function SoundfontActionLink({ label, tooltip, color, onClick }: {
 
 // ── SettingsDropdown — custom popover replacing native <select> ───────────────
 // Native <select> option lists render via the OS (Windows' own blue-hover
-// scheme on Chromium) and can't be restyled with CSS. Same visual shell as
-// the old <select> (amber border/background trigger), options styled to
-// match the app's own hover/selected palette instead of the OS default.
+// scheme on Chromium) and can't be restyled with CSS.
 export function SettingsDropdown<T extends string>({ value, options, onChange, title }: {
   value: T
   options: { value: T; label: string; title?: string }[]
@@ -380,17 +296,10 @@ export function SettingsDropdown<T extends string>({ value, options, onChange, t
       onClick={() => setOpen(v => !v)}
       aria-haspopup="listbox"
       aria-expanded={open}
-      style={{
-        width: '100%', padding: '5px 8px', borderRadius: 4,
-        border: '1px solid var(--accent-amber-strong)',
-        background: 'var(--accent-amber-medium)',
-        color: 'var(--text-amber)',
-        fontSize: 'var(--text-xs)', fontFamily: 'var(--font-ui)', fontWeight: 700,
-        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-      }}
+      className="o-select"
     >
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected?.label ?? value}</span>
-      <span style={{ flexShrink: 0, fontSize: 9 }}>▾</span>
+      <span>{selected?.label ?? value}</span>
+      <ChevronDown size={14} style={{ flexShrink: 0 }} />
     </button>
   )
 
@@ -402,13 +311,7 @@ export function SettingsDropdown<T extends string>({ value, options, onChange, t
           role="listbox"
           aria-label={title}
           onMouseDown={e => e.stopPropagation()}
-          style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2,
-            zIndex: 50001,
-            background: 'var(--panel)', border: '1px solid var(--state-hover-border)',
-            borderRadius: 4, overflow: 'hidden auto', maxHeight: 240,
-            boxShadow: 'var(--elevation-popover)',
-          }}
+          className="o-select-list"
         >
           {options.map(o => {
             const row = (
@@ -417,14 +320,7 @@ export function SettingsDropdown<T extends string>({ value, options, onChange, t
                 role="option"
                 aria-selected={o.value === value}
                 onClick={() => { onChange(o.value); setOpen(false) }}
-                style={{
-                  padding: '6px 10px', cursor: 'pointer', fontSize: 'var(--text-xs)',
-                  fontFamily: 'var(--font-ui)', fontWeight: o.value === value ? 700 : 400,
-                  color:      o.value === value ? 'var(--text-amber)' : 'var(--text-default)',
-                  background: o.value === value ? 'var(--accent-amber-selected-bg)' : 'transparent',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--state-hover-overlay-white)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = o.value === value ? 'var(--accent-amber-selected-bg)' : 'transparent' }}
+                className="o-select-item"
               >
                 {o.label}
               </div>
@@ -444,14 +340,7 @@ export function ZoomStepBtn({ onClick, disabled, children }: {
   onClick: () => void; disabled: boolean; children: React.ReactNode
 }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      width: 22, height: 22, borderRadius: 4,
-      background: 'var(--bg-modal)', border: '1px solid var(--border2)',
-      color: disabled ? 'var(--state-disabled)' : 'var(--text-dimmest)',
-      fontSize: 'var(--text-lg)', lineHeight: 1,
-      cursor: disabled ? 'default' : 'pointer',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    }}>
+    <button className="o-step" onClick={onClick} disabled={disabled}>
       {children}
     </button>
   )
@@ -462,61 +351,46 @@ export function AppBgBtn({ color, label, active, onClick, comingSoon }: {
   color: string; label: string; active: boolean; onClick: () => void; comingSoon?: boolean
 }) {
   return (
-    <button onClick={comingSoon ? undefined : onClick} style={{
-      flex: 1, padding: '6px 4px', borderRadius: 4,
-      border: active ? '1px solid var(--accent-amber-strong)' : '1px solid var(--border2)',
-      background: active ? 'var(--accent-amber-medium)' : 'var(--bg-modal)',
-      color: active ? 'var(--text-amber)' : 'var(--text-inactive)',
-      fontSize: 10, cursor: comingSoon ? 'default' : 'pointer',
-      opacity: comingSoon ? 0.4 : 1,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-1)',
-      transition: 'all 0.12s',
-    }}>
-      <div style={{ width: 28, height: 14, borderRadius: 'var(--radius-sm)', background: color, border: '1px solid var(--state-disabled)' }} />
-      <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10 }}>{label}</span>
+    <button className="o-option" aria-pressed={active} disabled={comingSoon} onClick={onClick}
+      style={{ flexDirection: 'column', gap: 'var(--space-1)', padding: '6px 4px', borderRadius: 'var(--radius-md)' }}>
+      <div style={{ width: 28, height: 14, borderRadius: 'var(--radius-sm)', background: color, border: '1px solid var(--ui-line)' }} />
+      <span>{label}</span>
     </button>
   )
 }
 
-// ── Switch — the toggle icon every on/off setting uses (was inline in OptionRow)
+// ── Switch — every on/off setting (was inline in OptionRow)
 export function Switch({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <button
-      role="switch" aria-checked={value} aria-label={label}
-      onClick={() => onChange(!value)}
-      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', flexShrink: 0,
-        color: value ? 'var(--text-amber)' : 'var(--text-inactive)', transition: 'opacity 0.12s' }}
-      onMouseEnter={e => { e.currentTarget.style.opacity = '0.7' }}
-      onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
-    >
-      {value ? <ToggleRight size={16} strokeWidth={1.5} /> : <ToggleLeft size={16} strokeWidth={1.5} />}
+    <button role="switch" aria-checked={value} aria-label={label} onClick={() => onChange(!value)} className="o-switch">
+      <span />
     </button>
   )
 }
 
-// ── Small amber icon inside running text ("Click ⟲ to loop")
+// ── Small icon inside running text ("Click ⟲ to loop")
 export function InlineIcon({ children }: { children: ReactNode }) {
-  return <span style={{ display: 'inline-flex', verticalAlign: '-2px', margin: '0 2px', color: 'var(--text-amber)' }}>{children}</span>
+  return <span style={{ display: 'inline-flex', verticalAlign: '-2px', margin: '0 2px', color: 'var(--ui-text)' }}>{children}</span>
 }
 
-// ── At-a-glance line under a control (mono, dim) — Quick Settings + window
+// ── At-a-glance line under a control (dim) — Quick Settings + window
 export function GlanceLine({ children, center }: { children: ReactNode; center?: boolean }) {
-  return <div style={{ marginTop: 5, fontSize: 10, color: 'var(--text-inactive)', fontFamily: 'var(--font-mono)', lineHeight: 1.5, textAlign: center ? 'center' : 'left' }}>{children}</div>
+  return <div style={{ marginTop: 5, fontSize: 'var(--text-xs)', color: 'var(--ui-text-soft)', lineHeight: 1.4, textAlign: center ? 'center' : 'left' }}>{children}</div>
 }
 
 // ── Preview strip (note names, chord spellings) — same look as before
 export function PreviewBox({ children, spacing = '0.08em' }: { children: ReactNode; spacing?: string }) {
-  return <div style={{ marginTop: 6, padding: '4px 8px', background: 'var(--bg-row)', borderRadius: 4, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: spacing, textAlign: 'center' }}>{children}</div>
+  return <div style={{ marginTop: 6, padding: '4px 8px', background: 'var(--ui-sunken)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', color: 'var(--ui-text-soft)', letterSpacing: spacing, textAlign: 'center' }}>{children}</div>
 }
 
-// ── Small-caps label for follow-up options inside a card
+// ── Label for follow-up options inside a card
 export function SubLabel({ children }: { children: ReactNode }) {
-  return <div style={{ marginTop: 10, marginBottom: 6, fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-ui)' }}>{children}</div>
+  return <div style={{ marginTop: 10, marginBottom: 6, fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)' }}>{children}</div>
 }
 
-// ── Italic helper text inside a card's follow-up options
+// ── Helper text inside a card's follow-up options
 export function HelpText({ children }: { children: ReactNode }) {
-  return <div style={{ marginTop: 6, fontSize: 'var(--text-xs)', color: 'var(--text-faint)', lineHeight: 1.5, fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>{children}</div>
+  return <div style={{ marginTop: 6, fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)', lineHeight: 1.35 }}>{children}</div>
 }
 
 // ── Piano-roll zoom — − / step dots / + (moved from the drawer unchanged)
@@ -540,7 +414,7 @@ export function RollZoomStepper() {
         }} />
         {ZOOM_STEPS.map((step, i) => (
           <Tooltip key={step} title={`${Math.round(step * 100)}%`}>
-          <button onClick={() => setZoomLevel(step)}
+          <button onClick={() => setZoomLevel(step)} aria-label={`Zoom ${Math.round(step * 100)}%`}
             style={{
               position: 'absolute',
               left: `${(i / (ZOOM_STEPS.length - 1)) * 100}%`,
@@ -548,7 +422,7 @@ export function RollZoomStepper() {
               width: 10, height: 10, borderRadius: '50%',
               background: zoomLevel === step ? 'var(--text-amber)' : 'var(--state-hover-bg)',
               border: `1.5px solid ${zoomLevel === step ? 'var(--text-amber)' : 'var(--text-muted)'}`,
-              cursor: 'pointer', padding: 0, transition: 'all 0.12s',
+              cursor: 'pointer', padding: 0, transition: 'background-color 0.12s, border-color 0.12s',
             }} />
           </Tooltip>
         ))}
@@ -567,7 +441,7 @@ export function DevModeBadge({ placement = 'top' }: { placement?: 'left' | 'righ
   if (!simAvailable) return null
   return (
     <Tooltip title="Dev mode" description={"Test tools are on: the dashed \"test builds only\"\npanels in Settings. Ctrl+Alt+Shift+D\nswitches them on and off."} placement={placement}>
-      <span style={{ color: 'var(--text-amber)', fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', whiteSpace: 'nowrap', cursor: 'default' }}>DEV MODE</span>
+      <span style={{ color: 'var(--text-amber)', fontSize: 'var(--text-xs)', whiteSpace: 'nowrap', cursor: 'default' }}>DEV MODE</span>
     </Tooltip>
   )
 }
@@ -580,17 +454,12 @@ export function RateButton({ placement = 'left' }: { placement?: 'left' | 'right
   return (
     <Tooltip title={t`Rate Orfeo in the Microsoft Store`} oneLine wrapperStyle={{ flexShrink: 0 }} placement={placement}>
       <button
+        className="o-icon-quiet"
+        aria-label={t`Rate Orfeo in the Microsoft Store`}
         onClick={() => void requestStoreReview()}
-        style={{
-          flexShrink: 0, display: 'flex', alignItems: 'center',
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: 'var(--text-muted)', padding: '4px 2px', marginRight: 6,
-          transition: 'color 0.15s',
-        }}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        style={{ marginRight: 6 }}
       >
-        <Star size={13} strokeWidth={1.5} />
+        <Star size={16} strokeWidth={1.5} />
       </button>
     </Tooltip>
   )
@@ -604,12 +473,12 @@ export function UpdateButton({ placement = 'left', showStatus = true }: { placem
   return (
     <>
       {showStatus && updateInfo.mode === 'auto' && updateStatus.state === 'up-to-date' && (
-        <span style={{ fontSize: 9, color: 'var(--text-faint)', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ui-text-soft)', whiteSpace: 'nowrap' }}>
           Orfeo is up to date
         </span>
       )}
       {showStatus && updateInfo.mode === 'auto' && updateStatus.state === 'ready' && (
-        <span style={{ fontSize: 9, color: 'var(--text-amber)', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-amber)', whiteSpace: 'nowrap' }}>
           Update ready — click to install
         </span>
       )}
@@ -629,26 +498,19 @@ export function UpdateButton({ placement = 'left', showStatus = true }: { placem
         placement={placement}
       >
       <button
+        className="o-icon-quiet"
+        aria-label={t`Check for updates`}
         onClick={pressUpdateButton}
-        style={{
-          position: 'relative',
-          flexShrink: 0, display: 'flex', alignItems: 'center',
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: updateStatus.state === 'ready' ? 'var(--text-amber)' : 'var(--text-muted)',
-          padding: '4px 2px',
-          transition: 'color 0.15s',
-        }}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-        onMouseLeave={e => { if (updateStatus.state !== 'ready') e.currentTarget.style.color = 'var(--text-muted)' }}
+        style={updateStatus.state === 'ready' ? { color: 'var(--ui-text)' } : undefined}
       >
-        <CloudDownload size={13} strokeWidth={1.5} />
+        <CloudDownload size={16} strokeWidth={1.5} />
         {(updateStatus.state === 'downloading' || updateStatus.state === 'ready' || updateStatus.state === 'available') && (
           <span
             className={updateStatus.state === 'ready' ? undefined : 'loop-nudge-blink'}
             style={{
               position: 'absolute', top: 1, right: 0,
-              width: 6, height: 6, borderRadius: '50%',
-              background: 'var(--text-amber)',
+              width: 8, height: 8, borderRadius: '50%',
+              background: 'var(--paint-pink)',
             }}
           />
         )}

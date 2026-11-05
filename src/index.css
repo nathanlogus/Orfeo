@@ -1,3 +1,22 @@
+/* Inter Tight (rsms/Inter derivative, SIL OFL 1.1) — the UI font. One variable
+   file per script range, the whole weight axis in one declaration. */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/InterTight-Variable-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/InterTight-Variable-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 /* ── Self-hosted fonts — no network dependency (PRODUCT.md: local-first, no
    network dependency). Was a Google Fonts @import; replaced with self-hosted
    files instead of requesting fonts.googleapis.com/fonts.gstatic.com on
@@ -293,50 +312,88 @@ button, input, select, textarea {
      values as separate JS literals. --font-logo is the ORFEO wordmark's own
      stack (OrfeoLogo.tsx) — deliberately separate so the brand mark can keep
      its own typographic identity independent of the UI font.
-     --font-ui is mid-trial (2026-08-15): Familjen Grotesk / Mona Sans are
-     both installed (@font-face blocks above) for direct comparison —
-     currently pointed at Familjen Grotesk. Swap the family name here to
-     switch candidates, nothing else needs to change. */
-  --font-ui:   'Familjen Grotesk', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
+     */
+  --font-ui:   'Inter Tight', system-ui, sans-serif;
+  /* The design has no mono face: numbers use the UI font with tabular figures
+     (body sets them). Real code and hex values use --font-code. */
+  --font-mono: 'Inter Tight', system-ui, sans-serif;
+  --font-code: 'IBM Plex Mono', monospace;
   --font-logo: 'Inter', 'Georgia', serif;
+
+  /* ── Palette — the design's raw colours. Components use the semantic tokens
+     below; reach for these only for the coloured fills on cards and tiles.
+     Text on a --paint-* fill is always --ink: white fails 4.5:1 on most. */
+  --ink: #000000;
+  --ink-soft: #4a4540;      /* secondary text on paper */
+  --ink-800: #2f2c29;       /* studio raised surface */
+  --ink-700: #24211f;       /* studio floor */
+  --line-700: #3d3935;      /* studio hairline */
+  --line-600: #6b635b;      /* studio outline */
+  --paper: #f1e8de;         /* library floor */
+  --sand: #eadcce;          /* dialog/board floor, secondary text on dark */
+  --stone: #c3b7ac;         /* quiet text on dark, soft border on paper */
+  --paper-card: #fbf8f5;    /* cards, fields, dialogs */
+  --paint-yellow: #ffde3b;  /* the accent: primary actions, current state */
+  --paint-lime: #c1f32b;    /* "on" dots, a card fill */
+  --paint-blue: #6483ff;    /* a card fill, the design's left hand */
+  --paint-pink: #ff4dd5;    /* alerts, the new-version dot, decorative triangle */
+  --paint-rose: #ee84d5;    /* level tag, a card fill */
+  --paint-olive: #c6dc3c;   /* a card fill */
+  --accent: var(--paint-yellow);
+  --on-accent: var(--ink);
+  --scrim: rgba(36, 33, 31, 0.72);
+  --shadow-hard: rgba(0, 0, 0, 0.45) 6px 10px 0;     /* big cover, tilted */
+  --shadow-hard-sm: rgba(0, 0, 0, 0.25) 3px 4px 0;   /* card cover */
+
+  /* Semantic surfaces for new work: these flip with .theme-paper */
+  --ui-floor: var(--ink-700);
+  --ui-surface: var(--ink-800);
+  --ui-sunken: var(--ink);
+  --ui-text: #ffffff;
+  --ui-text-soft: var(--stone);
+  --ui-line: var(--line-600);
+  --ui-line-soft: var(--line-700);
+  --ui-selected: var(--paint-yellow);
+  --ui-on-selected: var(--ink);
+  --ui-control: transparent;
+  --scrollbar-thumb: var(--line-600);
 
   /* ── Backgrounds — remapped to new lighter, layered scheme ─────────────── */
   /* Existing variable names kept identical so nothing breaks — only the
      values change. New --bg-input / --bg-highlight added for interactive
      surfaces that didn't have a dedicated token before. */
-  --bg:        #121212;   /* App floor */
-  --bg-warm:   #12100e;   /* unchanged — warm theme variant, pending its own future update */
-  --panel:     #1e1e1e;   /* Panel layer */
-  --panel-warm:#16120e;   /* unchanged — warm theme variant, pending its own future update */
-  --bg-panel:  #1e1e1e;   /* kept in sync with --panel */
-  --bg-panel2: #2d2d2d;   /* Nested surface — cards, tiles inside a panel */
-  --bg-row:    #0e0e16;   /* unchanged — recessed row striping, darker than app floor by design */
-  --bg-input:  #58595b;   /* NEW — interactive surfaces: inputs, toggle pills */
-  --bg-highlight: #aeb0b5; /* NEW — sparing use only: small interactive highlight details */
+  --bg:        #24211f;   /* App floor */
+  --bg-warm:   #24211f;   /* unchanged — warm theme variant, pending its own future update */
+  --panel:     #2f2c29;   /* Panel layer */
+  --panel-warm:#2f2c29;   /* unchanged — warm theme variant, pending its own future update */
+  --bg-panel:  #2f2c29;   /* kept in sync with --panel */
+  --bg-panel2: #3d3935;   /* Nested surface — cards, tiles inside a panel */
+  --bg-row:    #24211f;   /* unchanged — recessed row striping, darker than app floor by design */
+  --bg-input:  #3d3935;   /* NEW — interactive surfaces: inputs, toggle pills */
+  --bg-highlight: #c3b7ac; /* NEW — sparing use only: small interactive highlight details */
 
   /* ── Borders — structure only; depth comes from the --elevation-* shadows.
      Used sparingly: general panel separation comes from background layering. */
-  --border:    #23232e;
-  --border2:   #2c2c39;
+  --border:    #3d3935;
+  --border2:   #6b635b;
 
   /* ── Text colours — remapped to new readable 7-step scale ──────────────── */
   /* Existing names kept identical so nothing breaks — values updated. */
-  --text-default: #c6c8c8;   /* was #707088 — default UI text */
-  --text-active:  #f2f3f4;   /* was #b0b0cc — active/value text */
-  --text-muted:   #94979e;   /* was #404055 — now genuinely readable */
-  --text-amber:   #e8a027;   /* accent — unchanged */
+  --text-default: #eadcce;   /* was #707088 — default UI text */
+  --text-active:  #ffffff;   /* was #b0b0cc — active/value text */
+  --text-muted:   #c3b7ac;   /* was #404055 — now genuinely readable */
+  --text-amber:   #ffde3b;   /* accent — unchanged */
 
   /* Additional granularity for future targeted use during staged rollout */
-  --text-faint:    #9292aa;   /* Below --text-dimmest — for hints, placeholder text, least-important UI. Raised from #707088 (WCAG AA fix: was ~3.83:1 vs --bg-modal, now ~6.08:1) */
-  --text-dimmest:  #94979e;
-  --text-dim:      #b5b7bc;
-  --text-standard: #c6c8c8;
-  --text-body:     #d7d8d3;
-  --text-primary:  #f2f3f4;
-  --text-bright:   #f8f8ff;
+  --text-faint:    #c3b7ac;   /* Below --text-dimmest — for hints, placeholder text, least-important UI. Raised from #707088 (WCAG AA fix: was ~3.83:1 vs --bg-modal, now ~6.08:1) */
+  --text-dimmest:  #c3b7ac;
+  --text-dim:      #c3b7ac;
+  --text-standard: #eadcce;
+  --text-body:     #eadcce;
+  --text-primary:  #ffffff;
+  --text-bright:   #ffffff;
   --text-white:    #fefefa;
-  --text-near-black: #0a0a0a; /* MidiEditor Save-button label text on its amber background — distinct from
+  --text-near-black: #000000; /* MidiEditor Save-button label text on its amber background — distinct from
                                   --text-on-amber (#1a1000, warm near-black, owned by the mute-filter pill);
                                   a real hue difference, not a near-match snap */
 
@@ -353,16 +410,16 @@ button, input, select, textarea {
   --knob-compressor: #CB636C;  /* Orfeo's default right-hand pink — fixed, doesn't follow the user's hand colours */
 
   /* VU meter levels — unchanged */
-  --meter-green:  #7ac040;
-  --meter-yellow: #c0a020;
+  --meter-green:  #c1f32b;
+  --meter-yellow: #ffde3b;
   --meter-orange: #c07a20;
-  --meter-red:    #c04040;
-  --meter-green-dark: #1a3a12; /* MasterStrip wave-mode VU gradient bottom stop */
+  --meter-red:    #ff4dd5;
+  --meter-green-dark: #3a4415; /* MasterStrip wave-mode VU gradient bottom stop */
 
   /* Semantic / status — unchanged */
-  --status-success: #4a9060;
-  --status-error:   #c0392b;
-  --status-error-hover: #e74c3c;
+  --status-success: #c1f32b;
+  --status-error:   #ff4dd5;
+  --status-error-hover: #ff7ae0;
 
 /* Spacing scale — rem-based, 4px increments, everything scales together */
 --space-1: 0.25rem;   /* 4px  */
@@ -372,23 +429,30 @@ button, input, select, textarea {
 --space-5: 1.25rem;   /* 20px */
 --space-6: 1.5rem;    /* 24px */
 
-/* Typography scale — rem-based, matches Orfeo's existing 8-14px range */
---text-xs: 0.6875rem;  /* 11px — tiny labels, hints */
---text-sm: 0.75rem;    /* 12px — standard small UI text */
---text-base: 0.8125rem;/* 13px — default body/label size */
---text-md: 0.875rem;   /* 14px — slightly emphasized text */
---text-lg: 1rem;       /* 16px — headings, chord names */
+/* Typography scale — one weight (400); size carries the hierarchy */
+--text-xs: 0.75rem;  /* 12px — tiny labels, hints */
+--text-sm: 0.8125rem;  /* 13px — standard small UI text */
+--text-base: 0.875rem;  /* 14px — default body/label size */
+--text-md: 1rem;  /* 16px — buttons, rows */
+--text-lg: 1.125rem;  /* 18px — tile and row titles */
+--text-xl: 1.375rem;  /* 22px — card titles */
+--text-2xl: 1.875rem; /* 30px — panel and window titles */
+--text-3xl: 2.5rem;   /* 40px — dialog titles */
+--text-display: clamp(2.5rem, 5.3vw, 4.25rem); /* 68px at 1280 — page headline */
+--tracking-tight: -0.034em; /* headlines and titles */
 
-/* Border radius scale — nested surfaces stay concentric: a box with an even
-   inset takes outer = inner + padding + border, so --radius-lg wraps a
-   --radius-sm child across 5px of padding and a 1px border. */
---radius-sm: 4px;
---radius-md: 6px;
---radius-lg: 10px;
+/* Border radius — the design has one corner (5px) for every tile, card and
+   window, and a full pill for every button. The three old names stay. */
+--radius-sm: 5px;
+--radius-md: 5px;
+--radius-lg: 5px;
+--radius-pill: 96px;
 
 /* Standard row/button heights */
 --row-height: 44px;
 --button-height: 28px;
+--control-h: 40px;     /* pill buttons, fields: 48 on touch */
+--control-h-lg: 44px;  /* a dialog's main actions: 52 on touch */
 
 /* TopBar right-section tones */
 --topbar-bar-number:      var(--text-amber);   /* current bar number — always-amber, unlike BPM/KEY which are conditional */
@@ -398,167 +462,162 @@ button, input, select, textarea {
 --topbar-metronome-off:   var(--text-muted);   /* metronome icon + "OFF" label when disabled */
 --topbar-midi-on:         var(--text-amber);   /* MIDI icon + device name when a hardware keyboard is connected */
 --topbar-midi-off:        var(--text-muted);   /* MIDI icon + "CONNECT A KEYBOARD" label when idle */
---topbar-timesig-divider: #30304a;             /* small line between time-signature numerator/denominator — was a raw hex value, now a token */
+--topbar-timesig-divider: #6b635b;             /* small line between time-signature numerator/denominator — was a raw hex value, now a token */
 
 /* Modal-specific surfaces — distinct from general panel layering */
---bg-modal: #13131c;         /* Modal container background (ChordExplorer, ScaleExplorer, etc) */
---bg-modal-header: #0d0d12;  /* Header/footer bars within modals */
---bg-tile: #1a1a26;          /* Interactive tile/pill/dropdown surface — pervasive across explorers */
---bg-circle-center: #0f0f18;  /* ScaleExplorer — Circle-of-Fifths center dot fill */
---bg-info-overlay: rgba(15, 15, 24, 0.88); /* ScaleExplorer — floating scale-info overlay backdrop, same base tone as --bg-circle-center */
+--bg-modal: #2f2c29;         /* Modal container background (ChordExplorer, ScaleExplorer, etc) */
+--bg-modal-header: #24211f;  /* Header/footer bars within modals */
+--bg-tile: #24211f;          /* Interactive tile/pill/dropdown surface — pervasive across explorers */
+--bg-circle-center: #24211f;  /* ScaleExplorer — Circle-of-Fifths center dot fill */
+--bg-info-overlay: rgba(36, 33, 31, 0.88); /* ScaleExplorer — floating scale-info overlay backdrop, same base tone as --bg-circle-center */
 
 /* Interaction states — the actual missing category */
---state-hover-bg: #2a2a3a;      /* Hover background for tiles/pills */
---state-hover-border: #3a3a4a;  /* Hover border */
---state-active-bg: #2a2a3a;     /* Active/pressed background */
---state-selected-bg: #1f1a0e;   /* Amber-tinted selected tile background */
---state-disabled: #303048;      /* Disabled control color */
---accent-amber-hover: #ffb84d;  /* Lighter amber for hover states on amber elements */
---state-hover-bg-inner: #222230;    /* ScaleExplorer — Circle-of-Fifths inner-ring (minor key) hover fill */
---state-selected-blue-bg: #1e2a3a;  /* ScaleExplorer — selected diatonic chord/octave tile background */
---state-hover-border-blue: #3a3a5a; /* ScaleExplorer — diatonic chord tile hover border */
+--state-hover-bg: #3d3935;      /* Hover background for tiles/pills */
+--state-hover-border: #6b635b;  /* Hover border */
+--state-active-bg: #3d3935;     /* Active/pressed background */
+--state-selected-bg: #4a4226;   /* Amber-tinted selected tile background */
+--state-disabled: #6b635b;      /* Disabled control color */
+--accent-amber-hover: #ffe970;  /* Lighter amber for hover states on amber elements */
+--state-hover-bg-inner: #3d3935;    /* ScaleExplorer — Circle-of-Fifths inner-ring (minor key) hover fill */
+--state-selected-blue-bg: #2b3355;  /* ScaleExplorer — selected diatonic chord/octave tile background */
+--state-hover-border-blue: #6483ff; /* ScaleExplorer — diatonic chord tile hover border */
 
 /* One intermediate text tone — sits between --text-dimmest and background */
---text-inactive: #8a8aa1;   /* Inactive icons/buttons that need some visibility but less than dimmest label. Raised from #505068 (WCAG AA fix: was ~2.20:1 vs --bg-tile, now ~5.11:1) */
---text-tile-subtext: #8080a0;  /* ChordExplorer — dim note-name subtext under chord/power-chord tile names */
---text-pill-hover: #c0c0d4;    /* ChordExplorer — hover text color for unselected root pitch-class pills */
---text-list-hover: #c0c0d8;    /* ScaleExplorer — hover text color for unselected scale-list buttons */
---text-key-label: #e0e0e0;     /* ScaleExplorer — Circle-of-Fifths key labels + diatonic chord tile names */
+--text-inactive: #c3b7ac;   /* Inactive icons/buttons that need some visibility but less than dimmest label. Raised from #505068 (WCAG AA fix: was ~2.20:1 vs --bg-tile, now ~5.11:1) */
+--text-tile-subtext: #c3b7ac;  /* ChordExplorer — dim note-name subtext under chord/power-chord tile names */
+--text-pill-hover: #ffffff;    /* ChordExplorer — hover text color for unselected root pitch-class pills */
+--text-list-hover: #ffffff;    /* ScaleExplorer — hover text color for unselected scale-list buttons */
+--text-key-label: #ffffff;     /* ScaleExplorer — Circle-of-Fifths key labels + diatonic chord tile names */
 
 /* Blue accent — ScaleExplorer keyboard-highlight family (distinct roles, not alpha variants of each other) */
---accent-scale-note: #4a90d9;  /* Non-root scale notes played from the Circle-of-Fifths scale ring */
---accent-chord-note: #6080d0;  /* Non-root chord/inversion notes + selected diatonic-tile border */
+--accent-scale-note: #6483ff;  /* Non-root scale notes played from the Circle-of-Fifths scale ring */
+--accent-chord-note: #6483ff;  /* Non-root chord/inversion notes + selected diatonic-tile border */
 
 /* ── Add to :root, alongside existing tokens ───────────────────────────────── */
 
 /* Status banners — three-part pattern (bg/border/text), reusable anywhere a
    success or error message needs to display */
---status-success-bg: #0a200a;
---status-success-border: #2a5a2a;
---status-success-text: #60c060;
---status-error-banner-bg: #200a0a;
---status-error-banner-border: #5a2a2a;
---status-error-banner-text: #c06060;
+--status-success-bg: #2f2c29;
+--status-success-border: #c1f32b;
+--status-success-text: #c1f32b;
+--status-error-banner-bg: #2f2c29;
+--status-error-banner-border: #ff4dd5;
+--status-error-banner-text: #ff4dd5;
 
 /* Amber alpha — standardized opacity tiers */
---accent-amber-strong: #e8a02755;  /* ~33% — borders, glows, strong emphasis */
---accent-amber-medium: #e8a02722;  /* ~13% — selected/active tinted backgrounds */
---accent-amber-subtle: #e8a02708;  /* ~3%  — very light hover/open-state tints */
---accent-amber-bold: #e8a02799;    /* ~60% — ScaleExplorer CoF key-signature text + roman-numeral subtext */
---accent-amber-shadow: #e8a02766;   /* ~40% — Mixer ChannelStrip fader-handle box-shadow tint */
---accent-amber-tint-bg: #e8a0270f;      /* ~6%  — NoteEditorToolbar close-confirm strip background */
---accent-amber-selected-bg: #e8a02714;  /* ~8%  — NoteEditorToolbar quantize-dropdown selected item; also TrackPanel.tsx track row background when soloed for note-editor editing */
---accent-amber-active-border: #e8a02773; /* ~45% — NoteEditorToolbar active ToolBtn / Save&Exit border */
---accent-amber-active-bg: #e8a02712;    /* ~7%  — NoteEditorToolbar active ToolBtn / Save&Exit bg; also PianoRoll loop-region fill (active) */
---accent-amber-loop-border: #e8a0278c;      /* ~55% — PianoRoll loop-region boundary line (active) */
---accent-amber-loop-border-dim: #e8a0274d;  /* ~30% — PianoRoll loop-region boundary line (inactive) */
---accent-amber-loop-fill-dim: #e8a0270a;    /* ~4%  — PianoRoll loop-region fill (inactive) */
---accent-amber-tooltip-text: #e8a027e6;     /* ~90% — PianoRoll Alt+drag cursor-tooltip amber text */
---text-amber-dimmest: #e8a02766;            /* ~40% — SettingsPanel.tsx revealed-hidden-file row text/icon */
---accent-amber-toggle-active-bg: #e8a0271a; /* ~10% — TopBar.tsx note-editor toggle button active background */
+--accent-amber-strong: #ffde3b55;  /* ~33% — borders, glows, strong emphasis */
+--accent-amber-medium: #ffde3b22;  /* ~13% — selected/active tinted backgrounds */
+--accent-amber-subtle: #ffde3b08;  /* ~3%  — very light hover/open-state tints */
+--accent-amber-bold: #ffde3b99;    /* ~60% — ScaleExplorer CoF key-signature text + roman-numeral subtext */
+--accent-amber-shadow: #ffde3b66;   /* ~40% — Mixer ChannelStrip fader-handle box-shadow tint */
+--accent-amber-tint-bg: #ffde3b0f;      /* ~6%  — NoteEditorToolbar close-confirm strip background */
+--accent-amber-selected-bg: #ffde3b14;  /* ~8%  — NoteEditorToolbar quantize-dropdown selected item; also TrackPanel.tsx track row background when soloed for note-editor editing */
+--accent-amber-active-border: #ffde3b73; /* ~45% — NoteEditorToolbar active ToolBtn / Save&Exit border */
+--accent-amber-active-bg: #ffde3b12;    /* ~7%  — NoteEditorToolbar active ToolBtn / Save&Exit bg; also PianoRoll loop-region fill (active) */
+--accent-amber-loop-border: #ffde3b8c;      /* ~55% — PianoRoll loop-region boundary line (active) */
+--accent-amber-loop-border-dim: #ffde3b4d;  /* ~30% — PianoRoll loop-region boundary line (inactive) */
+--accent-amber-loop-fill-dim: #ffde3b0a;    /* ~4%  — PianoRoll loop-region fill (inactive) */
+--accent-amber-tooltip-text: #ffde3be6;     /* ~90% — PianoRoll Alt+drag cursor-tooltip amber text */
+--text-amber-dimmest: #ffde3b66;            /* ~40% — SettingsPanel.tsx revealed-hidden-file row text/icon */
+--accent-amber-toggle-active-bg: #ffde3b1a; /* ~10% — TopBar.tsx note-editor toggle button active background */
 
 /* Control UI tones — not covered by the main text/status scale */
---text-dim-control: #606078;   /* Dim control labels, inactive action icons */
---border-row: #181822;          /* Row separator borders within panels and editors */
---bg-deep: #111116;             /* Deepest floor — below --bg-modal */
+--text-dim-control: #c3b7ac;   /* Dim control labels, inactive action icons */
+--border-row: #3d3935;          /* Row separator borders within panels and editors */
+--bg-deep: #000000;             /* Deepest floor — below --bg-modal */
 
 /* Mixer Console — channel/master strip specific tones */
---text-icon-inactive: #404058;  /* Mixer IBtn default (non-active) icon color — ChannelStrip + MasterStrip */
---text-icon-hover: #808098;     /* Mixer IBtn hover icon color — ChannelStrip + MasterStrip */
+--text-icon-inactive: #c3b7ac;  /* Mixer IBtn default (non-active) icon color — ChannelStrip + MasterStrip */
+--text-icon-hover: #ffffff;     /* Mixer IBtn hover icon color — ChannelStrip + MasterStrip */
 --track-color-fallback: #808080; /* Sentinel accent for tracks with no assigned color. Also feeds the
    Canvas VU-meter fillStyle in ChannelStrip.tsx — Canvas 2D can't resolve var(), so that component
    reads this token via getComputedStyle once on mount instead of duplicating the literal. */
---fader-tick-major: #3a3a58;    /* ChannelStrip fader major tick mark */
---fader-tick-minor: #282840;    /* ChannelStrip fader minor tick mark */
---text-on-amber: #1a1000;       /* Dark text for content sitting on amber/accent backgrounds (e.g. mute-filter pill) */
+--fader-tick-major: #6b635b;    /* ChannelStrip fader major tick mark */
+--fader-tick-minor: #3d3935;    /* ChannelStrip fader minor tick mark */
+--text-on-amber: #000000;       /* Dark text for content sitting on amber/accent backgrounds (e.g. mute-filter pill) */
 
 /* MIDI/Note editors */
 --hand-lh: #6270A5;          /* Left-hand color — piano roll, keyboard glow, split-preview timeline. Never per-track palette, for any hand-tagged note (see docs/LR Hand rework, gitignored). Default only: Settings › Appearance › Hand colours overrides it on :root (utils/handPalette.ts) */
 --hand-rh: #CB636C;          /* Right-hand color — same scope and override as --hand-lh */
---accent-root: #CB636C;      /* Explorers' "Accent Root" key — a tool colour, fixed; same pink as the default right hand but never follows the user's hand colours */
+--accent-root: #ff4dd5;      /* Explorers' "Accent Root" key — a tool colour, fixed; same pink as the default right hand but never follows the user's hand colours */
 /* Lock-a-chord on the keyboard: amber, the tools' colour (the Explorers use it too;
    the two never show at once). The song's own notes always keep their track colours. */
 --lock-chord-color: var(--text-amber);
---flag-red: #e05252;         /* Low-confidence hand-split passage flag (MidiEditor) */
---bg-field: #0a0a10;         /* Recessed input/display field background — search box, hex input, output-path readout */
---color-input-error: #c05050; /* Invalid hex-color input state (border + text) in MidiEditor's color popover */
---track-included-border: #3a7a3a;   /* MidiEditor track-include toggle — included (true) border */
---track-included-bg: #0d200d;       /* MidiEditor track-include toggle — included (true) background */
---track-included-color: #50c050;    /* MidiEditor track-include toggle — included (true) icon color */
---track-excluded: #353540;          /* MidiEditor track-include toggle — excluded (false) border + icon color */
---track-merged-row-bg: #101020;     /* MidiEditor track row background when merged */
---track-mergeselected-row-bg: #10102a; /* MidiEditor track row background when selected for merge — same blue family as --unmerge-bg */
---merge-badge-bg: #20204a;    /* MidiEditor "merged" badge background */
---merge-badge-text: #8080cc;  /* MidiEditor "merged" badge text + Unmerge button icon color */
---unmerge-border: #4040a0;    /* MidiEditor Unmerge button border */
---unmerge-bg: #10102a;        /* MidiEditor Unmerge button background */
---hand-note-neutral: #555555; /* MidiEditor split-preview timeline — notes with no hand tag yet */
---drag-handle-dot: #404055;   /* NoteEditorToolbar drag-handle grip dots */
---text-disabled-icon: #666688; /* NoteEditorToolbar disabled icon-button color */
---status-error-border: #c0392b66; /* ~40% — NoteEditorToolbar "Discard" close-confirm button border */
+--flag-red: #ff4dd5;         /* Low-confidence hand-split passage flag (MidiEditor) */
+--bg-field: #000000;         /* Recessed input/display field background — search box, hex input, output-path readout */
+--color-input-error: #ff4dd5; /* Invalid hex-color input state (border + text) in MidiEditor's color popover */
+--track-included-border: #c1f32b;   /* MidiEditor track-include toggle — included (true) border */
+--track-included-bg: #3a4415;       /* MidiEditor track-include toggle — included (true) background */
+--track-included-color: #c1f32b;    /* MidiEditor track-include toggle — included (true) icon color */
+--track-excluded: #6b635b;          /* MidiEditor track-include toggle — excluded (false) border + icon color */
+--track-merged-row-bg: #2b2a33;     /* MidiEditor track row background when merged */
+--track-mergeselected-row-bg: #2b3355; /* MidiEditor track row background when selected for merge — same blue family as --unmerge-bg */
+--merge-badge-bg: #2b3355;    /* MidiEditor "merged" badge background */
+--merge-badge-text: #a9b9ff;  /* MidiEditor "merged" badge text + Unmerge button icon color */
+--unmerge-border: #6483ff;    /* MidiEditor Unmerge button border */
+--unmerge-bg: #2b3355;        /* MidiEditor Unmerge button background */
+--hand-note-neutral: #6b635b; /* MidiEditor split-preview timeline — notes with no hand tag yet */
+--drag-handle-dot: #6b635b;   /* NoteEditorToolbar drag-handle grip dots */
+--text-disabled-icon: #6b635b; /* NoteEditorToolbar disabled icon-button color */
+--status-error-border: #ff4dd566; /* ~40% — NoteEditorToolbar "Discard" close-confirm button border */
 --state-hover-border-white: #ffffff59; /* ~35% — MidiEditor color-swatch hover border */
---state-hover-overlay-white: #ffffff0d; /* ~5% — NoteEditorToolbar quantize-item hover overlay */
---pianoroll-key-row: #171720;       /* PianoRoll canvas — white-key row shading */
---pianoroll-octave-divider: #2e2e48; /* PianoRoll canvas — octave divider line */
---pianoroll-barline: #1e1e38;       /* PianoRoll canvas — bar-line marker */
---pianoroll-tooltip-bg: #1e1e2e;    /* PianoRoll edit-mode note-name tooltip background */
+--state-hover-overlay-white: #ffffff14; /* ~5% — NoteEditorToolbar quantize-item hover overlay */
+--pianoroll-key-row: #2a2725;       /* PianoRoll canvas — white-key row shading */
+--pianoroll-octave-divider: #3d3935; /* PianoRoll canvas — octave divider line */
+--pianoroll-barline: #3d3935;       /* PianoRoll canvas — bar-line marker */
+--pianoroll-tooltip-bg: #000000;    /* PianoRoll edit-mode note-name tooltip background */
 --note-select-outline: #ffffff;   /* PianoRoll canvas — selected/dragged/edited note outline + new-note outline (white for contrast, was red) */
---note-marquee-blue: #7788aa; /* PianoRoll canvas — drag-select marquee rectangle */
+--note-marquee-blue: #6483ff; /* PianoRoll canvas — drag-select marquee rectangle */
 --text-canvas-label: #ffffffd9; /* ~85% — PianoRoll canvas — in-note-name label text (edit mode) */
---bg-tooltip: #121212eb;      /* ~92% — PianoRoll Alt+drag cursor-tooltip background */
---text-tooltip-secondary: #c6c8c8a6; /* ~65% — PianoRoll cursor-tooltip secondary line ("Right-click · clear") */
+--bg-tooltip: #000000;      /* ~92% — PianoRoll Alt+drag cursor-tooltip background */
+--text-tooltip-secondary: #c3b7ac; /* ~65% — PianoRoll cursor-tooltip secondary line ("Right-click · clear") */
 
 /* ── Keyboard-specific tones ── */
---text-chord-placeholder: #222235;  /* Keyboard.tsx — empty chord-bar "— — —" placeholder text */
---key-white-bg: #e8e8e8;            /* Keyboard.tsx — white key default (unlit) fill */
---key-white-border: #b0b0b0;        /* Keyboard.tsx — white key default (unlit) right border */
---key-label-dim: #888888;           /* Keyboard.tsx — note-name label on an unlit key */
+--text-chord-placeholder: #6b635b;  /* Keyboard.tsx — empty chord-bar "— — —" placeholder text */
+--key-white-bg: #fbf8f5;            /* Keyboard.tsx — white key default (unlit) fill */
+--key-white-border: #000000;        /* Keyboard.tsx — white key default (unlit) right border */
+--key-label-dim: #4a4540;           /* Keyboard.tsx — note-name label on an unlit key */
 --key-active-border: rgba(0,0,0,0.12); /* Keyboard.tsx — white key divider border between two lit neighbors */
 --key-black-active-border: rgba(0,0,0,0.18); /* Keyboard.tsx — black key border when lit */
 --key-note-name-color: rgba(255,255,255,0.88); /* Keyboard.tsx — black key note-name label text */
---text-key-hover: #c0c0d0;          /* KeyboardControls.tsx — key-size selector button hover text */
+--text-key-hover: #ffffff;          /* KeyboardControls.tsx — key-size selector button hover text */
 
 /* ── Settings/Panels-specific tones ── */
---border-popup: #2e2e42;            /* LoopRegionStrip.tsx — bar-range popup border + numeric inputs */
---status-error-tint-bg: rgba(192, 57, 43, 0.15);  /* SettingsPanel.tsx OptionBtn — error-active tinted background; RGB matches --status-error */
---status-success-tint-bg: rgba(74, 144, 96, 0.13); /* SettingsPanel.tsx OptionBtn — success-active tinted background; RGB matches --status-success */
---accent-amber-icon-dim: #e8a02770;     /* ~44% — SettingsPanel.tsx library folder-row icon tint */
---accent-amber-strip-fill: rgba(232, 160, 39, 0.15);   /* LoopRegionStrip.tsx canvas — selection region fill */
---accent-amber-strip-border: rgba(232, 160, 39, 0.85); /* LoopRegionStrip.tsx canvas — selection region top/bottom border */
---accent-amber-strip-apply-bg: #e8a02718;        /* ~9%  — LoopRegionStrip.tsx bar-range popup Apply button background */
---accent-amber-strip-apply-bg-hover: #e8a02732;  /* ~20% — LoopRegionStrip.tsx bar-range popup Apply button hover background */
---state-star-hover: #707060;        /* SettingsPanel.tsx — library favourite-star hover color (unstarred) */
---state-row-hover-overlay: rgba(255, 255, 255, 0.03); /* TrackPanel.tsx — subtle white hover overlay on soloable-for-edit track rows */
---text-track-count: #7f7f92;        /* TrackPanel.tsx — per-group track count text. Raised from #40404e (WCAG AA fix: was ~1.81:1 vs --bg-modal, now ~4.71:1) */
---text-track-meta: #85859a;         /* TrackPanel.tsx — track row channel/program meta text. Raised from #454560 (WCAG AA fix: was ~2.00:1 vs --bg-modal, now ~5.12:1) */
---icon-visibility-active: #6080c0;  /* TrackPanel.tsx — "Show/Hide in roll" active icon color */
---border-popover: #404055;          /* SettingsPanel.tsx — dropdown/context-menu popover border */
---status-protected: #e05a5a;                       /* SettingsPanel.tsx — protected-folder warning border/text */
---status-protected-tint-bg: rgba(224, 90, 90, 0.10); /* same warning — hover tint background; RGB matches --status-protected */
+--border-popup: #6b635b;            /* LoopRegionStrip.tsx — bar-range popup border + numeric inputs */
+--status-error-tint-bg: rgba(255, 77, 213, 0.15);  /* SettingsPanel.tsx OptionBtn — error-active tinted background; RGB matches --status-error */
+--status-success-tint-bg: rgba(193, 243, 43, 0.13); /* SettingsPanel.tsx OptionBtn — success-active tinted background; RGB matches --status-success */
+--accent-amber-icon-dim: #ffde3b70;     /* ~44% — SettingsPanel.tsx library folder-row icon tint */
+--accent-amber-strip-fill: rgba(255, 222, 59, 0.15);   /* LoopRegionStrip.tsx canvas — selection region fill */
+--accent-amber-strip-border: rgba(255, 222, 59, 0.85); /* LoopRegionStrip.tsx canvas — selection region top/bottom border */
+--accent-amber-strip-apply-bg: #ffde3b18;        /* ~9%  — LoopRegionStrip.tsx bar-range popup Apply button background */
+--accent-amber-strip-apply-bg-hover: #ffde3b32;  /* ~20% — LoopRegionStrip.tsx bar-range popup Apply button hover background */
+--state-star-hover: #ffde3b;        /* SettingsPanel.tsx — library favourite-star hover color (unstarred) */
+--state-row-hover-overlay: rgba(255, 255, 255, 0.05); /* TrackPanel.tsx — subtle white hover overlay on soloable-for-edit track rows */
+--text-track-count: #c3b7ac;        /* TrackPanel.tsx — per-group track count text. Raised from #40404e (WCAG AA fix: was ~1.81:1 vs --bg-modal, now ~4.71:1) */
+--text-track-meta: #c3b7ac;         /* TrackPanel.tsx — track row channel/program meta text. Raised from #454560 (WCAG AA fix: was ~2.00:1 vs --bg-modal, now ~5.12:1) */
+--icon-visibility-active: #fbf8f5;  /* TrackPanel.tsx — "Show/Hide in roll" active icon color */
+--border-popover: #6b635b;          /* SettingsPanel.tsx — dropdown/context-menu popover border */
+--status-protected: #ff4dd5;                       /* SettingsPanel.tsx — protected-folder warning border/text */
+--status-protected-tint-bg: rgba(255, 77, 213, 0.12); /* same warning — hover tint background; RGB matches --status-protected */
 --status-low-confidence: #7a323c;   /* MidiEditor.tsx — low-confidence hand-split passage text/swatch/highlight */
 
 /* ── Elevation — named base shadows for floating panels. Layered: a tight
    contact shadow, a mid one and a wide ambient one, so a panel sits on the
    surface below it instead of floating in a single dark blur. */
---elevation-modal: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.45), 0 20px 56px rgba(0, 0, 0, 0.6);          /* ChordExplorer, MixerConsole, LockedChordModal */
---elevation-modal-heavy: 0 1px 2px rgba(0, 0, 0, 0.55), 0 8px 20px rgba(0, 0, 0, 0.5), 0 20px 56px rgba(0, 0, 0, 0.65);   /* MidiEditor */
+--elevation-modal: 0 8px 24px rgba(0, 0, 0, 0.45);          /* every window; none on paper, where the 1px ink border does it */
+--elevation-modal-heavy: 0 8px 24px rgba(0, 0, 0, 0.45);    /* MidiEditor */
 --elevation-explorer: 0 1px 2px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.65);      /* ScaleExplorer — wider blur */
 --elevation-floating-light: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.35), 0 20px 56px rgba(0, 0, 0, 0.5); /* FloatingKeyboard */
---elevation-strip: 0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 20px rgba(0, 0, 0, 0.5);          /* LoopRegionStrip popup — smaller than a full modal */
---elevation-popover: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.45);       /* SettingsPanel.tsx — dropdown/context-menu popovers */
+--elevation-strip: 0 3px 10px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.4);    /* LoopRegionStrip popup */
+--elevation-popover: 0 3px 10px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.4);  /* menus, dropdowns */
 
 /* ── Utility classes ── */
 
-/* ── Amber outer glow — apply className to every modal/floating panel ──────
-   The base elevation shadow varies per component; pass it via the CSS custom
-   property --_modal-shadow in the element's inline style (see --elevation-*
-   tokens above). The two amber layers are fixed by this class. Future
-   floating panels should use this class.      */
+/* ── Floating panel chrome — the design has no glow. The class name stays:
+   every modal has it, and touch rules hang off it. Pass a --elevation-* token
+   through --_modal-shadow in inline style for a different lift. */
 .orfeo-modal-glow {
-  box-shadow:
-    var(--_modal-shadow, var(--elevation-modal)),
-    0 0 18px 4px var(--accent-amber-medium),
-    0 0 5px 1px var(--accent-amber-strong);
+  box-shadow: var(--_modal-shadow, var(--elevation-modal));
   animation: orfeo-fade-in 0.12s ease-out backwards;
 }
 
@@ -578,7 +637,7 @@ button, input, select, textarea {
   border-radius: 2px;
   background: linear-gradient(
     to right,
-    var(--accent-amber-bold) var(--fill, 50%),
+    var(--text-amber) var(--fill, 50%),
     var(--border) var(--fill, 50%)
   );
 }
@@ -644,12 +703,252 @@ button, input, select, textarea {
 
   }
 
-/* Warm theme overrides */
-.theme-warm {
-  --bg: #12100e;
+/* ── Two surfaces, one set of names ──────────────────────────────────────────
+   Studio (dark practice room) is the default on :root. Add .theme-paper to any
+   element to turn its whole subtree into the scrapbook library: every token
+   below is remapped, so inline styles follow with no edits. Accent-as-text
+   can't be yellow on cream, so --text-amber and its alpha family become ink
+   there, and --text-on-amber turns white. That gives the design's idiom for
+   free: selected = yellow on black in the studio, black on paper.
+   Paper only applies in the Warm theme: the Dark theme ("dark everywhere")
+   simply never matches this selector. .theme-studio goes back to dark inside
+   paper. Generated once from the design's palette; edit by hand from here on. */
+.theme-studio {
+  color: var(--text-default);
+  --bg: #24211f;
+  --panel: #2f2c29;
+  --bg-panel: #2f2c29;
+  --bg-panel2: #3d3935;
+  --bg-row: #24211f;
+  --bg-input: #3d3935;
+  --bg-highlight: #c3b7ac;
+  --border: #3d3935;
+  --border2: #6b635b;
+  --text-default: #eadcce;
+  --text-active: #ffffff;
+  --text-muted: #c3b7ac;
+  --text-amber: #ffde3b;
+  --text-faint: #c3b7ac;
+  --text-dimmest: #c3b7ac;
+  --text-dim: #c3b7ac;
+  --text-standard: #eadcce;
+  --text-body: #eadcce;
+  --text-primary: #ffffff;
+  --text-bright: #ffffff;
+  --text-near-black: #000000;
+  --text-on-amber: #000000;
+  --status-success: #c1f32b;
+  --status-error: #ff4dd5;
+  --status-error-hover: #ff7ae0;
+  --bg-modal: #2f2c29;
+  --bg-modal-header: #24211f;
+  --bg-tile: #24211f;
+  --state-hover-bg: #3d3935;
+  --state-hover-border: #6b635b;
+  --state-active-bg: #3d3935;
+  --state-selected-bg: #4a4226;
+  --state-disabled: #6b635b;
+  --accent-amber-hover: #ffe970;
+  --text-inactive: #c3b7ac;
+  --text-tile-subtext: #c3b7ac;
+  --text-pill-hover: #ffffff;
+  --text-list-hover: #ffffff;
+  --text-key-label: #ffffff;
+  --status-success-bg: #2f2c29;
+  --status-success-border: #c1f32b;
+  --status-success-text: #c1f32b;
+  --status-error-banner-bg: #2f2c29;
+  --status-error-banner-border: #ff4dd5;
+  --status-error-banner-text: #ff4dd5;
+  --text-dim-control: #c3b7ac;
+  --border-row: #3d3935;
+  --bg-deep: #000000;
+  --text-icon-inactive: #c3b7ac;
+  --text-icon-hover: #ffffff;
+  --bg-field: #000000;
+  --color-input-error: #ff4dd5;
+  --drag-handle-dot: #6b635b;
+  --text-disabled-icon: #6b635b;
+  --status-error-border: #ff4dd566;
+  --state-hover-border-white: #ffffff59;
+  --state-hover-overlay-white: #ffffff14;
+  --text-key-hover: #ffffff;
+  --border-popup: #6b635b;
+  --status-error-tint-bg: rgba(255, 77, 213, 0.15);
+  --status-success-tint-bg: rgba(193, 243, 43, 0.13);
+  --state-star-hover: #ffde3b;
+  --state-row-hover-overlay: rgba(255, 255, 255, 0.05);
+  --text-track-count: #c3b7ac;
+  --text-track-meta: #c3b7ac;
+  --border-popover: #6b635b;
+  --status-protected: #ff4dd5;
+  --status-protected-tint-bg: rgba(255, 77, 213, 0.12);
+  --accent-amber-strong: #ffde3b55;
+  --accent-amber-medium: #ffde3b22;
+  --accent-amber-subtle: #ffde3b08;
+  --accent-amber-bold: #ffde3b99;
+  --accent-amber-shadow: #ffde3b66;
+  --accent-amber-tint-bg: #ffde3b0f;
+  --accent-amber-selected-bg: #ffde3b14;
+  --accent-amber-active-border: #ffde3b73;
+  --accent-amber-active-bg: #ffde3b12;
+  --accent-amber-loop-border: #ffde3b8c;
+  --accent-amber-loop-border-dim: #ffde3b4d;
+  --accent-amber-loop-fill-dim: #ffde3b0a;
+  --accent-amber-tooltip-text: #ffde3be6;
+  --text-amber-dimmest: #ffde3b66;
+  --accent-amber-toggle-active-bg: #ffde3b1a;
+  --accent-amber-icon-dim: #ffde3b70;
+  --accent-amber-strip-fill: rgba(255, 222, 59, 0.15);
+  --accent-amber-strip-border: rgba(255, 222, 59, 0.85);
+  --accent-amber-strip-apply-bg: #ffde3b18;
+  --accent-amber-strip-apply-bg-hover: #ffde3b32;
+  --ui-floor: var(--ink-700);
+  --ui-surface: var(--ink-800);
+  --ui-sunken: var(--ink);
+  --ui-text: #ffffff;
+  --ui-text-soft: var(--stone);
+  --ui-line: var(--line-600);
+  --ui-line-soft: var(--line-700);
+  --ui-selected: var(--paint-yellow);
+  --ui-on-selected: var(--ink);
+  --ui-control: transparent;
+  --scrollbar-thumb: var(--line-600);
+  --elevation-popover: 0 3px 10px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.4);
+  --elevation-modal: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --elevation-modal-heavy: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --elevation-strip: 0 3px 10px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.4);
+  --c-default: var(--text-default);
+  --c-active: var(--text-active);
+  --c-muted: var(--text-muted);
+  --c-amber: var(--text-amber);
+  --topbar-bar-number: var(--text-amber);
+  --topbar-bar-total: var(--text-muted);
+  --topbar-bar-label: var(--text-muted);
+  --topbar-metronome-on: var(--text-amber);
+  --topbar-metronome-off: var(--text-muted);
+  --topbar-midi-on: var(--text-amber);
+  --topbar-midi-off: var(--text-muted);
+  --lock-chord-color: var(--text-amber);
 }
-.theme-warm body {
-  background: var(--bg);
+:root[data-theme='warm'] .theme-paper {
+  color: var(--text-default);
+  letter-spacing: -0.4px;
+  --bg: #f1e8de;
+  --panel: #fbf8f5;
+  --bg-panel: #fbf8f5;
+  --bg-panel2: #eadcce;
+  --bg-row: #f1e8de;
+  --bg-input: #ffffff;
+  --bg-highlight: #4a4540;
+  --border: #c3b7ac;
+  --border2: #000000;
+  --text-default: #000000;
+  --text-active: #000000;
+  --text-muted: #4a4540;
+  --text-amber: #000000;
+  --text-faint: #4a4540;
+  --text-dimmest: #4a4540;
+  --text-dim: #4a4540;
+  --text-standard: #000000;
+  --text-body: #000000;
+  --text-primary: #000000;
+  --text-bright: #000000;
+  --text-near-black: #ffffff;
+  --text-on-amber: #ffffff;
+  --status-success: #1f6f3a;
+  --status-error: #a3127f;
+  --status-error-hover: #7e0d62;
+  --bg-modal: #fbf8f5;
+  --bg-modal-header: #f1e8de;
+  --bg-tile: #ffffff;
+  --state-hover-bg: #eadcce;
+  --state-hover-border: #000000;
+  --state-active-bg: #eadcce;
+  --state-selected-bg: #eadcce;
+  --state-disabled: #c3b7ac;
+  --accent-amber-hover: #2f2c29;
+  --text-inactive: #4a4540;
+  --text-tile-subtext: #4a4540;
+  --text-pill-hover: #000000;
+  --text-list-hover: #000000;
+  --text-key-label: #000000;
+  --status-success-bg: #fbf8f5;
+  --status-success-border: #000000;
+  --status-success-text: #000000;
+  --status-error-banner-bg: #fbf8f5;
+  --status-error-banner-border: #000000;
+  --status-error-banner-text: #a3127f;
+  --text-dim-control: #4a4540;
+  --border-row: #eadcce;
+  --bg-deep: #eadcce;
+  --text-icon-inactive: #4a4540;
+  --text-icon-hover: #000000;
+  --bg-field: #fbf8f5;
+  --color-input-error: #a3127f;
+  --drag-handle-dot: #c3b7ac;
+  --text-disabled-icon: #c3b7ac;
+  --status-error-border: #a3127f66;
+  --state-hover-border-white: #00000059;
+  --state-hover-overlay-white: #0000000f;
+  --text-key-hover: #000000;
+  --border-popup: #000000;
+  --status-error-tint-bg: rgba(163, 18, 127, 0.10);
+  --status-success-tint-bg: rgba(31, 111, 58, 0.10);
+  --state-star-hover: #000000;
+  --state-row-hover-overlay: rgba(0, 0, 0, 0.05);
+  --text-track-count: #4a4540;
+  --text-track-meta: #4a4540;
+  --border-popover: #000000;
+  --status-protected: #a3127f;
+  --status-protected-tint-bg: rgba(163, 18, 127, 0.10);
+  --accent-amber-strong: #00000055;
+  --accent-amber-medium: #00000022;
+  --accent-amber-subtle: #00000008;
+  --accent-amber-bold: #00000099;
+  --accent-amber-shadow: #00000066;
+  --accent-amber-tint-bg: #0000000f;
+  --accent-amber-selected-bg: #00000014;
+  --accent-amber-active-border: #00000073;
+  --accent-amber-active-bg: #00000012;
+  --accent-amber-loop-border: #0000008c;
+  --accent-amber-loop-border-dim: #0000004d;
+  --accent-amber-loop-fill-dim: #0000000a;
+  --accent-amber-tooltip-text: #000000e6;
+  --text-amber-dimmest: #00000066;
+  --accent-amber-toggle-active-bg: #0000001a;
+  --accent-amber-icon-dim: #00000070;
+  --accent-amber-strip-fill: rgba(0, 0, 0, 0.15);
+  --accent-amber-strip-border: rgba(0, 0, 0, 0.85);
+  --accent-amber-strip-apply-bg: #00000018;
+  --accent-amber-strip-apply-bg-hover: #00000032;
+  --ui-floor: var(--paper);
+  --ui-surface: var(--paper-card);
+  --ui-sunken: var(--sand);
+  --ui-text: var(--ink);
+  --ui-text-soft: var(--ink-soft);
+  --ui-line: var(--ink);
+  --ui-line-soft: var(--stone);
+  --ui-selected: var(--ink);
+  --ui-on-selected: #ffffff;
+  --ui-control: #ffffff;
+  --scrollbar-thumb: var(--stone);
+  --elevation-popover: rgba(115, 115, 115, 0.16) 0 3px 10px, rgba(115, 115, 115, 0.16) 0 2px 4px;
+  --elevation-modal: none;
+  --elevation-modal-heavy: none;
+  --elevation-strip: rgba(115, 115, 115, 0.16) 0 3px 10px, rgba(115, 115, 115, 0.16) 0 2px 4px;
+  --c-default: var(--text-default);
+  --c-active: var(--text-active);
+  --c-muted: var(--text-muted);
+  --c-amber: var(--text-amber);
+  --topbar-bar-number: var(--text-amber);
+  --topbar-bar-total: var(--text-muted);
+  --topbar-bar-label: var(--text-muted);
+  --topbar-metronome-on: var(--text-amber);
+  --topbar-metronome-off: var(--text-muted);
+  --topbar-midi-on: var(--text-amber);
+  --topbar-midi-off: var(--text-muted);
+  --lock-chord-color: var(--text-amber);
 }
 
 body {
@@ -659,9 +958,9 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
-  /* ── Dark-background readability: light text optically bleeds/spreads more
-     than dark-on-light — slight extra tracking compensates. Applies app-wide. */
-  letter-spacing: 0.03rem;
+  /* Tight tracking, the design's voice. Inherited as a length, so headlines set their own. */
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* A theme switch repaints everything at once: nothing eases through it */
@@ -721,8 +1020,8 @@ body {
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #252535; border-radius: 3px; }
-@media (hover: hover) { ::-webkit-scrollbar-thumb:hover { background: #353548; } }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+@media (hover: hover) { ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); } }
 
 /* Range slider — the scrub bar. Caller sets --fill (0%-100%) per render. */
 .scrub-slider {
@@ -745,18 +1044,13 @@ body {
 .scrub-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -5px;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
   border-radius: 50%;
-  background: var(--text-amber);
+  background: #ffffff;
   cursor: pointer;
-  transition: transform 0.1s ease-out;
-  border: 2px solid var(--bg-deep);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-@media (hover: hover) {
-  .scrub-slider:not(:disabled)::-webkit-slider-thumb:hover { transform: scale(1.3); }
+  border: 2px solid var(--ink);
 }
 .scrub-slider:disabled { opacity: 0.25; cursor: default; }
 
@@ -980,3 +1274,125 @@ textarea:focus-visible,
 @media (hover: hover) { .lesson-row:hover:not(:disabled) { background-color: var(--bg-tile); } }
 .lesson-banner .home-action:disabled { opacity: 0.45; cursor: default; }
 .home-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 16px 10px; }
+
+/* ── Shared control kit (the design's parts) ───────────────────────────────
+   Semantic tokens only, so each works on paper and in the studio. Sizes step up
+   on touch through --control-h. Hover lives behind (hover: hover); nothing here
+   animates a press beyond the global button rule, and [data-instant] opts out
+   of that, so these are safe on anything used while playing. */
+.o-btn, .o-btn-primary, .o-btn-quiet, .o-icon-btn, .o-close { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; font: inherit; color: var(--ui-text); cursor: pointer; white-space: nowrap; text-decoration: none; transition: background-color 0.12s, color 0.12s, transform 150ms ease-out; }
+.o-btn { height: var(--control-h); padding: 0 20px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); font-size: var(--text-md); }
+.o-btn-primary { height: var(--control-h); padding: 0 24px; border: 0; border-radius: var(--radius-pill); background: var(--accent); color: var(--on-accent); font-size: var(--text-md); }
+.o-btn-quiet { height: var(--control-h); padding: 0 8px; border: 0; background: none; font-size: var(--text-md); text-decoration: underline; }
+.o-icon-btn { width: var(--control-h); height: var(--control-h); padding: 0; border: 1px solid var(--ui-line); border-radius: 50%; background: var(--ui-control); }
+.o-close { width: var(--control-h-lg); height: var(--control-h-lg); padding: 0; border: 1px solid var(--ui-line); border-radius: 50%; background: var(--ui-control); }
+.o-btn-lg { height: var(--control-h-lg); }
+.o-btn:disabled, .o-btn-primary:disabled, .o-btn-quiet:disabled, .o-icon-btn:disabled { opacity: 0.45; cursor: default; }
+@media (hover: hover) {
+  .o-btn:hover:not(:disabled), .o-icon-btn:hover:not(:disabled), .o-close:hover { background: var(--state-hover-bg); }
+  .o-btn-primary:hover:not(:disabled) { background: #ffe970; }
+  .o-btn-quiet:hover:not(:disabled) { color: var(--ui-text-soft); }
+}
+
+/* Segmented pill: wraps OptionBtn or plain buttons with aria-pressed */
+.o-seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); }
+.o-seg > * { flex: 1; min-width: 0; }
+.o-seg button { width: 100%; height: calc(var(--control-h) - 8px); padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--ui-text); font: inherit; font-size: var(--text-base); white-space: nowrap; cursor: pointer; transition: background-color 0.12s, color 0.12s; }
+.o-seg button[aria-pressed='true'] { background: var(--ui-selected); color: var(--ui-on-selected); }
+
+/* Options outside a .o-seg stand alone as pills */
+.o-option { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); color: var(--ui-text); font: inherit; font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: background-color 0.12s, color 0.12s; }
+.o-option[aria-pressed='true'] { border-color: var(--ui-selected); background: var(--ui-selected); color: var(--ui-on-selected); }
+.o-option[data-tone='error'][aria-pressed='true'] { border-color: var(--status-error); background: var(--status-error); color: var(--ink); }
+:root[data-theme='warm'] .theme-paper .o-option[data-tone='error'][aria-pressed='true'] { color: #ffffff; }
+.o-option:disabled { opacity: 0.45; cursor: default; }
+@media (hover: hover) { .o-option[aria-pressed='false']:hover:not(:disabled), .o-seg button[aria-pressed='false']:hover:not(:disabled) { background: var(--state-hover-bg); } }
+
+/* Switch: black pill with a yellow knob when on (yellow pill in the studio) */
+.o-switch { flex-shrink: 0; display: flex; justify-content: flex-start; width: 46px; height: 26px; padding: 2px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); cursor: pointer; transition: background-color 0.12s; }
+.o-switch > span { width: 20px; height: 20px; border: 1px solid var(--ui-line); border-radius: 50%; background: var(--sand); }
+.o-switch[aria-checked='true'] { justify-content: flex-end; border-color: var(--ui-selected); background: var(--ui-selected); }
+.o-switch[aria-checked='true'] > span { border-color: var(--ink); background: var(--ink); }
+:root[data-theme='warm'] .theme-paper .o-switch[aria-checked='true'] > span { background: var(--paint-yellow); }
+
+/* Field, select trigger, and the list a select opens */
+.o-field { display: flex; align-items: center; gap: 10px; height: var(--control-h); padding: 0 14px; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--bg-field); color: var(--ui-text); font-size: var(--text-md); }
+.o-field input { min-width: 0; flex: 1; border: 0; outline: 0; background: none; color: inherit; font: inherit; }
+.o-field:focus-within { outline: 2px solid var(--text-amber); outline-offset: 1px; }
+.o-select { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); color: var(--ui-text); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.o-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-select-list { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 50001; overflow: hidden auto; max-height: 240px; padding: 4px; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-surface); box-shadow: var(--elevation-popover); }
+.o-select-item { padding: 8px 10px; border-radius: var(--radius-sm); color: var(--ui-text); font-size: var(--text-sm); cursor: pointer; }
+.o-select-item[aria-selected='true'] { background: var(--ui-selected); color: var(--ui-on-selected); }
+@media (hover: hover) { .o-select-item[aria-selected='false']:hover { background: var(--state-hover-bg); } }
+
+/* Stepper: "− value +". A plain .o-step has no fill, for the icon variety */
+.o-stepper { display: inline-flex; align-items: center; gap: 4px; }
+.o-step { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--radius-sm); background: var(--state-hover-bg); color: var(--ui-text); font: inherit; font-size: var(--text-lg); cursor: pointer; }
+.o-step:disabled { opacity: 0.4; cursor: default; }
+.o-step-plain { background: none; }
+.o-stepper-value { min-width: 34px; color: var(--ui-text); font-size: var(--text-sm); text-align: center; }
+@media (hover: hover) { .o-step:hover:not(:disabled) { color: var(--text-amber); } }
+
+/* Text link */
+.o-link { padding: 0; border: 0; background: none; color: var(--ui-text); font: inherit; font-size: var(--text-sm); text-decoration: underline; cursor: pointer; }
+
+/* Dot: state in one colour, always next to its words */
+.o-dot { flex-shrink: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--ui-text); }
+.o-dot-on { background: var(--paint-lime); }
+.o-dot-warn { background: var(--paint-yellow); }
+.o-dot-alert { background: var(--paint-pink); }
+.o-dot-off { border: 1.5px solid currentColor; background: none; }
+
+/* Card and tag */
+.o-card { padding: 18px 20px; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-surface); color: var(--ui-text); }
+.o-tag { display: inline-block; padding: 3px 8px; border-radius: var(--radius-sm); background: var(--paper-card); color: var(--ink); font-size: var(--text-xs); }
+
+/* Progress bar */
+.o-progress { display: block; height: 6px; border-radius: var(--radius-pill); background: var(--state-hover-bg); overflow: hidden; }
+.o-progress > span { display: block; height: 100%; background: var(--text-amber); }
+
+/* Headlines */
+.o-display { margin: 0; font-size: var(--text-display); font-weight: 400; line-height: 1; letter-spacing: var(--tracking-tight); }
+.o-title { margin: 0; font-size: var(--text-2xl); font-weight: 400; line-height: 1.1; letter-spacing: var(--tracking-tight); }
+.o-title-lg { margin: 0; font-size: var(--text-3xl); font-weight: 400; line-height: 1.05; letter-spacing: var(--tracking-tight); }
+.o-note { color: var(--ui-text-soft); font-size: var(--text-base); line-height: 1.35; }
+
+/* Windows: a scrim, and a panel with room for a big title and close button */
+.o-scrim { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--scrim); }
+.o-window { display: flex; flex-direction: column; gap: 14px; padding: 28px; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-surface); color: var(--ui-text); }
+.o-window-head { display: flex; align-items: flex-start; gap: 16px; cursor: grab; touch-action: none; }
+.o-window-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+.o-spacer { flex: 1; }
+
+/* Toast: bottom centre, one black pill with a dot. Fixed colours: it reads the same on both surfaces */
+.o-toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 9900; display: flex; align-items: center; gap: 12px; min-height: 44px; max-width: calc(100vw - 32px); padding: 8px 20px; border: 0; border-radius: var(--radius-pill); background: var(--ink); color: #ffffff; font: inherit; font-size: var(--text-md); }
+.o-toast button { height: 36px; padding: 0 14px; border: 0; border-radius: var(--radius-pill); background: var(--ink-800); color: var(--paint-yellow); font: inherit; cursor: pointer; }
+
+/* Decoration: yellow disc + pink triangle, behind dark feature panels */
+.o-disc { position: absolute; border-radius: 50%; background: var(--paint-yellow); pointer-events: none; }
+.o-triangle { position: absolute; background: var(--paint-pink); clip-path: polygon(50% 0, 100% 100%, 0 100%); pointer-events: none; }
+
+/* Small surfaces in controls.tsx */
+.o-group-head { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 10px; border-top: 1px solid var(--ui-line-soft); color: var(--ui-text); font-size: var(--text-base); cursor: pointer; user-select: none; }
+@media (hover: hover) { .o-group-head:hover { background: var(--state-hover-bg); } }
+.o-icon-quiet { position: relative; display: flex; align-items: center; padding: 4px; border: 0; background: none; color: var(--ui-text-soft); cursor: pointer; }
+.o-icon-quiet:disabled { opacity: 0.4; cursor: default; }
+@media (hover: hover) { .o-icon-quiet:hover:not(:disabled) { color: var(--ui-text); } }
+/* The menu's and tooltip's own parts */
+.o-menu-item { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--ui-text); font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; transition: background-color 0.1s; }
+.o-menu-item:disabled { opacity: 0.4; cursor: default; }
+@media (hover: hover) { .o-menu-item:hover:not(:disabled) { background: var(--state-hover-bg); } .o-menu-item[data-danger]:hover:not(:disabled) { color: var(--status-protected); } }
+
+@media (pointer: coarse) {
+  :root { --control-h: 48px; --control-h-lg: 52px; }
+  .o-switch { width: 60px; height: 34px; padding: 3px; }
+  .o-switch > span { width: 26px; height: 26px; }
+  .o-option { min-height: 40px; }
+  .o-select { min-height: 44px; }
+  .o-select-item { padding: 14px 12px; }
+  .o-step { width: 44px; height: 40px; }
+  .o-icon-quiet { padding: 12px; }
+  .o-group-head { min-height: 48px; }
+  .o-menu-item { min-height: 48px; }
+}

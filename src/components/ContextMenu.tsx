@@ -1,13 +1,9 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { touchScreen } from '../utils/touchScreen'
 
 // ── ContextMenu — shared shell for right-click popups (Library's file/folder
-// menus). Previously copy-pasted per call site with a muted `--drag-handle-
-// dot`/`--border-popover` border; unified here on the same dark-panel +
-// amber-border + `orfeo-modal-glow` language as Tooltip.tsx/ConfirmDialog.tsx,
-// so every floating popup in the app now reads as one family. Click-anchored
-// and dismissed by the caller (outside-click/Escape) — that logic stays with
-// the caller since it already owns the open/closed state. ───────────────────
+// menus). A paper card in the Warm theme, wherever it opens. Click-anchored and
+// dismissed by the caller (outside-click/Escape) — that logic stays with the
+// caller since it already owns the open/closed state. ───────────────────────
 
 export interface ContextMenuProps {
   x: number
@@ -56,13 +52,12 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(function
       ref={setRef}
       role="menu"
       aria-label={ariaLabel}
-      className={className ? `orfeo-modal-glow ${className}` : 'orfeo-modal-glow'}
+      className={className ? `orfeo-modal-glow theme-paper ${className}` : 'orfeo-modal-glow theme-paper'}
       style={{
         position: 'fixed', top: pos.top, left: pos.left,
-        background: 'var(--bg-tooltip)', border: '1px solid var(--accent-amber-strong)',
-        // concentric with the items: 5px + 4px inset + 1px border
+        background: 'var(--ui-surface)', border: '1px solid var(--ui-line)',
         borderRadius: 'var(--radius-lg)',
-        zIndex: 9500, minWidth, overflow: 'hidden', padding: 4,
+        zIndex: 9500, minWidth, overflow: 'hidden', padding: 6,
         '--_modal-shadow': 'var(--elevation-popover)',
       } as React.CSSProperties}
     >
@@ -71,38 +66,14 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(function
   )
 })
 
-// ── ContextMenuItem — replaces the old MENU_ITEM_STYLE + a hand-written
-// onMouseEnter/onMouseLeave pair on every single button (both call sites
-// mutated DOM style directly, identically, per item). Hover is real React
-// state here instead, and `danger` swaps the hover color to the same red
-// Delete already used, without every caller needing to know that token. ────
 export function ContextMenuItem({ onClick, disabled, danger, children }: {
   onClick: () => void
   disabled?: boolean
   danger?: boolean
   children: ReactNode
 }) {
-  const [hover, setHover] = useState(false)
-  const active = hover && !disabled
   return (
-    <button
-      role="menuitem"
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        width: '100%', padding: touchScreen ? '13px 10px' : '8px 10px',
-        background: active ? 'var(--bg-tile)' : 'none',
-        border: 'none', borderRadius: 5,
-        color: active ? (danger ? 'var(--status-protected)' : 'var(--text-amber)') : 'var(--text-default)',
-        fontSize: 'var(--text-xs)',
-        textAlign: 'left', cursor: disabled ? 'default' : 'pointer',
-        display: 'flex', alignItems: 'center', gap: 8,
-        opacity: disabled ? 0.4 : 1,
-        transition: 'background 0.1s, color 0.1s',
-      }}
-    >
+    <button role="menuitem" className="o-menu-item" data-danger={danger || undefined} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   )
@@ -139,12 +110,12 @@ export function useMenuDismiss(open: boolean, ref: RefObject<HTMLElement | null>
 }
 
 export function ContextMenuDivider() {
-  return <div style={{ borderTop: '1px solid var(--border2)', margin: '4px 0' }} />
+  return <div role="separator" style={{ height: 1, margin: '4px 8px', background: 'var(--ui-line-soft)' }} />
 }
 
 export function ContextMenuLabel({ children }: { children: ReactNode }) {
   return (
-    <div style={{ padding: '6px 10px 2px', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+    <div style={{ padding: '6px 12px 2px', fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)' }}>
       {children}
     </div>
   )

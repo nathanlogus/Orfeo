@@ -701,7 +701,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   noteNaming: 'english',
   accidentals: 'flat',
   zoomLevel: 1,
-  appTheme: 'dark',
+  appTheme: 'warm',
   showBarNumbers: true,
   setNoteNaming: (noteNaming) => set({ noteNaming }),
   setAccidentals: (accidentals) => set({ accidentals }),

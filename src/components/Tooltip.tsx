@@ -2,7 +2,7 @@ import { useRef, useState, useLayoutEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 
-// ── Tooltip — dark background, amber border, amber title row + a muted
+// ── Tooltip — a black card on both surfaces, white title row + a soft
 // description row underneath. Built for the Console Mixer (knobs, icons,
 // the header) since nothing matching that two-part style existed anywhere
 // else in the app to reuse — every other `title` in this codebase is a
@@ -13,8 +13,7 @@ import { useStore } from '../store'
 
 export interface TooltipContent {
   title: string
-  // Appended to the heading WITHOUT the uppercase styling — for musical
-  // names whose case carries meaning (Ebm vs EBM, Bb vs BB)
+  // Appended to the heading — musical names whose case carries meaning (Ebm, Bb)
   titleValue?: string
   description?: string
 }
@@ -61,8 +60,7 @@ export function TooltipBox({ anchorRect, content, visible, placement = 'top', on
   // tooltips switched off (Settings › Appearance), which hides only the hints
   readout?: boolean
   placement?: Placement
-  // Plain, single-tip styling (white/normal-case/normal-weight, no amber
-  // heading) instead of the amber-title + muted-description pair — for
+  // Plain, single-tip styling instead of the title + description pair — for
   // short, self-explanatory hints that don't need a two-part structure.
   oneLine?: boolean
   // oneLine only: the dimmed description colour instead of bright text —
@@ -111,37 +109,35 @@ export function TooltipBox({ anchorRect, content, visible, placement = 'top', on
         // keeps the probe render from ever flashing at the wrong spot.
         top: pos?.top ?? -9999, left: pos?.left ?? -9999,
         visibility: pos ? 'visible' : 'hidden',
-        background: 'var(--bg-tooltip)', border: '1px solid var(--accent-amber-strong)',
-        borderRadius: 6, padding: '6px 10px',
+        background: 'var(--ink)', color: '#ffffff',
+        borderRadius: 'var(--radius-md)', padding: '8px 12px',
         // Hard caps — a tooltip must never balloon into a panel, whatever it's
         // handed (e.g. a raw multi-line error). Long words wrap, overflow clips.
         maxWidth: 260, maxHeight: 160, overflow: 'hidden',
         overflowWrap: 'anywhere',
-        display: 'flex', flexDirection: 'column', gap: 3,
+        display: 'flex', flexDirection: 'column', gap: 2,
         pointerEvents: 'none', zIndex: 99999,
         '--_modal-shadow': 'var(--elevation-strip)',
       } as React.CSSProperties}
       className="orfeo-modal-glow"
     >
       {oneLine ? (
-        <div style={{ fontSize: 10, fontFamily: 'var(--font-ui)', fontWeight: 400, lineHeight: 1.4, color: muted ? 'var(--text-muted)' : 'var(--text-default)', whiteSpace: 'pre-line' }}>
+        <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.35, color: muted ? 'var(--stone)' : '#ffffff', whiteSpace: 'pre-line' }}>
           {content.title}
           {content.description && <>{' '}{content.description}</>}
         </div>
       ) : (
         <>
           <div style={{
-            fontSize: 9, fontFamily: 'var(--font-ui)', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.08em',
-            color: 'var(--text-amber)', whiteSpace: 'nowrap',
+            fontSize: 'var(--text-base)', color: '#ffffff', whiteSpace: 'nowrap',
           }}>
             {content.title}
-            {content.titleValue && <span style={{ textTransform: 'none', letterSpacing: '0.02em' }}>{content.titleValue}</span>}
+            {content.titleValue && <span>{content.titleValue}</span>}
           </div>
           {content.description && (
             <div style={{
-              fontSize: 10, fontFamily: 'var(--font-ui)', lineHeight: 1.4,
-              color: 'var(--text-muted)', whiteSpace: 'pre-line',
+              fontSize: 'var(--text-sm)', lineHeight: 1.35,
+              color: 'var(--stone)', whiteSpace: 'pre-line',
             }}>
               {content.description}
             </div>
@@ -164,8 +160,7 @@ export default function Tooltip({ title, titleValue, description, placement = 't
   disabled?: boolean
   description?: string
   placement?: Placement
-  // See TooltipBox — plain single-tip styling instead of the amber-heading
-  // two-part layout. In this mode `title` IS the tip text (kept as the same
+  // See TooltipBox — plain single-tip styling instead of the two-part layout. In this mode `title` IS the tip text (kept as the same
   // prop rather than adding a separate one, since callers only ever need
   // one string either way); `description`, if also passed, renders as a
   // second plain line with no visual distinction from the first.

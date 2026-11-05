@@ -2,7 +2,7 @@
 // Mount <ConfirmDialogHost /> once in App.tsx; it renders nothing when idle.
 // Trigger via confirmDialog() from confirmController.ts (imperative API).
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { subscribeConfirm, type ConfirmState } from '../utils/confirmController'
 import { useFocusTrap } from '../hooks/useFocusTrap'
@@ -36,12 +36,8 @@ export function ConfirmDialogHost() {
 
   return createPortal(
     <div
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.85)',
-        zIndex: 99999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
+      className="o-scrim"
+      style={{ zIndex: 99999 }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) state.resolve(safeIndex) }}
     >
       <div
@@ -49,65 +45,32 @@ export function ConfirmDialogHost() {
         role="dialog"
         aria-modal="true"
         aria-label={state.title || 'Confirm'}
-        className="orfeo-modal-glow"
-        style={{
-          background: 'var(--bg-modal)',
-          border: '1px solid var(--border2)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '20px 22px',
-          minWidth: 340,
-          maxWidth: 460,
-          '--_modal-shadow': 'var(--elevation-modal)',
-          ...dialogFitsScreen, ...placed,
-        } as CSSProperties}
+        className="orfeo-modal-glow theme-paper o-window"
+        style={{ width: 'min(480px, calc(100vw - 32px))', ...dialogFitsScreen, ...placed }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {state.title && (
-          <div onPointerDown={onDragStart} style={{
-            cursor: 'grab', touchAction: 'none',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--text-amber)',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            marginBottom: 10,
-          }}>
-            {state.title}
-          </div>
-        )}
-        <div style={{ color: 'var(--text-default)', fontSize: 'var(--text-base)', lineHeight: 1.5 }}>
+        {/* The title's row moves the window; a titleless dialog drags by its message */}
+        {state.title
+          ? <h2 className="o-title o-window-head" onPointerDown={onDragStart}>{state.title}</h2>
+          : null}
+        <div
+          onPointerDown={state.title ? undefined : onDragStart}
+          className={state.title ? 'o-note' : 'o-window-head'}
+          style={state.title ? { fontSize: 'var(--text-md)' } : { fontSize: 'var(--text-xl)', lineHeight: 1.2 }}
+        >
           {state.message}
         </div>
-        {state.detail && (
-          <div style={{
-            marginTop: 8,
-            color: 'var(--text-muted)',
-            fontSize: 'var(--text-sm)',
-            lineHeight: 1.5,
-            whiteSpace: 'pre-line',
-          }}>
-            {state.detail}
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+        {state.detail && <div className="o-note" style={{ fontSize: 'var(--text-md)', whiteSpace: 'pre-line' }}>{state.detail}</div>}
+        <div className="o-window-actions" style={{ justifyContent: 'flex-end' }}>
           {state.buttons.map((label, i) => {
-            const isPrimary    = i === 0
+            const isPrimary     = i === 0
             const isDestructive = i === state.destructiveIndex
             return (
               <button
                 key={i}
                 onClick={() => state.resolve(i)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 'var(--text-sm)',
-                  cursor: 'pointer',
-                  border:      isPrimary ? 'none' : '1px solid var(--text-inactive)',
-                  background:  isPrimary ? 'var(--text-amber)' : 'transparent',
-                  color:       isPrimary ? 'var(--bg-modal-header)' : isDestructive ? 'var(--color-input-error)' : 'var(--text-default)',
-                  fontWeight:  isPrimary ? 600 : 400,
-                  fontFamily:  'var(--font-ui)',
-                }}
+                className={isPrimary ? 'o-btn-primary o-btn-lg' : isDestructive ? 'o-btn-quiet' : 'o-btn o-btn-lg'}
+                style={isDestructive && !isPrimary ? { color: 'var(--color-input-error)' } : undefined}
               >
                 {label}
               </button>

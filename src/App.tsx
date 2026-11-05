@@ -72,6 +72,7 @@ export default function App() {
   // A theme switch repaints everything at once: nothing eases through it
   useLayoutEffect(() => {
     const root = document.documentElement
+    root.dataset.theme = appTheme   // index.css: paper surfaces only exist in Warm
     root.classList.add('theme-switching')
     const frame = requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')))
     return () => cancelAnimationFrame(frame)
@@ -514,7 +515,7 @@ export default function App() {
   useEffect(() => { if (midi) useStore.getState().setHomeOpen(false) }, [midi])
 
   return (
-    <div className={appTheme === 'warm' ? 'theme-warm' : ''} style={{ width: '100vw', height: '100vh', background: appTheme === 'warm' ? 'var(--bg-warm)' : 'var(--bg-modal-header)', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-ui)' }}>
+    <div style={{ width: '100vw', height: '100vh', background: 'var(--bg-modal-header)', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-ui)' }}>
 
       {/* ── Presentation Mode: TopBar slides in from top on hover ─────────────
           In normal mode TopBar is in-flow; in PM it becomes a fixed overlay. ── */}
