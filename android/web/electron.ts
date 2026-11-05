@@ -100,4 +100,10 @@ export function disableUpdates() {
   handlers.set('update:new-version', () => null)
   // Node's dgram has no stand-in here: Java sends the broadcast
   handlers.set('songServer:discover', () => ask<string | null>(id => B.discover(id)))
+  // Song art is plain HTTP, which this secure page can't load: Java fetches it
+  const query = handlers.get('songServer:query')!
+  handlers.set('songServer:query', async (ev: unknown, ...args: unknown[]) => {
+    const list = await query(ev, ...args)
+    return { ...list, songs: list.songs.map((s: any) => ({ ...s, art: s.art && `/homeart?u=${encodeURIComponent(s.art)}` })) }
+  })
 }

@@ -153,6 +153,18 @@ export interface SongServerSong {
   genre: string
   size: number
   local: boolean
+  // From catalog.json on the server, where it has them
+  people?: string[]
+  genres?: { name: string; guessed: boolean }[]
+  key?: string
+  bpm?: number
+  meter?: string
+  duration?: number
+  arrangement?: string
+  difficulty?: number
+  busyness?: number
+  classic?: boolean
+  art?: string | null
 }
 
 export interface SongServerList {

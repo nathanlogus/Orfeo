@@ -95,7 +95,8 @@ public class MainActivity extends Activity {
         });
         web.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
-                return HOST.equals(r.getUrl().getHost()) ? serve(r.getUrl().getPath()) : null;
+                if (!HOST.equals(r.getUrl().getHost())) return null;
+                return "/homeart".equals(r.getUrl().getPath()) ? homeArt(r.getUrl().getQueryParameter("u")) : serve(r.getUrl().getPath());
             }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 if (HOST.equals(r.getUrl().getHost())) return false;
@@ -237,6 +238,21 @@ public class MainActivity extends Activity {
                     try (InputStream in = getContentResolver().openInputStream(doc); OutputStream out = new FileOutputStream(f)) { pump(in, out); }
                 }
             }
+        }
+    }
+
+    /** A secure page can't show a plain-HTTP image, so song art from the home server comes through here. */
+    private WebResourceResponse homeArt(String url) {
+        try {
+            if (url == null || !new URL(url).getPath().equals("/api/art") || !onHomeNetwork(url)) throw new IOException("not song art");
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setInstanceFollowRedirects(false);
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(10000);
+            if (c.getResponseCode() != 200) throw new IOException("server answered " + c.getResponseCode());
+            return new WebResourceResponse(c.getContentType(), null, c.getInputStream());
+        } catch (IOException e) {
+            return new WebResourceResponse("text/plain", null, 404, "Not Found", null, new ByteArrayInputStream(new byte[0]));
         }
     }
 

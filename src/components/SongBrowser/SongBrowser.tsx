@@ -43,7 +43,7 @@ function Art({ card }: { card: SongCard }) {
   )
 }
 
-const Card = memo(function Card({ card, loaded, onOpen }: { card: SongCard; loaded: boolean; onOpen: (path: string) => void }) {
+export const Card = memo(function Card({ card, loaded, onOpen }: { card: SongCard; loaded: boolean; onOpen: (path: string) => void }) {
   const facts = [card.key, card.bpm ? `${card.bpm} BPM` : null, formatDuration(card.duration)].filter(Boolean).join(' · ')
   return (
     <button

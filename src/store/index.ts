@@ -167,6 +167,11 @@ interface OrfeoStore {
   scoreViewMode: 'roll' | 'both' | 'score'
   // Wait for notes: the song is held still and moves as the player plays it, stepThrough.ts
   waitForNotes: boolean
+  // 1-5 is a level you chose, 0 is Auto: each phrase's level follows your playing
+  practiceLevel: number
+  setPracticeLevel: (level: number) => void
+  phraseLevels: number[]
+  phraseResult: { percent: number; level: number; mastery: number } | null
   setWaitForNotes: (on: boolean) => void
   setScoreViewMode: (mode: 'roll' | 'both' | 'score') => void
   pendingImportedFile: {
@@ -775,7 +780,11 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   scoreViewMode: 'roll',
   setScoreViewMode: (scoreViewMode) => set({ scoreViewMode }),
   waitForNotes: false,
-  setWaitForNotes: (waitForNotes) => set((s) => ({ waitForNotes, playbackState: waitForNotes && s.playbackState === 'playing' ? 'paused' : s.playbackState })),
+  setWaitForNotes: (waitForNotes) => set({ waitForNotes }),
+  practiceLevel: 5,
+  setPracticeLevel: (practiceLevel) => set({ practiceLevel }),
+  phraseLevels: [],
+  phraseResult: null,
   // ── Pending imported file — session-only, not persisted ──────────────────
   // Set when a foreign format (MusicXML, GP) is converted in-memory but not
   // yet saved to disk as a .mid cache file. Cleared on save or discard.
@@ -1750,11 +1759,6 @@ const _unsubPrefs = useStore.subscribe((state) => {
 // actually open on pause, stop, or a new file loading. ─────────────────────
 let _prevPlaybackStateForCollapse: PlaybackState | null = null
 let _prevMidiForCollapse: unknown = null
-// Play hands the song back to its own clock
-useStore.subscribe((s, prev) => {
-  if (s.waitForNotes && s.playbackState === 'playing' && prev.playbackState !== 'playing') useStore.setState({ waitForNotes: false })
-})
-
 let _drawersAutoCollapsed = false
 let _preCollapseTrackPanelOpen = false
 let _preCollapseSettingsPanelOpen = false

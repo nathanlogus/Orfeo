@@ -19,6 +19,12 @@ add('Jazz/Doug McKenzie/Have You Met - duet.mid')
 add('Jazz/Weimar Solos/JJJohnson_Blue_FINAL.mid')
 add('Orfeo/edit.mid'); add('manifest.csv')
 writeFileSync(join(dir, 'secret.mid'), 'x')
+add('Jazz/Weimar Solos/Catalogued.mid')
+mkdirSync(join(lib, '.art')); writeFileSync(join(lib, '.art', 'c.jpg'), 'jpeg'); writeFileSync(join(lib, '.art', 'c.txt'), 'x')
+writeFileSync(join(lib, 'catalog.json'), JSON.stringify({ songs: { 'Jazz/Weimar Solos/Catalogued.mid': {
+  title: 'Real Title', composers: ['Cole Porter'], performer: null, genres: [{ name: 'swing', guessed: true }],
+  key: 'C major', bpm: null, difficulty: 3, art: { url: '.art/c.jpg' },
+} } }))
 writeFileSync(join(lib, 'metadata.json'), JSON.stringify({ 'Jazz/Doug McKenzie/AfterYou.mid': { title: 'After You, Who?' } }))
 
 const server = spawn(process.execPath, [fileURLToPath(new URL('song-server.mjs', import.meta.url)), lib, '18765'])
@@ -29,8 +35,16 @@ const file = (p) => get('/api/file?path=' + encodeURIComponent(p))
 const titles = (r) => r.songs.map(s => s.title)
 try {
   const all = await list()
-  eq(all.total, 7)
-  same(all.genres, [{ name: 'Brazilian', count: 2 }, { name: 'Jazz', count: 4 }])
+  eq(all.total, 8)
+  const c = all.songs.find(s => s.title === 'Real Title')
+  same([c.artist, c.genre, c.key, c.difficulty, c.people], ['Cole Porter', 'swing', 'C major', 3, ['Cole Porter']])
+  eq(c.bpm, undefined) // an empty catalog field leaves nothing behind
+  eq(await (await get(c.art)).text(), 'jpeg')
+  eq((await get(c.art)).headers.get('content-type'), 'image/jpeg')
+  eq((await get('/api/art?path=' + encodeURIComponent('.art/c.txt'))).status, 404)
+  eq((await get('/api/art?path=' + encodeURIComponent('../secret.mid'))).status, 404)
+  same(titles(await list('q=cole')), ['Real Title'])
+  same(all.genres, [{ name: 'Brazilian', count: 2 }, { name: 'Jazz', count: 4 }, { name: 'swing', count: 1 }])
   same(all.songs.find(s => s.title === 'Anthropology').artist, 'Art Pepper')
   same(all.songs.find(s => s.title === 'Rondo').artist, 'Mozart')
   same(all.songs.find(s => s.title === 'Have You Met - duet').artist, 'Doug McKenzie') // the folder names the artist
@@ -45,13 +59,13 @@ try {
   same(titles(await list('q=pepper%20anthro')), ['Anthropology'])
   same((await list('genre=Jazz')).artists.map(a => a.name), ['Art Pepper', 'Doug McKenzie', 'JJ Johnson'])
   // Choosing an artist still offers every genre that artist is in, and the other way round
-  eq((await list('genre=Jazz')).genres.length, 2)
+  eq((await list('genre=Jazz')).genres.length, 3)
   same((await list('artist=Art%20Pepper')).genres, [{ name: 'Jazz', count: 1 }])
 
   const page = await list('limit=2&offset=1')
-  eq(page.songs.length, 2); eq(page.total, 7)
-  eq((await list('limit=99999')).songs.length, 7)
-  eq((await list('limit=nonsense&offset=-4')).songs.length, 7)
+  eq(page.songs.length, 2); eq(page.total, 8)
+  eq((await list('limit=99999')).songs.length, 8)
+  eq((await list('limit=nonsense&offset=-4')).songs.length, 8)
 
   eq(await (await file('Jazz/Doug McKenzie/AfterYou.mid')).text(), 'song')
   eq((await file('../secret.mid')).status, 404)

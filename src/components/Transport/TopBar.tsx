@@ -107,6 +107,8 @@ export default function TopBar() {
   const { play, pause, stop, seek, seekAndPlay } = usePlayback()
   const scoreViewMode = useStore((s) => s.scoreViewMode)
   const waitForNotes = useStore((s) => s.waitForNotes)
+  const practiceLevel = useStore((s) => s.practiceLevel)
+  const phraseResult = useStore((s) => s.phraseResult)
   const hasScore = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath))
   const { openFile } = useMidiFile()
   const wasPlayingRef = useRef(false)
@@ -697,7 +699,7 @@ export default function TopBar() {
         {/* WAIT — the song moves only as the MIDI keyboard plays it */}
         <Tooltip
           title={waitForNotes ? t`Waiting for your notes` : t`Wait for notes`}
-          description={t`The song holds still until you play the next note or chord on your MIDI keyboard. Hide or mute a track to leave its notes out. Play turns this off.`}
+          description={t`The song plays and holds at each note until you play it on your MIDI keyboard. Hide or mute a track to leave its notes out.`}
           placement="bottom"
           wrapperStyle={{ flexShrink: 0 }}
         >
@@ -706,6 +708,21 @@ export default function TopBar() {
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: waitForNotes ? 'var(--text-amber)' : 'var(--text-muted)' }}>
             <Hourglass size={24} />
             <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>WAIT</span>
+          </button>
+        </Tooltip>
+
+        {/* LEVEL — how much of the song you're asked to play; a tap moves to the next */}
+        <Tooltip
+          title={practiceLevel === 0 ? t`Auto level` : practiceLevel === 5 ? t`Level 5 of 5: every note` : t`Level ${practiceLevel} of 5`}
+          description={t`1 is the melody on the beats, 2 the whole melody, 3 adds the bass, 4 both hands with simpler chords, 5 everything. A sets each four bars by how you play them: two clean passes go up, a rough one goes down. Tap for the next level.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!midi} aria-label={practiceLevel === 0 ? t`Practice level automatic` : t`Practice level ${practiceLevel} of 5`}
+            onClick={() => useStore.getState().setPracticeLevel((practiceLevel + 1) % 6)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: practiceLevel < 5 ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <span style={{ fontSize: 20, lineHeight: '24px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{practiceLevel === 0 ? 'A' : practiceLevel}</span>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>{phraseResult ? `${phraseResult.percent}%` : 'LEVEL'}</span>
           </button>
         </Tooltip>
 

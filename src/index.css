@@ -816,3 +816,8 @@ textarea:focus-visible,
 .home-spin { animation: home-spin 0.9s linear infinite; }
 @keyframes home-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .home-spin { animation: none; } }
+.home-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 4px 8px; }
+.home-card { position: relative; display: flex; min-width: 0; }
+.home-card > button { flex: 1; }
+.home-card-state { position: absolute; top: 6px; right: 6px; display: flex; padding: 4px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: var(--text-default); pointer-events: none; }
+.home-card-mastery { position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: var(--text-amber); font-family: var(--font-mono); font-size: var(--text-xs); pointer-events: none; }

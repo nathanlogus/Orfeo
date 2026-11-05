@@ -628,7 +628,11 @@ ipcMain.handle('songServer:query', async (_e, address: string, query: Record<str
   unlinkSync(listPath)
   const root = songServerRoot()
   const songs = result.songs.filter((s: any) => safeSongPath(s?.path))
-    .map((s: any) => ({ ...s, local: haveSong(songServerDest(root, s.path), s.size) }))
+    .map((s: any) => ({
+      ...s,
+      local: haveSong(songServerDest(root, s.path), s.size),
+      art: typeof s.art === 'string' && s.art.startsWith('/api/art?') ? serverUrl(address) + s.art : null,
+    }))
   return { ...result, songs }
 })
 

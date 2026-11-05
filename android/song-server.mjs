@@ -6,20 +6,23 @@
 //     { total, songs: [{ path, title, artist, genre, size }], genres, artists }
 //     genres ignores the genre filter and artists the artist filter, so either can be changed.
 // GET /api/file?path=<path from the list>
+// GET /api/art?path=<art from the list>
 // UDP port 8765: answers "orfeo-songs?" with "orfeo-songs:<port>", so the app can find this server
 //
-// Genre, artist and title come from Genre/Artist/Title.mid paths. An optional
-// metadata.json in the folder overrides them, keyed by path:
+// Genre, artist and title come from Genre/Artist/Title.mid paths. A catalog.json in
+// the folder fills in more (see src/utils/songCatalog.ts), and an optional
+// metadata.json overrides anything, keyed by path:
 //   { "Jazz/Doug McKenzie/afine-1.mid": { "title": "A Fine Romance", "artist": "Doug McKenzie", "genre": "Jazz" } }
 import { createSocket } from 'node:dgram'
 import { createServer } from 'node:http'
 import { createReadStream, readFileSync, realpathSync, statSync, readdirSync } from 'node:fs'
 import { networkInterfaces } from 'node:os'
-import { join, relative, resolve, sep } from 'node:path'
+import { extname, join, relative, resolve, sep } from 'node:path'
 
 const SONG = /\.(mid|midi|kar|musicxml|xml|mxl|gp|gp3|gp4|gp5|gpx|cap)$/i
 // Plain HTTP with no login, so strangers get nothing even through a forwarded port
 const HOME = /^(::ffff:)?(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|^::1$/
+const IMAGE = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' }
 const SCAN_SECONDS = 15
 const MAX_PAGE = 200
 const DISCOVERY_PORT = 8765
@@ -28,11 +31,25 @@ const [folder, port = '8765'] = process.argv.slice(2)
 if (!folder) { console.error('Usage: node android/song-server.mjs <folder> [port]'); process.exit(1) }
 const root = realpathSync(resolve(folder))
 
-function loadMetadata() {
-  try { return JSON.parse(readFileSync(join(root, 'metadata.json'), 'utf8')) } catch (e) {
-    if (e.code !== 'ENOENT') console.warn(`metadata.json ignored: ${e.message}`)
+function readJson(name) {
+  try { return JSON.parse(readFileSync(join(root, name), 'utf8')) } catch (e) {
+    if (e.code !== 'ENOENT') console.warn(`${name} ignored: ${e.message}`)
     return {}
   }
+}
+
+// A catalog entry in the list's terms. Only what it really has, so the rest stays
+// what the path said.
+function fromCatalog(e) {
+  if (!e) return {}
+  const people = e.composers?.length ? e.composers : e.performer ? [e.performer] : []
+  const fields = {
+    title: e.title, artist: people[0], genre: e.genres?.[0]?.name, people, genres: e.genres,
+    key: e.key, bpm: e.bpm, meter: e.meter, duration: e.duration, arrangement: e.arrangement,
+    difficulty: e.difficulty, busyness: e.busyness, classic: e.classic,
+    art: e.art?.url && `/api/art?path=${encodeURIComponent(e.art.url)}`,
+  }
+  return Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined && v !== null))
 }
 
 // ArtPepper, JJJohnson, amor-e-sexo. A name with spaces already keeps its dashes.
@@ -52,15 +69,15 @@ function describe(path) {
   return { title: capitalised(words(title)), artist, genre: parts.length > 1 ? parts[0] : '' }
 }
 
-function scan(metadata, dir = root, out = []) {
+function scan(metadata, catalog, dir = root, out = []) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, e.name)
     // Demo and Orfeo in a library root are the app's own folders
     if (e.name.startsWith('.') || (dir === root && /^(demo|orfeo)$/i.test(e.name))) continue
-    if (e.isDirectory()) scan(metadata, full, out)
+    if (e.isDirectory()) scan(metadata, catalog, full, out)
     else if (e.isFile() && SONG.test(e.name)) {
       const path = relative(root, full).split(sep).join('/')
-      out.push({ path, size: statSync(full).size, ...describe(path), ...metadata[path] })
+      out.push({ path, size: statSync(full).size, ...describe(path), ...fromCatalog(catalog[path]), ...metadata[path] })
     }
   }
   return out
@@ -71,7 +88,7 @@ let catalog = null
 let scannedAt = 0
 function songs() {
   if (!catalog || Date.now() - scannedAt > SCAN_SECONDS * 1000) {
-    catalog = scan(loadMetadata()).sort((a, b) => a.title.localeCompare(b.title))
+    catalog = scan(readJson('metadata.json'), readJson('catalog.json').songs ?? {}).sort((a, b) => a.title.localeCompare(b.title))
     scannedAt = Date.now()
   }
   return catalog
@@ -86,7 +103,7 @@ function query(params) {
   const genre = params.get('genre')
   const artist = params.get('artist')
   const found = songs().filter(s => {
-    const text = plain(`${s.title} ${s.artist} ${s.genre}`)
+    const text = plain(`${s.title} ${s.artist} ${s.genre} ${s.people?.join(' ') ?? ''} ${s.key ?? ''}`)
     return q.every(w => text.includes(w))
   })
   const inGenre = found.filter(s => !genre || s.genre === genre)
@@ -102,10 +119,10 @@ function query(params) {
 }
 
 // realpath, so neither ../ nor a symlink can reach outside the folder
-function find(rel) {
+function find(rel, allowed) {
   try {
     const p = realpathSync(resolve(root, rel))
-    return p.startsWith(root + sep) && SONG.test(p) && statSync(p).isFile() ? p : null
+    return p.startsWith(root + sep) && allowed(p) && statSync(p).isFile() ? p : null
   } catch { return null }
 }
 
@@ -123,9 +140,13 @@ createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(query(url.searchParams)))
     return
   }
-  const file = req.method === 'GET' && url.pathname === '/api/file' && find(url.searchParams.get('path') ?? '')
+  const rel = url.searchParams.get('path') ?? ''
+  const file = req.method === 'GET' && (
+    url.pathname === '/api/file' ? find(rel, p => SONG.test(p))
+      : url.pathname === '/api/art' ? find(rel, p => extname(p).toLowerCase() in IMAGE) : null)
   if (!file) { res.writeHead(404).end(); return }
-  res.writeHead(200, { 'content-length': statSync(file).size })
+  const type = IMAGE[extname(file).toLowerCase()]
+  res.writeHead(200, { 'content-length': statSync(file).size, ...(type && url.pathname === '/api/art' ? { 'content-type': type } : {}) })
   createReadStream(file).on('error', () => res.destroy()).pipe(res)
 }).listen(Number(port), () => {
   const ips = Object.values(networkInterfaces()).flat().filter(n => n.family === 'IPv4' && !n.internal).map(n => n.address)

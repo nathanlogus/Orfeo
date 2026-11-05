@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, CloudDownload, FolderOpen, Loader2, Search, Settings, X } from 'lucide-react'
+import { ArrowLeft, Check, CloudDownload, FolderOpen, LayoutGrid, List, Loader2, Search, Settings, X } from 'lucide-react'
 import { useStore } from '../../store'
 import { useMidiFile } from '../../hooks/useMidiFile'
 import { t } from '../../utils/i18n'
-import { deviceSongs, folderCounts, matchesSearch, type FilterOption } from '../../utils/homeSongs'
+import { deviceSongs, folderCounts, matchesSearch, songCard, type FilterOption } from '../../utils/homeSongs'
+import { genreLabel } from '../../utils/songCatalog'
+import { Card } from '../SongBrowser/SongBrowser'
+import { songKey } from '../../utils/practiceSession'
 import FaceTheMusicMark from '../FaceTheMusicMark'
 import type { SongServerSong } from '../../types'
 
@@ -22,6 +25,8 @@ export default function HomePage() {
   const hideDemoFolder = useStore(s => s.hideDemoFolder)
 
   const [source, setSource] = useState<Source>('device')
+  const [view, setView] = useState<'cards' | 'list'>('cards')
+  const [progress, setProgress] = useState<Record<string, { mastery?: number }>>({})
   const [q, setQ] = useState('')
   const [genre, setGenre] = useState<string | null>(null)
   const [artist, setArtist] = useState<string | null>(null)
@@ -53,6 +58,8 @@ export default function HomePage() {
   // ── A saved server opens on its songs; without one this page never touches the network
   useEffect(() => {
     void window.electronAPI.getPrefs().then(p => {
+      if (p.homeView === 'list') setView('list')
+      setProgress(p.practiceProgress ?? {})
       if (!p.songServerUrl) return
       setAddress(p.songServerUrl)
       setConnected(true)
@@ -108,6 +115,12 @@ export default function HomePage() {
   const total = isServer ? serverTotal : filteredDevice.length
   const genreOptions = isServer ? genres : folderCounts(searchedDevice)
   const artistOptions = isServer ? artists.filter(a => matchesSearch(a.name, artistSearch)) : []
+
+  const changeView = () => {
+    const next = view === 'cards' ? 'list' : 'cards'
+    setView(next)
+    void window.electronAPI.setPrefs({ homeView: next })
+  }
 
   const switchSource = (next: Source) => {
     setSource(next); setGenre(null); setArtist(null); setError(''); setDeviceShown(PAGE)
@@ -168,7 +181,7 @@ export default function HomePage() {
           <nav aria-label={t`Filters`} style={{ width: 240, flexShrink: 0, overflowY: 'auto', padding: '12px 10px', borderRight: '1px solid var(--border2)' }}>
             <h3 className="home-heading">{isServer ? t`Genre` : t`Folder`}</h3>
             <FilterButton label={t`All`} active={!genre} onClick={() => { setGenre(null); setArtist(null) }} />
-            {genreOptions.map(g => <FilterButton key={g.name} label={g.name} count={g.count} active={genre === g.name} onClick={() => { setGenre(genre === g.name ? null : g.name); setArtist(null); setDeviceShown(PAGE) }} />)}
+            {genreOptions.map(g => <FilterButton key={g.name} label={isServer ? genreLabel(g.name) : g.name} count={g.count} active={genre === g.name} onClick={() => { setGenre(genre === g.name ? null : g.name); setArtist(null); setDeviceShown(PAGE) }} />)}
             {isServer && <>
               <h3 className="home-heading" style={{ marginTop: 16 }}>{t`Artist`}</h3>
               {artists.length > 8 && <input className="home-filter-search" value={artistSearch} onChange={e => setArtistSearch(e.target.value)} placeholder={t`Find an artist`} aria-label={t`Find an artist`} />}
@@ -182,13 +195,31 @@ export default function HomePage() {
               <span aria-live="polite">{total === 1 ? t`1 song` : `${total.toLocaleString()} ${t`songs`}`}</span>
               {loading && isServer && <Loader2 size={13} className="home-spin" aria-label={t`Loading`} />}
               <span style={{ flex: 1 }} />
+              <button className="home-icon" onClick={changeView} aria-label={view === 'cards' ? t`Show as a list` : t`Show as cards`}>
+                {view === 'cards' ? <List size={16} /> : <LayoutGrid size={16} />}
+              </button>
               {isServer
                 ? <button className="home-link" onClick={() => setConnected(false)}>{t`Change server`}</button>
                 : <button className="home-link" onClick={pickFolder}>{libraryFolder ? t`Change folder` : t`Choose your song folder`}</button>}
             </div>
             {error && <div role="alert" className="home-error">{error}</div>}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 8px 12px' }}>
-              {songs.map(s => (
+              {view === 'cards' && <div className="home-cards">
+                {songs.map(s => (
+                  <div key={s.path} className="home-card">
+                    <Card card={songCard(s)} loaded={false} onOpen={() => void open(s)} />
+                    {!!progress[songKey(s.path)]?.mastery && <span className="home-card-mastery">{progress[songKey(s.path)].mastery}%</span>}
+                    {isServer && (
+                      <span className="home-card-state">
+                        {opening === s.path ? <Loader2 size={14} className="home-spin" aria-label={t`Opening`} />
+                          : s.local ? <Check size={14} aria-label={t`On this device`} />
+                          : <CloudDownload size={14} aria-label={t`Downloads when opened`} />}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>}
+              {view === 'list' && songs.map(s => (
                 <button key={s.path} className="home-song" onClick={() => void open(s)} disabled={!!opening}>
                   <span className="home-song-title">{s.title}</span>
                   <span className="home-song-artist">{s.artist}</span>
