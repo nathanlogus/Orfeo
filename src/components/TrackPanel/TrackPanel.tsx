@@ -204,7 +204,7 @@ export default function TrackPanel() {
   return (
     <div
       style={{
-        width: trackPanelOpen ? 260 : RAIL_W,
+        width: trackPanelOpen ? (touchScreen ? 310 : 260) : RAIL_W, // the touch rail is wider, and the panel keeps its room
         background: 'var(--bg-modal)',
         borderLeft: '1px solid var(--border2)',
         transition: 'width 0.2s ease',
