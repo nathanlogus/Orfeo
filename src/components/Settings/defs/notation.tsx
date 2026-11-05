@@ -1,8 +1,8 @@
-import { Languages, Hash, Radar, ScanEye, Type, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Languages, Hash, Radar, ScanEye, Type } from 'lucide-react'
 import { useStore } from '../../../store'
 import { t } from '../../../utils/i18n'
 import type { NoteNaming } from '../../../types'
-import { OptionBtn, SettingsDropdown, EyeClosed, PreviewBox, GlanceLine, SubLabel } from '../controls'
+import { OptionBtn, OptionGroup, SettingsDropdown, EyeClosed, PreviewBox, GlanceLine, SubLabel } from '../controls'
 import type { SettingDef } from '../types'
 import { followNeedsPick } from '../followPick'
 
@@ -27,15 +27,15 @@ function DisplaySystemControl() {
   const noteNaming = useStore(s => s.noteNaming)
   const setNoteNaming = useStore(s => s.setNoteNaming)
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+    <OptionGroup label={t`Display system`}>
       {NOTE_NAMING_OPTIONS.map(opt => (
         <OptionBtn key={opt.value} active={noteNaming === opt.value} onClick={() => setNoteNaming(opt.value)}>{opt.label}</OptionBtn>
       ))}
       {/* Hide — red when active (hidden is a meaningful state) */}
       <OptionBtn active={noteNaming === 'hidden'} onClick={() => setNoteNaming('hidden')} activeColor="error">
-        <EyeClosed size={11} strokeWidth={1.5} />
+        <span role="img" aria-label={t`Hide note names`} style={{ display: 'inline-flex' }}><EyeClosed size={16} strokeWidth={1.5} /></span>
       </OptionBtn>
-    </div>
+    </OptionGroup>
   )
 }
 function DisplaySystemGlance() {
@@ -53,27 +53,16 @@ function DisplaySystemGlance() {
 function AccidentalsControl() {
   const accidentals = useStore(s => s.accidentals)
   const setAccidentals = useStore(s => s.setAccidentals)
-  const side = (active: boolean) => ({
-    cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-ui)', fontWeight: 600,
-    color: active ? 'var(--text-amber)' : 'var(--text-inactive)',
-  })
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-      <span onClick={() => setAccidentals('flat')} style={side(accidentals === 'flat')}><span style={{ fontSize: 'calc(var(--text-xs) * 1.5)' }}>♭</span> Flats</span>
-      <button
-        onClick={() => setAccidentals(accidentals === 'flat' ? 'sharp' : 'flat')}
-        aria-label={t`Sharps or flats`}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', color: 'var(--text-amber)' }}
-      >
-        {accidentals === 'flat' ? <ToggleLeft size={16} strokeWidth={1.5} /> : <ToggleRight size={16} strokeWidth={1.5} />}
-      </button>
-      <span onClick={() => setAccidentals('sharp')} style={side(accidentals === 'sharp')}><span style={{ fontSize: 'calc(var(--text-xs) * 1.5)' }}>♯</span> Sharps</span>
-    </div>
+    <OptionGroup label={t`Accidentals`}>
+      <OptionBtn active={accidentals === 'flat'} onClick={() => setAccidentals('flat')}>♭ {t`Flats`}</OptionBtn>
+      <OptionBtn active={accidentals === 'sharp'} onClick={() => setAccidentals('sharp')}>♯ {t`Sharps`}</OptionBtn>
+    </OptionGroup>
   )
 }
 function AccidentalsGlance() {
   const accidentals = useStore(s => s.accidentals)
-  return <GlanceLine center>{accidentals === 'flat' ? 'Bb  Eb  Ab  Db  Gb' : 'A#  D#  G#  C#  F#'}</GlanceLine>
+  return <GlanceLine>{accidentals === 'flat' ? 'Bb  Eb  Ab  Db  Gb' : 'A#  D#  G#  C#  F#'}</GlanceLine>
 }
 
 function ChordTrackingControl() {
@@ -86,11 +75,11 @@ function ChordTrackingControl() {
     if (followNeedsPick(s)) s.openSettingsWindow('notation')
   }
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+    <OptionGroup label={t`Chord tracking`}>
       <OptionBtn active={mode === 'auto'} onClick={() => setMode('auto')}>Auto</OptionBtn>
       <OptionBtn active={mode === 'harmony'} onClick={() => setMode('harmony')}>Harmony</OptionBtn>
       <OptionBtn active={mode === 'follow'} onClick={chooseFollow}>Follow</OptionBtn>
-    </div>
+    </OptionGroup>
   )
 }
 function ChordTrackingGlance() {
@@ -116,9 +105,11 @@ function ChordTrackingExtra() {
   return (
     <>
       <SubLabel>{t`Follow`}</SubLabel>
-      <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 6 }}>
-        <OptionBtn active={subMode === 'group'} onClick={() => setSubMode('group')}>By Group</OptionBtn>
-        <OptionBtn active={subMode === 'track'} onClick={() => setSubMode('track')}>By Track</OptionBtn>
+      <div style={{ marginBottom: 8 }}>
+        <OptionGroup label={t`Follow`}>
+          <OptionBtn active={subMode === 'group'} onClick={() => setSubMode('group')}>By Group</OptionBtn>
+          <OptionBtn active={subMode === 'track'} onClick={() => setSubMode('track')}>By Track</OptionBtn>
+        </OptionGroup>
       </div>
       {subMode === 'group' ? (
         <SettingsDropdown
@@ -127,7 +118,7 @@ function ChordTrackingExtra() {
           options={[{ value: '', label: '— choose a group —' }, ...CHORD_FOLLOW_GROUPS.map(g => ({ value: g, label: groupLabel(g) }))]}
         />
       ) : tracks.length === 0 ? (
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-inactive)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>No file open</div>
+        <div className="o-note">No file open</div>
       ) : (
         <SettingsDropdown
           value={trackIndex === null ? '' : String(trackIndex)}
@@ -143,10 +134,10 @@ function ChordReadingControl() {
   const mode = useStore(s => s.chordReadingMode)
   const setMode = useStore(s => s.setChordReadingMode)
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+    <OptionGroup label={t`Chord reading`}>
       <OptionBtn active={mode === 'safe'} onClick={() => setMode('safe')}>{t`Safe`}</OptionBtn>
       <OptionBtn active={mode === 'progressive'} onClick={() => setMode('progressive')}>{t`Progressive`}</OptionBtn>
-    </div>
+    </OptionGroup>
   )
 }
 function ChordReadingExtra() {
@@ -163,10 +154,10 @@ function ChordNamingControl() {
   const style = useStore(s => s.chordNamingStyle)
   const setStyle = useStore(s => s.setChordNamingStyle)
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+    <OptionGroup label={t`Chord naming`}>
       <OptionBtn active={style === 'abbreviation'} onClick={() => setStyle('abbreviation')}>Abbreviations</OptionBtn>
       <OptionBtn active={style === 'symbol'} onClick={() => setStyle('symbol')}>Symbols</OptionBtn>
-    </div>
+    </OptionGroup>
   )
 }
 function ChordNamingExtra() {

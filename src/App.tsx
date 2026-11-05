@@ -56,6 +56,7 @@ import { CountInOverlay } from './components/CountInOverlay'
 import { useSupportNoteService } from './hooks/useSupportNote'
 import { isExporting } from './audio/exportAudio'
 import { SupportNote } from './components/SupportNote'
+import DropOverlay from './components/DropOverlay'
 
 export default function App() {
   // ── Update status + sound-set progress: one listener each for the app's
@@ -585,16 +586,7 @@ export default function App() {
 
         {/* ── Drag-over highlight overlay — pointer-events none so it doesn't ─
             block any child interaction; visible only while dragging ── */}
-        {isDragOver && (
-          <div style={{
-            position: 'absolute', inset: 0,
-            border: '2px solid var(--text-amber)',
-            borderRadius: 4,
-            background: 'var(--accent-amber-tint-bg)',
-            pointerEvents: 'none',
-            zIndex: 9000,
-          }} />
-        )}
+        {isDragOver && <DropOverlay />}
       </div>
 
       {keyboardMode === 'floating' && <FloatingKeyboard />}
@@ -615,15 +607,8 @@ export default function App() {
             if (dropErrorTimer.current) clearTimeout(dropErrorTimer.current)
             setDropError(null)
           }}
-          style={{
-            position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--bg-panel2)', border: '1px solid var(--drag-handle-dot)',
-            borderRadius: 6, padding: '8px 18px',
-            color: 'var(--text-default)', fontSize: 'var(--text-sm)',
-            cursor: 'pointer', zIndex: 9900,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-          }}>
-          {dropError}
+          className="o-toast" style={{ cursor: 'pointer' }}>
+          <span className="o-dot o-dot-alert" />{dropError}
         </div>
         </Tooltip>
       )}
@@ -633,16 +618,8 @@ export default function App() {
           and carries nothing worth pausing to read/dismiss). ─────────────── */}
       {zoomHint && (
         <div
-          role="status"
-          style={{
-            position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--bg-panel2)', border: '1px solid var(--drag-handle-dot)',
-            borderRadius: 6, padding: '8px 18px',
-            color: 'var(--text-default)', fontSize: 'var(--text-sm)',
-            pointerEvents: 'none', zIndex: 9900,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-          }}>
-          {zoomHint}
+          role="status" className="o-toast" style={{ pointerEvents: 'none' }}>
+          <span className="o-dot o-dot-on" />{zoomHint}
         </div>
       )}
 

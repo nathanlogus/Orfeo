@@ -1,7 +1,7 @@
 import { AudioLines, Timer, TriangleAlert, ListOrdered, Hand, Repeat, Focus, Pause, SkipForward } from 'lucide-react'
 import { useStore } from '../../../store'
 import { t } from '../../../utils/i18n'
-import { Switch, OptionBtn, FingerStepper, InlineIcon, SubLabel, HelpText } from '../controls'
+import { Switch, OptionBtn, OptionGroup, FingerStepper, InlineIcon, SubLabel, HelpText } from '../controls'
 import type { SettingDef } from '../types'
 import { applySkipEmptyBarsChange } from '../../../utils/reloadOpenSong'
 
@@ -13,10 +13,10 @@ function TapTempoExtra() {
   return (
     <>
       <SubLabel>{t`Tap Tempo counting`}</SubLabel>
-      <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+      <OptionGroup label={t`Tap Tempo counting`}>
         <OptionBtn active={mode === 'beat'} onClick={() => setMode('beat')}>{t`Every beat`}</OptionBtn>
         <OptionBtn active={mode === 'bar'} onClick={() => setMode('bar')}>{t`Only the 1`}</OptionBtn>
-      </div>
+      </OptionGroup>
       <HelpText>
         {mode === 'beat'
           ? t`Tap 1, 2, 3, 4 — like tapping your foot. Your first tap is the 1.`
@@ -48,9 +48,9 @@ function CountInExtra() {
   return (
     <>
       <SubLabel>{t`Count-in bars`}</SubLabel>
-      <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+      <OptionGroup label={t`Count-in bars`}>
         {[1, 2, 3, 4].map(n => <OptionBtn key={n} active={bars === n} onClick={() => setBars(n)}>{String(n)}</OptionBtn>)}
-      </div>
+      </OptionGroup>
     </>
   )
 }
@@ -61,8 +61,7 @@ function SkipEmptyBarsExtra() {
   const keep = useStore(s => s.keepDrumCountIn)
   if (!on) return null
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, minHeight: 22,
-      fontSize: 'var(--text-xs)', fontFamily: 'var(--font-ui)', color: 'var(--text-default)' }}>
+    <div className="set-row">
       <span>{t`Keep drum count-ins`}</span>
       <Switch value={keep} onChange={v => { useStore.getState().setKeepDrumCountIn(v); void applySkipEmptyBarsChange() }} label={t`Keep drum count-ins`} />
     </div>
@@ -80,11 +79,11 @@ function HandAssignmentExtra() {
       <SubLabel>Max Fingers</SubLabel>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, color: 'var(--text-default)', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}>Left hand</span>
+          <span style={{ fontSize: 'var(--text-base)', whiteSpace: 'nowrap' }}>Left hand</span>
           <FingerStepper value={lh} onChange={useStore.getState().setLhMaxFingers} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, color: 'var(--text-default)', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}>Right hand</span>
+          <span style={{ fontSize: 'var(--text-base)', whiteSpace: 'nowrap' }}>Right hand</span>
           <FingerStepper value={rh} onChange={useStore.getState().setRhMaxFingers} />
         </div>
       </div>
@@ -97,8 +96,7 @@ function HandAssignmentExtra() {
 // and under the Setup row; opens the Settings window on Appearance
 function HandColoursLink() {
   return (
-    <button onClick={() => useStore.getState().openSettingsWindow('appearance')}
-      style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer', font: 'inherit', fontStyle: 'normal', color: 'var(--text-amber)', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+    <button className="o-link" onClick={() => useStore.getState().openSettingsWindow('appearance')}>
       {t`Set your own hand colours`}
     </button>
   )
@@ -108,7 +106,7 @@ export const PLAYBACK_DEFS: SettingDef[] = [
   {
     id: 'noteEditor', icon: AudioLines, kind: 'switch',
     Control: () => { const v = useStore(s => s.noteEditorEnabled); return <Switch value={v} onChange={useStore.getState().setNoteEditorEnabled} label="MIDI Note Editor" /> },
-    Description: () => <>Shows <InlineIcon><AudioLines size={11} /></InlineIcon> icon in the Tracks panel. Enables MIDI note-editing mode directly on the piano roll.</>,
+    Description: () => <>Shows <InlineIcon><AudioLines size={14} /></InlineIcon> icon in the Tracks panel. Enables MIDI note-editing mode directly on the piano roll.</>,
   },
   {
     id: 'tapTempo', icon: Timer, kind: 'switch', Extra: TapTempoExtra,
@@ -142,7 +140,7 @@ export const PLAYBACK_DEFS: SettingDef[] = [
     Description: () => <>
       Automated hand assignment for piano that colors each note by the hand that plays it. A guideline, not a verified transcript!
       <br /><br />
-      For a perfectly accurate split use MIDI note editor and click the <InlineIcon><Hand size={11} /></InlineIcon> icon to manually assign notes to left and right hand.
+      For a perfectly accurate split use MIDI note editor and click the <InlineIcon><Hand size={14} /></InlineIcon> icon to manually assign notes to left and right hand.
       <br /><br />
       <HandColoursLink />
     </>,
@@ -151,7 +149,7 @@ export const PLAYBACK_DEFS: SettingDef[] = [
   {
     id: 'loopRegion', icon: Repeat, kind: 'switch',
     Control: () => { const v = useStore(s => s.loopRegionEnabled); return <Switch value={v} onChange={useStore.getState().setLoopRegionEnabled} label="Loop region" /> },
-    Description: () => <>Shows a strip to select and loop-play a section. Alt+Click & drag to select. Click <InlineIcon><Repeat size={11} /></InlineIcon> icon to loop.</>,
+    Description: () => <>Shows a strip to select and loop-play a section. Alt+Click & drag to select. Click <InlineIcon><Repeat size={14} /></InlineIcon> icon to loop.</>,
   },
   {
     id: 'explorerPause', icon: Pause, kind: 'switch',

@@ -346,19 +346,6 @@ export function ZoomStepBtn({ onClick, disabled, children }: {
   )
 }
 
-// ── App background button — color swatch + label toggle for theme selection
-export function AppBgBtn({ color, label, active, onClick, comingSoon }: {
-  color: string; label: string; active: boolean; onClick: () => void; comingSoon?: boolean
-}) {
-  return (
-    <button className="o-option" aria-pressed={active} disabled={comingSoon} onClick={onClick}
-      style={{ flexDirection: 'column', gap: 'var(--space-1)', padding: '6px 4px', borderRadius: 'var(--radius-md)' }}>
-      <div style={{ width: 28, height: 14, borderRadius: 'var(--radius-sm)', background: color, border: '1px solid var(--ui-line)' }} />
-      <span>{label}</span>
-    </button>
-  )
-}
-
 // ── Switch — every on/off setting (was inline in OptionRow)
 export function Switch({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   return (

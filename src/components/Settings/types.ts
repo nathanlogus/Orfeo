@@ -25,5 +25,7 @@ export interface SettingDef {
   layout?: 'controlFirst'
   QuickExtra?: ComponentType    // follow-up control shown in Setup only (under the glance)
   SummaryEnd?: ComponentType    // inline at the end of the Setup summary line (e.g. a link)
-  notice?: boolean              // amber-bordered, for an information card
+  wide?: boolean                // spans every column of the Settings window's grid
+  dark?: boolean                // a studio panel, even in the paper Settings window
+  HeadAction?: ComponentType    // at the right of the name in the window, for a 'choice' setting (Import)
 }

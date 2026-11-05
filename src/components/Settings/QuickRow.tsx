@@ -5,12 +5,10 @@ import { richText } from './SettingCard'
 
 const always = () => true
 const nameStyle = {
-  fontSize: 'var(--text-xs)', color: 'var(--text-default)', fontWeight: 500,
-  letterSpacing: '0.02em', textTransform: 'uppercase' as const,
+  fontSize: 'var(--text-base)', color: 'var(--ui-text)',
 }
 const summaryStyle = {
-  fontSize: 'var(--text-xs)', color: 'var(--text-faint)', lineHeight: 1.5,
-  fontFamily: 'var(--font-ui)', fontStyle: 'italic' as const, marginTop: 3,
+  fontSize: 'var(--text-xs)', color: 'var(--ui-text-soft)', lineHeight: 1.4, marginTop: 3,
 }
 
 // ── One Setup row (the drawer): name + its one-line summary underneath, then

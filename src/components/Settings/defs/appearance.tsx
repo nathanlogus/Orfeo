@@ -1,24 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Palette, ZoomIn, RotateCcw, Sparkles, MessageSquare, Heart, Hand } from 'lucide-react'
+import { ZoomIn, RotateCcw, Sparkles, MessageSquare, Heart, Hand } from 'lucide-react'
 import { useStore } from '../../../store'
 import { t } from '../../../utils/i18n'
-import { AppBgBtn, ZoomStepper, GlanceLine, InlineIcon, Switch, SubLabel, useSurface } from '../controls'
+import { ZoomStepper, GlanceLine, InlineIcon, Switch, SubLabel, useSurface } from '../controls'
 import { HAND_PRESETS, DEFAULT_HAND_LH, DEFAULT_HAND_RH, handColorWarnings, isHex } from '../../../utils/handPalette'
 import { useAppZoom } from '../../../hooks/useAppZoom'
 import { simAvailable } from '../../../utils/midiSimulator'
 import { previewNewVersion } from '../../../hooks/useUpdateCheck'
 import { previewSupportNote } from '../../../hooks/useSupportNote'
 import type { SettingDef } from '../types'
-
-function ThemeControl() {
-  const appTheme = useStore(s => s.appTheme)
-  return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-      <AppBgBtn color="var(--bg-modal-header)" label="Dark" active={appTheme === 'dark'} onClick={() => useStore.getState().setAppTheme('dark')} />
-      <AppBgBtn color="var(--bg-warm)" label="Coming soon" active={false} onClick={() => {}} comingSoon />
-    </div>
-  )
-}
 
 function AppZoomControl() {
   const z = useAppZoom()
@@ -43,29 +33,24 @@ function AppZoomCap() {
   return <GlanceLine>{t`Limited to ${z.max}% at this window size.`}</GlanceLine>
 }
 
-// ── Hand colours — ready-made pairs (Control), then your own pair, clash
-// notes and reset (Extra). Every change applies at once (store → CSS vars).
+// ── Hand colours — ready-made pairs (Control), then your own pair, a preview,
+// clash notes and reset (Extra). Every change applies at once (store → CSS vars).
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
-function HandSwatch({ color }: { color: string }) {
-  return <span style={{ width: 14, height: 14, borderRadius: 3, background: color, border: '1px solid var(--border2)', flexShrink: 0 }} />
+function HandPair({ lh, rh }: { lh: string; rh: string }) {
+  return <span className="set-pair" aria-hidden><span style={{ background: lh }} /><span style={{ background: rh }} /></span>
 }
 
 function HandPresets() {
   const lh = useStore(s => s.handColorLH), rh = useStore(s => s.handColorRH)
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-1)' }}>
+    <div className="set-presets">
       {HAND_PRESETS.map(p => {
         const active = same(p.lh, lh) && same(p.rh, rh)
         return (
-          <button key={p.id} onClick={() => useStore.getState().setHandColors(p.lh, p.rh)} aria-pressed={active}
-            style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr)', alignItems: 'center', gap: 4, padding: '5px 6px', borderRadius: 4,
-              border: active ? '1px solid var(--accent-amber-strong)' : '1px solid var(--border2)',
-              background: active ? 'var(--accent-amber-medium)' : 'var(--bg-modal)',
-              color: active ? 'var(--text-amber)' : 'var(--text-inactive)',
-              fontSize: 10, fontFamily: 'var(--font-ui)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
-            <HandSwatch color={p.lh} /><HandSwatch color={p.rh} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: 2 }}>{p.name}</span>
+          <button key={p.id} className="set-tile" onClick={() => useStore.getState().setHandColors(p.lh, p.rh)} aria-pressed={active}>
+            <HandPair lh={p.lh} rh={p.rh} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
           </button>
         )
       })}
@@ -77,18 +62,15 @@ function HandPicker({ label, value, onPick }: { label: string; value: string; on
   const [text, setText] = useState(value)
   useEffect(() => { setText(value) }, [value])
   return (
-    <label style={{ display: 'grid', gridTemplateColumns: '36px max-content 80px', alignItems: 'center', gap: 6, minWidth: 0,
-      fontSize: 10, fontFamily: 'var(--font-ui)', color: 'var(--text-inactive)' }}>
+    <label className="set-hand-pick">
       {label}
-      <span style={{ position: 'relative', width: 18, height: 18, borderRadius: 3, background: value, border: '1px solid var(--border2)', overflow: 'hidden' }}>
+      <span className="set-hand-swatch" style={{ background: value }}>
         <input type="color" value={value} onChange={e => onPick(e.target.value)} aria-label={t`${label} colour`}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', padding: 0 }} />
       </span>
       <input value={text} spellCheck={false} aria-label={t`${label} colour, hex value`}
         onChange={e => { setText(e.target.value); if (isHex(e.target.value)) onPick(e.target.value) }}
-        onBlur={() => setText(value)}
-        style={{ minWidth: 0, padding: '3px 5px', borderRadius: 4, border: '1px solid var(--border2)', background: 'var(--bg-modal)',
-          color: 'var(--text-default)', fontSize: 10, fontFamily: 'var(--font-mono)', boxSizing: 'border-box' }} />
+        onBlur={() => setText(value)} />
     </label>
   )
 }
@@ -98,23 +80,29 @@ function HandColorsExtra() {
   const set = useStore.getState().setHandColors
   const warnings = handColorWarnings(lh, rh)
   const isDefault = same(lh, DEFAULT_HAND_LH) && same(rh, DEFAULT_HAND_RH)
+  const letters = useStore(s => s.showHandLetters)
   return (
     <>
       <SubLabel>{t`Your own`}</SubLabel>
-      <div style={{ display: 'grid', rowGap: 6 }}>
+      <div className="set-hand-picks">
         <HandPicker label={t`Left`} value={lh} onPick={hex => set(hex, rh)} />
         <HandPicker label={t`Right`} value={rh} onPick={hex => set(lh, hex)} />
       </div>
+      <div className="set-hand-preview" role="img" aria-label={t`Preview of the hand colours on falling notes and keys`}>
+        <i style={{ left: '8%', top: 14, height: 56, background: lh }} />
+        <i style={{ left: '16%', top: 38, height: 32, background: lh }} />
+        <i style={{ left: '62%', top: 8, height: 42, background: rh }} />
+        <i style={{ left: '70%', top: 26, height: 44, background: rh }} />
+        <div className="set-hand-keys">
+          {Array.from({ length: 14 }, (_, k) => <b key={k} style={k === 1 ? { background: lh } : k === 9 ? { background: rh } : undefined}>{letters && k === 1 ? 'L' : letters && k === 9 ? 'R' : ''}</b>)}
+        </div>
+      </div>
       {warnings.map(w => <GlanceLine key={w}>⚠ {w}</GlanceLine>)}
-      {!isDefault && (
-        <button onClick={() => set(DEFAULT_HAND_LH, DEFAULT_HAND_RH)}
-          style={{ marginTop: 10, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 5, padding: 0, border: 'none', background: 'none',
-            color: 'var(--text-inactive)', fontSize: 10, fontFamily: 'var(--font-ui)', cursor: 'pointer' }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-inactive)' }}>
-          <RotateCcw size={10} /> {t`Back to Orfeo's colours`}
-        </button>
-      )}
+      <div className="set-row">
+        <span>{t`Show L and R letters on hand-coloured keys`}</span>
+        <Switch value={letters} onChange={useStore.getState().setShowHandLetters} label={t`Hand tags`} />
+      </div>
+      {!isDefault && <button className="o-link" style={{ alignSelf: 'flex-start', marginTop: 4 }} onClick={() => set(DEFAULT_HAND_LH, DEFAULT_HAND_RH)}>{t`Back to Orfeo's colours`}</button>}
     </>
   )
 }
@@ -122,28 +110,21 @@ function HandColorsExtra() {
 // Test builds: see either version's note now instead of on the 5th launch
 function SupportNotePreview() {
   if (!simAvailable) return null
-  const btn = (label: string, store: boolean) => (
-    <button onClick={() => previewSupportNote(store)}
-      style={{ padding: '3px 6px', borderRadius: 4, border: '1px dashed var(--border2)', background: 'transparent', color: 'var(--text-inactive)',
-        fontSize: 10, fontFamily: 'var(--font-ui)', cursor: 'pointer' }}>{label}</button>
-  )
+  const btn = (label: string, store: boolean) => <button onClick={() => previewSupportNote(store)}>{label}</button>
   return (
-    <div style={{ marginTop: 12, padding: 8, border: '1px dashed var(--border2)', borderRadius: 4 }}>
-      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>{t`Preview · test builds only`}</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+    <div className="set-dev">
+      <div>{t`Preview · test builds only`}</div>
+      <div className="set-dev-btns">
         {btn(t`Show note`, false)}
         {btn(t`Microsoft Store version`, true)}
-        <button onClick={previewNewVersion}
-          style={{ padding: '3px 6px', borderRadius: 4, border: '1px dashed var(--border2)', background: 'transparent', color: 'var(--text-inactive)',
-            fontSize: 10, fontFamily: 'var(--font-ui)', cursor: 'pointer' }}>{t`New version dot`}</button>
+        <button onClick={previewNewVersion}>{t`New version dot`}</button>
       </div>
     </div>
   )
 }
 
 export const APPEARANCE_DEFS: SettingDef[] = [
-  { id: 'theme', icon: Palette, kind: 'choice', Control: ThemeControl },
-  { id: 'handColors', icon: Hand, kind: 'choice', Control: HandPresets, Extra: HandColorsExtra },
+  { id: 'handColors', icon: Hand, kind: 'choice', wide: true, Control: HandPresets, Extra: HandColorsExtra },
   { id: 'appZoom', icon: ZoomIn, kind: 'inline', Control: AppZoomControl, Glance: AppZoomGlance, glanceQuickOnly: true, Extra: AppZoomCap,
     Description: () => <>{t`Makes everything in Orfeo bigger or smaller. Ctrl + / Ctrl − / Ctrl 0 work exactly as in a web browser.`} {t`Click`} <InlineIcon><RotateCcw size={10} /></InlineIcon> {t`to reset.`}</> },
   {

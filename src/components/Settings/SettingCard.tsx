@@ -5,57 +5,47 @@ import { BetaBadge, SurfaceContext } from './controls'
 
 const always = () => true
 
-// Catalog text with **bold** words: the stars mark what to emphasise
+// Catalog text with **bold** words: the stars mark what to emphasise (one weight
+// everywhere, so the emphasis is the stronger text colour)
 export function richText(text: string): ReactNode {
-  return text.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <b key={i} style={{ fontWeight: 600, color: 'var(--text-default)' }}>{part}</b> : part))
+  return text.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <b key={i} style={{ fontWeight: 400, color: 'var(--ui-text)' }}>{part}</b> : part))
 }
 
-// ── One setting in the Settings window: icon + name (switch on the right),
-// full description, then its controls, glance lines and follow-up options.
+// ── One setting in the Settings window: name and description (switch on the
+// right), then its controls, glance lines and follow-up options.
 export function SettingCard({ id }: { id: SettingId }) {
   const def = DEFS[id], info = SETTING_BY_ID[id]
   const useVisible = def.useVisible ?? always
   const visible = useVisible()
   const labelId = useId()
   if (!visible) return null
-  const { Control, Glance, Extra, Description, NameSuffix, icon: Icon } = def
+  const { Control, Glance, Extra, Description, NameSuffix, HeadAction } = def
   const onNameLine = def.kind !== 'choice'
   const controlFirst = def.layout === 'controlFirst'
-  const description = (
-    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', lineHeight: 1.5, fontFamily: 'var(--font-ui)', fontStyle: 'italic', marginTop: controlFirst ? 10 : 0 }}>
-      {Description ? <Description /> : richText(info.description)}
+  const description = <div className="set-card-desc">{Description ? <Description /> : richText(info.description)}</div>
+  const glance = Glance && !def.glanceQuickOnly ? <Glance /> : null
+  const name = (
+    <div id={labelId} className="set-card-name">
+      <span>{info.name}{NameSuffix && <> <NameSuffix /></>}</span>
+      {def.badge === 'beta' && <BetaBadge />}
     </div>
   )
   return (
     <SurfaceContext.Provider value="window">
-    <div role="group" aria-labelledby={labelId} style={{
-      background: 'var(--bg-tile)', border: `1px solid ${def.notice ? 'var(--accent-amber-strong)' : 'var(--border2)'}`, borderRadius: 'var(--radius-lg)',
-      padding: '12px 14px', minWidth: 0, display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box',
-    }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, marginBottom: 6, minHeight: 20 }}>
-        <div id={labelId} style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0,
-          fontSize: 'var(--text-xs)', color: 'var(--text-default)', fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-          <Icon size={13} strokeWidth={1.5} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{info.name}{NameSuffix && <> <NameSuffix /></>}</span>
-          {def.badge === 'beta' && <BetaBadge />}
+      <div role="group" aria-labelledby={labelId} className={`o-card set-card${def.dark ? ' theme-studio set-card-dark' : ''}`}
+        style={def.wide ? { gridColumn: '1 / -1' } : undefined}>
+        <div className="set-card-head">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {name}
+            {!controlFirst && description}
+          </div>
+          {onNameLine ? <Control /> : HeadAction ? <HeadAction /> : null}
         </div>
-        {onNameLine ? <Control /> : null}
+        {!onNameLine && <div className="set-card-control"><Control /></div>}
+        {glance}
+        {controlFirst && description}
+        {Extra && <Extra />}
       </div>
-      {controlFirst ? (
-        <>
-          {!onNameLine && <div style={{ marginTop: 4 }}><Control /></div>}
-          {Glance && !def.glanceQuickOnly && <Glance />}
-          {description}
-        </>
-      ) : (
-        <>
-          {description}
-          {!onNameLine && <div style={{ marginTop: 10 }}><Control /></div>}
-          {Glance && !def.glanceQuickOnly && <Glance />}
-        </>
-      )}
-      {Extra && <Extra />}
-    </div>
     </SurfaceContext.Provider>
   )
 }
