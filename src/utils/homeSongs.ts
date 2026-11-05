@@ -4,6 +4,20 @@ import { buildCards, type SongCard, type SongSort } from './songCatalog'
 
 export interface FilterOption { name: string; count: number }
 
+// Where a song was left, for Keep going. time is what Continue goes back to.
+export interface LastPlayed { path: string; name: string; time: number; bar: number | null; bars: number | null; level?: number }
+
+export function lastPlayedAt(path: string, name: string, barTimes: number[] | undefined, time: number, level?: number): LastPlayed {
+  const bars = barTimes?.length || null
+  const bar = bars && Math.max(1, barTimes!.filter(start => start <= time + 1e-6).length)
+  return { path, name, time, bar, bars, level }
+}
+
+export const movedLastPlayed = (last: LastPlayed, pairs: { oldPath: string; newPath: string }[]): LastPlayed => {
+  const moved = pairs.find(p => p.oldPath === last.path)
+  return moved ? { ...last, path: moved.newPath, name: moved.newPath.split(/[\\/]/).pop() ?? last.name } : last
+}
+
 const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 export const matchesSearch = (text: string, q: string) => {
   const hay = plain(text)
@@ -18,6 +32,8 @@ export function deviceSongs(files: LibraryFile[], libraryFolder: string | null, 
     const path = f.path.replace(/\\/g, '/')
     const rel = root && path.startsWith(`${root}/`) ? path.slice(root.length + 1) : ''
     const folders = rel.split('/').slice(0, -1)
+    // Downloads keep the server's folders, one level down
+    if (folders[0] === 'Home Server') folders.shift()
     const c = cards.get(f.path)!
     return {
       path: f.path, title: c.title, artist: c.people[0] ?? folders.slice(1).join(' / '), genre: c.genres[0]?.name ?? folders[0] ?? '',

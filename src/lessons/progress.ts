@@ -34,13 +34,38 @@ export function playScore(steps: ScoredStep[], presses: Press[], windowSec: numb
   return Math.min(played, presses.length ? wanted.length / presses.length : 0)
 }
 
-// Taps against the times they were due. Each due time takes one tap.
-export function tapScore(due: number[], taps: number[], windowSec: number): number {
+export type TapMark = 'on-time' | 'early' | 'late' | 'missed' | 'extra'
+
+// A tap this many windows out is shown as close, but only an on-time tap scores
+const CLOSE_WINDOWS = 2
+
+// One mark per due time (null: not due yet), then one 'extra' per tap left over.
+// Each due time takes one tap, and every on-time tap is placed first, so a late
+// tap can't take the one that was right on the next beat.
+export function tapMarks(due: number[], taps: number[], windowSec: number, now = Infinity): (TapMark | null)[] {
   const left = [...taps]
-  let hit = 0
-  for (const time of due) {
+  const take = (i: number) => left.splice(i, 1)[0]
+  const marks: (TapMark | null)[] = due.map(time => {
     const i = left.findIndex(t => Math.abs(t - time) <= windowSec)
-    if (i >= 0) { hit++; left.splice(i, 1) }
-  }
+    if (i < 0) return null
+    take(i)
+    return 'on-time'
+  })
+  const close = windowSec * CLOSE_WINDOWS
+  due.forEach((time, d) => {
+    if (marks[d]) return
+    const i = left.findIndex(t => Math.abs(t - time) <= close)
+    if (i >= 0) marks[d] = take(i) < time ? 'early' : 'late'
+    else if (now > time + close) marks[d] = 'missed'
+  })
+  return [...marks, ...left.map(() => 'extra' as const)]
+}
+
+// Taps against the times they were due
+export function tapScore(due: number[], taps: number[], windowSec: number): number {
+  const hit = tapMarks(due, taps, windowSec).filter(m => m === 'on-time').length
   return due.length ? hit / Math.max(due.length, taps.length) : 0
 }
+
+// The clean runs behind a pass, for the Lesson passed page: a miss starts them over
+export const afterRun = (runs: number[], percent: number, clean: boolean) => (clean ? [...runs, percent].slice(-CLEAN_RUNS) : [])

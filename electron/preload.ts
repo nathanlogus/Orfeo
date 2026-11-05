@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   songServerQuery:    (address: string, query: Record<string, string | number>) => ipcRenderer.invoke('songServer:query', address, query),
   songServerDownload: (address: string, path: string, size: number) => ipcRenderer.invoke('songServer:download', address, path, size),
   songServerDiscover: () => ipcRenderer.invoke('songServer:discover'),
+  onSongServerProgress: (fn: (data: { path: string; percent: number }) => void) => ipcRenderer.on('songServer:progress', (_e, data) => fn(data)),
+  offSongServerProgress: () => ipcRenderer.removeAllListeners('songServer:progress'),
   saveExport:         (songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => ipcRenderer.invoke('export:save', songPath, libraryFolder, fileName, bytes),
   statFiles:          (paths: string[]) => ipcRenderer.invoke('fs:statFiles', paths),
   // MIDI Editor

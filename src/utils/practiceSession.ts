@@ -5,6 +5,7 @@
 import { useStore } from '../store'
 import { accuracy, afterPhrase, mastery, phraseOf, phraseStarts, type PhraseProgress, type Press, type ScoredStep } from './practiceScore'
 import { buildPracticeResult, type PhraseRun } from './practiceResult'
+import { lastPlayedAt, movedLastPlayed } from './homeSongs'
 
 export const WINDOW_SEC = 0.25
 const FIRST_AUTO_LEVEL = 1
@@ -137,6 +138,32 @@ export function endPractice() {
   showResult()
 }
 
+// ── Keep going: the song and bar to go back to ──
+let _resumeAt: { path: string; time: number } | null = null
+
+// Continue playing: the next time this song opens, it opens where it was left
+export function resumeSong(path: string, time: number) { _resumeAt = { path, time } }
+
+function saveLastPlayed(time: number) {
+  const { midi, practiceLevel } = useStore.getState()
+  const path = (midi as any)?._filePath as string | undefined
+  // A lesson's path names no file, so there's nothing to come back to
+  if (!midi || !path || path.startsWith('lesson/')) return
+  // The end of the song: going back means starting again
+  const at = time >= midi.duration - 1 ? 0 : time
+  void window.electronAPI.getPrefs().then(p => {
+    const saved = p.practiceProgress?.[songKey(midi.fileName)]?.phrases?.[phraseOf(phraseStarts(midi._barTimes ?? []), at)]?.level
+    const level = practiceLevel === AUTO_LEVEL ? saved ?? FIRST_AUTO_LEVEL : practiceLevel
+    return window.electronAPI.setPrefs({ lastPlayed: lastPlayedAt(path, midi.fileName, midi._barTimes, at, level) })
+  })
+}
+
+export function moveLastPlayed(pairs: { oldPath: string; newPath: string }[]) {
+  void window.electronAPI.getPrefs().then(p => {
+    if (p.lastPlayed) void window.electronAPI.setPrefs({ lastPlayed: movedLastPlayed(p.lastPlayed, pairs) })
+  })
+}
+
 // Every frame of playback, and every key
 export function practiceClock(now: number) {
   syncSong()
@@ -153,6 +180,15 @@ export function practiceClock(now: number) {
 }
 
 useStore.subscribe((s, prev) => {
+  const path = (s.midi as any)?._filePath as string | undefined
+  if (path !== (prev.midi as any)?._filePath && path) {
+    const resume = _resumeAt?.path === path ? _resumeAt.time : 0
+    _resumeAt = null
+    if (resume) useStore.setState({ currentTime: resume })
+    saveLastPlayed(resume)
+  }
+  // The engine can end a song by putting the clock back to 0, so go by where it was
+  if (s.playbackState !== 'playing' && prev.playbackState === 'playing') saveLastPlayed(prev.currentTime)
   // A key that's newly down is a press, however often it's the same key
   if (s.midiHeldKeys !== prev.midiHeldKeys) {
     syncSong()

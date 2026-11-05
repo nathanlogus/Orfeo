@@ -3,7 +3,7 @@ import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import { COURSE, LESSONS, lessonById } from '../../lessons/courseData'
 import { isOpen } from '../../lessons/progress'
-import { exitLesson, nextStep, startLesson, stepsOf, type LessonStep } from '../../lessons/session'
+import { drillPassed, exitLesson, lessonScores, nextStep, startLesson, stepsOf, type LessonStep } from '../../lessons/session'
 import type { Check, Clef, Lesson } from '../../lessons/course'
 import DrillStep from './DrillStep'
 import MiniStaff, { HeldKeys, KeyMap, RhythmLine } from './MiniStaff'
@@ -53,14 +53,20 @@ function Passed({ lesson, canGoOn, after }: { lesson: Lesson; canGoOn: boolean; 
   const passed = useStore(s => s.lessonPassed)
   const unit = COURSE.find(u => u.lessons.includes(lesson))
   const done = unit ? unit.lessons.filter(l => passed.includes(l.id)).length : 0
+  const { drill, runs } = lessonScores()
+  const stats: [string, number][] = [...(drill === null ? [] : [[t`Drill`, drill] as [string, number]]), ...runs.map((r, i) => [t`In time, run ${i + 1}`, r] as [string, number])]
   return (
     <div className="theme-paper lesson-passed">
       <span className="o-disc" style={{ right: -80, top: -80, width: 420, height: 420, background: 'var(--paint-lime)' }} aria-hidden />
       <span className="o-triangle" style={{ right: 300, top: 120, width: 90, height: 80, transform: 'rotate(-12deg)' }} aria-hidden />
+      <span className="lesson-passed-star" aria-hidden />
       <div className="lesson-passed-text">
         <span className="lesson-passed-tag"><CheckIcon size={16} color="var(--paint-lime)" aria-hidden />{t`Lesson passed`}</span>
         <h1 className="lesson-passed-title">{lesson.title}</h1>
         <span className="lesson-passed-goal">{`${t`Lesson`} ${lesson.id} · ${lesson.goal}`}</span>
+        {stats.length > 0 && <div className="lesson-stats">
+          {stats.map(([name, value]) => <div key={name} className="lesson-stat"><span className="o-note">{name}</span><span className="lesson-stat-value">{`${value}%`}</span></div>)}
+        </div>}
         {unit && <div className="lesson-unit">
           <span>{`${t`Unit`} ${unit.n} · ${unit.title} · ${t`${done} of ${unit.lessons.length}`}`}</span>
           <div className="lesson-unit-bar" role="img" aria-label={t`Unit ${unit.n}: ${done} of ${unit.lessons.length} lessons passed`}>
@@ -124,9 +130,8 @@ export default function LessonPanel() {
               <button className="o-btn-primary o-btn-lg" style={{ alignSelf: 'flex-start' }} onClick={nextStep}>{t`Continue`}</button>
             </>}
             {run.step === 'drill' && lesson.check && <>
-              {lesson.drill && <p className="o-note">{lesson.drill}</p>}
               {!connected && lesson.check.kind !== 'chunks' && lesson.check.kind !== 'scan' && lesson.check.kind !== 'intervals' && <div role="alert" className="lesson-alert"><span className="o-dot o-dot-alert" />{t`This drill needs a MIDI keyboard. Connect one and press a key.`}</div>}
-              <DrillStep key={lesson.id} lesson={lesson} check={lesson.check} onPass={nextStep} />
+              <DrillStep key={lesson.id} lesson={lesson} check={lesson.check} onPass={percent => { drillPassed(percent); nextStep() }} />
             </>}
           </div>
           <HeldKeys height={200} className="lesson-keys" />

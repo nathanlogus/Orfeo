@@ -36,6 +36,28 @@ export function staffStep(name: string): number {
   return octave * 7 + LETTERS.indexOf(letter)
 }
 
+export const noteLabel = (name: string) => {
+  const { letter, accidental } = noteParts(name)
+  return letter + accidental.replace('#', '♯').replace('b', '♭')
+}
+
+const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+export const noteOfKey = (key: number) => `${SHARP_NAMES[key % 12]}${Math.floor(key / 12) - 1}`
+
+// A wrong key against the note that was asked for, in staff steps: "one step lower"
+export function missedNote(want: string, key: number) {
+  const played = noteOfKey(key)
+  const semitones = midiOf(want) - key
+  const steps = staffStep(want) - staffStep(played)
+  const octave = semitones % 12 === 0
+  return {
+    played: noteLabel(played), want: noteLabel(want),
+    amount: octave ? 'octaves' as const : steps ? 'steps' as const : 'half' as const,
+    count: octave ? Math.abs(semitones) / 12 : Math.abs(steps) || 1,
+    lower: semitones < 0,
+  }
+}
+
 const pick = <T,>(list: T[], rng: () => number): T => list[Math.floor(rng() * list.length)]
 
 export function promptCount(check: Check): number {

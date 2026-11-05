@@ -1,4 +1,4 @@
-import { deviceSongs, filterSongs, matchesSearch, songCard, songFacets, sortSongs, type SongFilters } from './homeSongs'
+import { deviceSongs, filterSongs, lastPlayedAt, matchesSearch, movedLastPlayed, songCard, songFacets, sortSongs, type SongFilters } from './homeSongs'
 
 export function runHomeSongsTest(): number {
   let failures = 0
@@ -15,6 +15,7 @@ export function runHomeSongsTest(): number {
   ], 'C:\\Music\\')
   eq('sorted by title', songs.map(s => s.title), ['Alone', 'Blue', 'Demo', 'Rondo'])
   eq('folders', songs.map(s => [s.genre, s.artist]), [['', ''], ['Jazz', ''], ['', ''], ['Classical', 'Mozart']])
+  eq('a download reads like the server', deviceSongs([{ name: 'a.mid', path: 'C:/M/Home Server/Jazz/Bill/a.mid' }], 'C:/M').map(s => [s.genre, s.artist]), [['Jazz', 'Bill']])
   eq('path is untouched', songs[3].path, 'C:\\Music\\Classical\\Mozart\\Rondo.mid')
   eq('no library', deviceSongs([{ name: 'A.mid', path: '/x/A.mid' }], null)[0].genre, '')
   const none: SongFilters = { q: '', genre: '', artist: '', arrangement: '', difficulty: '', key: '', hands: '', classic: false }
@@ -43,6 +44,17 @@ export function runHomeSongsTest(): number {
   eq('tempo', titles(sortSongs(library, 'tempo')), ['Autumn', 'Blue Moon', 'c'])
   eq('length', titles(sortSongs(library, 'length')), ['Autumn', 'Blue Moon', 'c'])
   eq('title keeps the order', sortSongs(library, 'title'), library)
+
+  const bars = [0, 2, 4, 6]
+  eq('first bar', lastPlayedAt('a', 'a', bars, 0).bar, 1)
+  eq('inside a bar', [lastPlayedAt('a', 'a', bars, 4.5).bar, lastPlayedAt('a', 'a', bars, 4.5).bars], [3, 4])
+  eq('on a bar line', lastPlayedAt('a', 'a', bars, 2).bar, 2)
+  eq('a pickup before bar 1 is bar 1', lastPlayedAt('a', 'a', [1, 3], 0).bar, 1)
+  eq('no bar lines', lastPlayedAt('a', 'a', [], 3).bar, null)
+  eq('or none at all', lastPlayedAt('a', 'a', undefined, 3).bars, null)
+  const left = lastPlayedAt('C:/M/a.mid', 'a.mid', bars, 1)
+  eq('a moved song is followed', movedLastPlayed(left, [{ oldPath: 'C:/M/a.mid', newPath: 'C:/M/Jazz/a.mid' }]).path, 'C:/M/Jazz/a.mid')
+  eq('another move leaves it alone', movedLastPlayed(left, [{ oldPath: 'x', newPath: 'y' }]).path, 'C:/M/a.mid')
 
   const bare = songCard({ path: 'a.mid', title: 'A', artist: 'Bill', genre: 'Jazz', size: 1, local: false })
   eq('card from a plain song', [bare.people, bare.genres, bare.art, bare.key], [['Bill'], [{ name: 'Jazz', guessed: false }], null, null])
