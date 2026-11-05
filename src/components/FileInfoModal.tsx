@@ -18,6 +18,7 @@ import { PENCIL_CURSOR } from '../utils/cursors'
 import { parseMidiMetadata, buildRenamedFileName, formatKeyOrDash, type MidiFileMetadata } from '../utils/midiMetadata'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import { useDraggableDialog, dialogFitsScreen } from '../hooks/useDraggableDialog'
 
 interface FileLogEvent { type: string; timestamp: number; summary: string }
 interface FileVersion { name: string; path: string; version: number; mtime: number }
@@ -133,40 +134,13 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
 
   // ── Draggable — starts centered (backdrop flex-centers it); once dragged,
   // switches to an explicit fixed position that escapes that centering. ────
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  const dragState = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null)
+  const { onDragStart, placed } = useDraggableDialog(panelRef)
   // ── Only rendered while a file-info target is set (see SettingsPanel) —
   // always active while this component exists. ─────────────────────────────
   useFocusTrap(panelRef, true)
 
-  const startDrag = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('[data-no-drag]')) return
-    e.preventDefault()
-    const rect = panelRef.current?.getBoundingClientRect()
-    const startPos = pos ?? { x: rect?.left ?? 0, y: rect?.top ?? 0 }
-    if (!pos) setPos(startPos)
-    dragState.current = { startX: e.clientX, startY: e.clientY, startPosX: startPos.x, startPosY: startPos.y }
-  }
 
-  const onDragMove = useCallback((e: MouseEvent) => {
-    const ds = dragState.current
-    if (!ds) return
-    // y floor of 44, not 0 — keeps the top edge clear of the 40px
-    // titleBarOverlay (electron/main.ts) where Windows draws its own window
-    // controls on top of everything in the DOM.
-    setPos({ x: ds.startPosX + (e.clientX - ds.startX), y: Math.max(44, ds.startPosY + (e.clientY - ds.startY)) })
-  }, [])
-  const onDragEnd = useCallback(() => { dragState.current = null }, [])
-
-  useEffect(() => {
-    window.addEventListener('mousemove', onDragMove)
-    window.addEventListener('mouseup', onDragEnd)
-    return () => {
-      window.removeEventListener('mousemove', onDragMove)
-      window.removeEventListener('mouseup', onDragEnd)
-    }
-  }, [onDragMove, onDragEnd])
 
   // ── Track the props — the modal is reused (no remount) when the target file
   // changes, e.g. a rename in this same popup, or reopening File info on a
@@ -291,11 +265,11 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
           background: 'var(--bg-modal)', border: '1px solid var(--border2)',
           borderRadius: 'var(--radius-lg)', padding: '16px 18px', width: 360,
           '--_modal-shadow': 'var(--elevation-modal)',
-          ...(pos ? { position: 'fixed', left: pos.x, top: pos.y } : {}),
+          ...dialogFitsScreen, ...placed,
         } as CSSProperties}
         onMouseDown={e => e.stopPropagation()}
       >
-        <div onMouseDown={startDrag} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, cursor: 'grab' }}>
+        <div onPointerDown={onDragStart} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, cursor: 'grab', touchAction: 'none' }}>
           <OrfeoMark height={22} />
           <span style={{
             flex: 1, minWidth: 0, fontFamily: 'var(--font-mono)', fontSize: 14,

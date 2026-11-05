@@ -1,5 +1,7 @@
+import { useRef } from 'react'
 import { Star, Heart, X } from 'lucide-react'
 import { useSupportNote, requestStoreReview, closeSupportNote } from '../hooks/useSupportNote'
+import { useDraggableDialog, dialogFitsScreen } from '../hooks/useDraggableDialog'
 import Tooltip from './Tooltip'
 import { t } from '../utils/i18n'
 
@@ -39,10 +41,13 @@ const btn = (primary: boolean): React.CSSProperties => ({
 export function SupportNote() {
   const open = useSupportNote((s) => s.noteOpen)
   const store = useSupportNote((s) => s.preview?.store ?? s.store)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const { onDragStart, placed } = useDraggableDialog(panelRef)
   if (!open) return null
   const visit = (url: string) => { closeSupportNote('later'); window.electronAPI.openExternal(url) }
   return (
     <div
+      ref={panelRef}
       role="dialog"
       aria-label={t`Enjoying Orfeo?`}
       style={{
@@ -50,8 +55,9 @@ export function SupportNote() {
         background: 'var(--bg-modal)', border: '1px solid var(--border2)',
         borderRadius: 'var(--radius-lg)', padding: '14px 16px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.5)', fontFamily: 'var(--font-ui)',
+        ...dialogFitsScreen, ...placed,
       }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', marginBottom: 8 }}>
+      <div onPointerDown={onDragStart} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', marginBottom: 8, cursor: 'grab', touchAction: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--text-amber)', fontFamily: 'var(--font-ui)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
           <Star size={13} strokeWidth={1.5} />
           {t`Enjoying Orfeo?`}

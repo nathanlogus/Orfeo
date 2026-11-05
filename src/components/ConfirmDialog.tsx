@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { subscribeConfirm, type ConfirmState } from '../utils/confirmController'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import { useDraggableDialog, dialogFitsScreen } from '../hooks/useDraggableDialog'
 
 // ── ConfirmDialogHost ─────────────────────────────────────────────────────────
 // Always-mounted; renders a modal only when a confirmDialog() call is pending.
@@ -26,6 +27,8 @@ export function ConfirmDialogHost() {
 
   const panelRef = useRef<HTMLDivElement>(null)
   useFocusTrap(panelRef, !!state)
+  const { onDragStart, placed, reset } = useDraggableDialog(panelRef)
+  useEffect(() => { if (state) reset() }, [state, reset])
 
   if (!state) return null
 
@@ -55,11 +58,13 @@ export function ConfirmDialogHost() {
           minWidth: 340,
           maxWidth: 460,
           '--_modal-shadow': 'var(--elevation-modal)',
+          ...dialogFitsScreen, ...placed,
         } as CSSProperties}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {state.title && (
-          <div style={{
+          <div onPointerDown={onDragStart} style={{
+            cursor: 'grab', touchAction: 'none',
             fontFamily: 'var(--font-mono)',
             fontSize: 'var(--text-sm)',
             color: 'var(--text-amber)',
