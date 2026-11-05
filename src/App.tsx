@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import TopBar from './components/Transport/TopBar'
 import PianoRoll from './components/PianoRoll/PianoRoll'
+import ScoreView from './components/ScoreView'
+import { isScoreFor } from './utils/scoreSource'
 import Keyboard from './components/Keyboard/Keyboard'
 import KeyboardControls from './components/Keyboard/KeyboardControls'
 import TrackPanel from './components/TrackPanel/TrackPanel'
@@ -65,6 +67,11 @@ export default function App() {
   const appTheme = useStore((s) => s.appTheme)
   const presentationMode = useStore((s) => s.presentationMode)
   const noteEditorActive = useStore((s) => s.noteEditorActive)
+  const scoreViewMode = useStore((s) => s.scoreViewMode)
+  const scoreBytes = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath) ? s.scoreSource.bytes : null)
+  // the Note Editor draws on the roll, so it always gets it
+  const showScore = !!scoreBytes && scoreViewMode !== 'roll' && !noteEditorActive
+  const showRoll = !showScore || scoreViewMode === 'both'
   const { openFile } = useMidiFile()
   const { play, pause, stop } = usePlayback()
   useAudioEngine()
@@ -549,8 +556,9 @@ export default function App() {
       >
         {!presentationMode && <SettingsPanel />}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-          <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', paddingTop: 6 }}>
-            {midi ? <PianoRoll /> : <EmptyState />}
+          <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', paddingTop: 6, display: 'flex', flexDirection: 'column' }}>
+            {showScore && <ScoreView bytes={scoreBytes} style={{ flex: showRoll ? '0 0 50%' : 1 }} />}
+            {showRoll && (midi ? <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div> : <EmptyState />)}
             <CountInOverlay />
           </div>
           {keyboardMode === 'docked' && <Keyboard />}

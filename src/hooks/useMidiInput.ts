@@ -13,6 +13,7 @@
 import { useEffect } from 'react'
 import { useStore } from '../store'
 import { isTapCapturing, registerTap } from '../utils/tapTempoSession'
+import { advanceIfPlayed } from '../utils/stepThrough'
 import {
   useMidiSettings, midiPrefsReady, shapeVelocity, type ControlKind, type MidiDeviceInfo, type MidiOutputInfo,
 } from '../store/midiSettings'
@@ -150,6 +151,7 @@ function noteOn(key: string, note: number, raw: number, stamp: number, t0: numbe
   recordNote(stamp, t0, performance.now(), note, vel, key)
   heldBy(key).add(note)
   lightOn(note)
+  advanceIfPlayed()
   setActive(key)
 }
 

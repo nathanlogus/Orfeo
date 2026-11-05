@@ -6,6 +6,9 @@
 
 import { useStore } from '../store';
 import { confirmDialog } from './confirmController';
+import { findImportSource, leftHandChannels, withTextEvents, type ScoreSource } from './scoreSource';
+
+const HAND_HINT = 'ORFEO_TRACK_HAND:';
 
 export type ForeignFormat = 'musicxml' | 'guitarpro' | 'capella';
 
@@ -49,6 +52,16 @@ export async function convertForeignFileToMidiBuffer(
     );
   }
 
+  // ── Each staff of a keyboard part plays as its own hand ─────────────────
+  const hands: string[] = [];
+  for (const [part, channels] of leftHandChannels<any>(score.tracks)) {
+    const left = new (at as any).model.Track();
+    Object.assign(left.playbackInfo, part.playbackInfo, { primaryChannel: channels[0], secondaryChannel: channels[1] });
+    score.addTrack(left);
+    left.addStaff(part.staves.pop());
+    hands.push(`${HAND_HINT}${part.playbackInfo.primaryChannel}:R`, `${HAND_HINT}${channels[0]}:L`);
+  }
+
   const midiFile = new (at as any).midi.MidiFile();
   const handler  = new (at as any).midi.AlphaSynthMidiFileHandler(midiFile);
   const gen      = new (at as any).midi.MidiFileGenerator(score, settings, handler);
@@ -69,7 +82,7 @@ export async function convertForeignFileToMidiBuffer(
   // Serialise to Standard MIDI File bytes.
   // Confirmed in docs/RESEARCH_alphatab-import.md: correct method is toBinary().
   // toUInt8Array() does NOT exist in alphaTab 1.8.4.
-  const bytes_out: Uint8Array = (midiFile as any).toBinary();
+  const bytes_out: Uint8Array = withTextEvents((midiFile as any).toBinary(), hands);
 
   if (!bytes_out || bytes_out.length === 0) {
     throw new Error(
@@ -138,6 +151,16 @@ export async function resolveToMidiBase64(
   // Cast via any to avoid type errors in this task.
   const cached = await (window.electronAPI as any).getCachedImport(filePath, cachePath);
   if (cached) {
+    // A copy saved before hands came from the sheet gets them now. It only
+    // ever holds this conversion, as edits save to their own _ORFEO_vN.
+    if (!atob(cached).includes(HAND_HINT)) {
+      const fresh = await convertForeignFileToMidiBuffer(base64ToBytes(originalBase64), format).catch(() => null);
+      const freshBase64 = fresh && bytesToBase64(new Uint8Array(fresh));
+      if (freshBase64 && atob(freshBase64).includes(HAND_HINT)) {
+        await (window.electronAPI as any).writeCachedImport(cachePath, freshBase64);
+        return { base64: freshBase64, resolvedPath: cachePath, isPendingSave: false };
+      }
+    }
     return { base64: cached, resolvedPath: cachePath, isPendingSave: false };
   }
 
@@ -160,6 +183,7 @@ export async function resolveAndTrackImport(
   libraryFolder: string | null,
 ): Promise<{ base64: string; filePath: string; fileName: string }> {
   const resolved = await resolveToMidiBase64(filePath, originalBase64, libraryFolder);
+  useStore.getState().setScoreSource(await loadScoreSource(filePath, originalBase64, libraryFolder));
 
   if (!resolved.isPendingSave) {
     useStore.getState().setPendingImportedFile(null);
@@ -194,6 +218,30 @@ export async function resolveAndTrackImport(
   // "Don't Save" — still only in memory, _filePath stays the foreign source
   // (pendingImportedFile stays set; confirmPendingImportBeforeEdit patches it later).
   return { base64: resolved.base64, filePath, fileName };
+}
+
+// ── The notation file behind a song, for the score view ──────────────────
+// A failed lookup only costs the score view, never the song.
+async function loadScoreSource(
+  filePath: string,
+  originalBase64: string,
+  libraryFolder: string | null,
+): Promise<ScoreSource | null> {
+  if (detectForeignFormat(filePath)) {
+    return {
+      midiPaths: [filePath, getCachePath(filePath, libraryFolder)],
+      bytes: base64ToBytes(originalBase64),
+    };
+  }
+  const { libraryFiles } = useStore.getState();
+  const source = findImportSource(filePath, libraryFiles, (p) => !!detectForeignFormat(p));
+  if (!source) return null;
+  try {
+    const result = await window.electronAPI.loadMidiFromPath(source.path);
+    return result ? { midiPaths: [filePath], bytes: base64ToBytes(result.base64) } : null;
+  } catch {
+    return null;
+  }
 }
 
 function baseName(p: string): string {

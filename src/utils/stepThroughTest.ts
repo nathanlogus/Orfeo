@@ -1,4 +1,4 @@
-import { buildSteps } from './stepThrough'
+import { buildSteps, nextWaitTime } from './stepThrough'
 import { notesSoundingAt } from './midiParser'
 
 // Steps follow what's on the roll: eye on, not muted, and the soloed track
@@ -17,6 +17,14 @@ export function runStepThroughTest(): number {
   check(steps.map(s => s.time).join() === '1', `steps only on tracks shown on the roll (eye on, not muted), got ${steps.map(s => s.time)}`)
   const solo = buildSteps(midi, [ts(0, { solo: true }), ts(1), ts(2, { visible: false }), ts(3)])
   check(solo.map(s => s.time).join() === '1', 'solo: only the soloed track is heard and shown, so only it makes steps')
+
+  const chord = (time: number, ...notes: number[]) => ({ time, notes: notes.map(midi => ({ midi })) }) as any
+  const wait = [chord(1, 60, 64), chord(2, 67)]
+  check(nextWaitTime(wait, 0, new Set([60]), 0, 9) === null, 'half a chord does not move the song')
+  check(nextWaitTime(wait, 0, new Set([60, 64, 72]), 0, 9) === 2, 'the whole chord moves to the next step, a stray key does not block it')
+  check(nextWaitTime(wait, 2, new Set([67]), 0, 9) === 9, 'the last step ends the song')
+  check(nextWaitTime(wait, 2, new Set([69]), 2, 9) === 9, 'keys are compared transposed')
+  check(nextWaitTime(wait, 3, new Set([67]), 0, 9) === null, 'nothing left to wait for')
 
   console.log(`stepThrough: ${pass} passed, ${fail} failed`)
   console.groupEnd()

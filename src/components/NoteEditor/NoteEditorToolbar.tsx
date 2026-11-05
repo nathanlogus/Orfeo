@@ -125,7 +125,7 @@ export default function NoteEditorToolbar() {
     // anything and saving silently discarded whatever hand tags existed.
     const editMidi = NES.editMidi
     const keptMeta = ((editMidi.header as any).meta ?? []).filter(
-      (m: any) => !(typeof m.text === 'string' && m.text.startsWith('ORFEO_HAND_MAP:'))
+      (m: any) => !(typeof m.text === 'string' && (m.text.startsWith('ORFEO_HAND_MAP:') || m.text.startsWith('ORFEO_TRACK_HAND:')))
     )
     ;(editMidi.header as any).meta = keptMeta
     editMidi.tracks.forEach(track => {

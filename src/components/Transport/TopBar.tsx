@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect, useState } from 'react'
 import {
   Play, Pause, SkipBack, SkipForward, Repeat,
   FolderOpen, RotateCcw, ChevronUp, ChevronDown,
-  Rewind, FastForward,
+  Rewind, FastForward, Music2, Hourglass,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
@@ -26,6 +26,7 @@ import { useMidiSettings } from '../../store/midiSettings'
 import { shortName } from '../../utils/midiDeviceNames'
 import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
 import { confirmDiscardDirtyTempoKey } from '../../utils/tempoKeySave'
+import { isScoreFor } from '../../utils/scoreSource'
 
 // NOTE: no more `C` shorthand object — every color below is a literal
 // `var(--token-name)` string written directly at its point of use, so the
@@ -103,6 +104,9 @@ export default function TopBar() {
 
 
   const { play, pause, stop, seek, seekAndPlay } = usePlayback()
+  const scoreViewMode = useStore((s) => s.scoreViewMode)
+  const waitForNotes = useStore((s) => s.waitForNotes)
+  const hasScore = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath))
   const { openFile } = useMidiFile()
   const wasPlayingRef = useRef(false)
 
@@ -664,6 +668,38 @@ export default function TopBar() {
 
         <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
 
+        {/* SCORE — notation files only, MIDI has no score to draw */}
+        <Tooltip
+          title={!hasScore ? t`No score for this song` : scoreViewMode === 'roll' ? t`Showing: piano roll` : scoreViewMode === 'both' ? t`Showing: score and piano roll` : t`Showing: score`}
+          description={hasScore ? t`Click to switch between the piano roll, the score, or both.` : t`Scores show for MusicXML, Guitar Pro and Capella files, not MIDI or saved edits.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!hasScore} aria-label={t`Score view`}
+            onClick={() => useStore.getState().setScoreViewMode(NEXT_SCORE_MODE[scoreViewMode])}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: hasScore ? 'pointer' : 'default', opacity: hasScore ? 1 : 0.4, color: hasScore && scoreViewMode !== 'roll' ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <Music2 size={24} />
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>SCORE</span>
+          </button>
+        </Tooltip>
+
+        {/* WAIT — the song moves only as the MIDI keyboard plays it */}
+        <Tooltip
+          title={waitForNotes ? t`Waiting for your notes` : t`Wait for notes`}
+          description={t`The song holds still until you play the next note or chord on your MIDI keyboard. Hide or mute a track to leave its notes out. Play turns this off.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!midi} aria-label={t`Wait for notes`} aria-pressed={waitForNotes}
+            onClick={() => useStore.getState().setWaitForNotes(!waitForNotes)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: waitForNotes ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <Hourglass size={24} />
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>WAIT</span>
+          </button>
+        </Tooltip>
+
+        <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
+
         {/* MIDI — the keyboard being played; click opens its settings */}
         <Tooltip
           title={midiDeviceConnected ? midiDeviceName : t`No connected keyboards`}
@@ -688,6 +724,8 @@ export default function TopBar() {
     </div>
   )
 }
+
+const NEXT_SCORE_MODE = { roll: 'both', both: 'score', score: 'roll' } as const
 
 const METRO_MENU_WIDTH = 150
 
