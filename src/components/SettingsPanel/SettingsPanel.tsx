@@ -218,13 +218,13 @@ function FavouriteStar({ starred, title, onClick, onHoverChange, style }: {
         onClick={onClick}
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          color: starred ? 'var(--text-amber)' : 'var(--state-disabled)',
+          color: starred ? 'var(--text-amber)' : 'var(--ui-text-soft)',
           display: 'flex', alignItems: 'center', flexShrink: 0,
           fontSize: 'var(--text-sm)', lineHeight: 1, transition: 'color 0.12s',
           ...style,
         }}
         onMouseEnter={e => { tt.onMouseEnter(); onHoverChange(true); if (!starred) e.currentTarget.style.color = 'var(--state-star-hover)' }}
-        onMouseLeave={e => { tt.onMouseLeave(); onHoverChange(false); if (!starred) e.currentTarget.style.color = 'var(--state-disabled)' }}
+        onMouseLeave={e => { tt.onMouseLeave(); onHoverChange(false); if (!starred) e.currentTarget.style.color = 'var(--ui-text-soft)' }}
       >★</button>
       {tt.box}
     </>
@@ -265,17 +265,17 @@ function RowIconButton({ tooltip, onClick, onHoverChange, style, children }: {
 // ─── Library Panel ───────────────────────────────────────────────────────────
 
 // ── Filename span styles — active (amber) and default (muted) ─────────────────
-const FILENAME_SPAN_DEFAULT: React.CSSProperties = { fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }
-const FILENAME_SPAN_ACTIVE:  React.CSSProperties = { fontSize: 'var(--text-sm)', color: 'var(--text-amber)', fontWeight: 500, fontFamily: 'var(--font-ui)' }
+const FILENAME_SPAN_DEFAULT: React.CSSProperties = { fontSize: 'var(--text-base)', color: 'var(--ui-text)', fontFamily: 'var(--font-ui)' }
+const FILENAME_SPAN_ACTIVE:  React.CSSProperties = { fontSize: 'var(--text-base)', color: 'var(--text-amber)', textDecoration: 'underline', fontFamily: 'var(--font-ui)' }
 // Revealed-hidden-file row (showHiddenLibraryFiles on) — dimmest amber shade,
 // not a generic gray fade, so it still reads as "library color" not "disabled".
-const FILENAME_SPAN_HIDDEN:  React.CSSProperties = { fontSize: 'var(--text-sm)', color: 'var(--text-amber-dimmest)', fontFamily: 'var(--font-ui)' }
+const FILENAME_SPAN_HIDDEN:  React.CSSProperties = { fontSize: 'var(--text-base)', color: 'var(--ui-text-soft)', fontFamily: 'var(--font-ui)' }
 
 // ── Sticky headers stack: "Folders" section header (top:0) → individual
 // folder header (top:FOLDER_HEADER_HEIGHT) → loaded file's row, if visible,
 // pins directly beneath whichever headers are above it in its group (0, 1,
 // or 2 header-heights) — or the very top, for a loaded root-group file. ─────
-const FOLDER_HEADER_HEIGHT = touchScreen ? 48 : 30
+const FOLDER_HEADER_HEIGHT = touchScreen ? 50 : 40
 
 // ── Where the file list was scrolled to — module-level so it survives the
 // drawer closing (which unmounts the panel), not just a switch to Setup ────
@@ -884,81 +884,49 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
   }, [hidden])
 
   return (
-    <div style={{ display: hidden ? 'none' : 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="theme-paper library-panel" style={{ display: hidden ? 'none' : 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* ── Folder picker row ── */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--bg-tile)', flexShrink: 0 }}>
+      <div className="library-tools">
         {libraryFolder ? (
           <div>
             {/* Current folder display */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 8px', background: 'var(--bg-row)', borderRadius: 4,
-              border: '1px solid var(--border2)', marginBottom: 6,
-            }}>
-              <Tooltip title="Change library folder" oneLine wrapperStyle={{ flexShrink: 0 }}>
-              <button
-                onClick={handlePickFolder}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexShrink: 0 }}
-              >
-                <FolderOpen size={11} style={{ color: 'var(--text-amber)' }} />
-              </button>
-              </Tooltip>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {/* ── Fuzzy search — any artist/song/filename, across all subfolders ── */}
-              <div style={{
-                flex: 1, display: 'flex', alignItems: 'center', gap: 4,
-                border: '1px solid var(--border2)', borderRadius: 4,
-                padding: '2px 6px', background: 'var(--bg-modal-header)',
-                minWidth: 0,
-              }}>
-                <Search size={10} style={{ color: 'var(--text-inactive)', flexShrink: 0 }} />
+              <label className="o-field" style={{ flex: 1, minWidth: 0 }}>
+                <Search size={15} aria-hidden style={{ flexShrink: 0 }} />
                 <input
                   type="text"
                   value={librarySearch}
                   onChange={e => setLibrarySearch(e.target.value)}
                   placeholder="Search your library"
-                  style={{
-                    flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
-                    fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)',
-                  }}
+                  aria-label="Search your library"
                 />
                 {librarySearch && (
                   <Tooltip title="Clear search" oneLine>
                   <button
                     onClick={() => setLibrarySearch('')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--text-inactive)' }}
+                    aria-label="Clear search"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'inherit' }}
                   >
-                    <X size={10} />
+                    <X size={14} />
                   </button>
                   </Tooltip>
                 )}
-              </div>
+              </label>
               <Tooltip title={libraryNeedsRefresh ? 'A file was saved — click to refresh the library' : 'Refresh library'} oneLine>
               <button
                 onClick={handleRefresh}
-                className={libraryNeedsRefresh ? 'loop-nudge-blink' : undefined}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: libraryNeedsRefresh ? 'var(--text-amber)' : 'var(--text-inactive)', padding: 2, display: 'flex', alignItems: 'center',
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-                onMouseLeave={e => e.currentTarget.style.color = libraryNeedsRefresh ? 'var(--text-amber)' : 'var(--text-inactive)'}
+                aria-label="Refresh library"
+                className={`o-icon-btn${libraryNeedsRefresh ? ' loop-nudge-blink' : ''}`}
               >
-                <RefreshCw size={10} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+                <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
               </button>
               </Tooltip>
             </div>
 
-            <button
-              onClick={() => setSongBrowserOpen(true)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '5px 8px',
-                marginBottom: 6, borderRadius: 4, cursor: 'pointer', border: '1px solid var(--accent-amber-strong)',
-                background: 'var(--accent-amber-medium)', color: 'var(--text-amber)', fontSize: 'var(--text-xs)',
-                fontWeight: 600, fontFamily: 'var(--font-ui)',
-              }}
-            >
-              <LayoutGrid size={12} strokeWidth={1.5} /> {t`Browse songs`}
+            <button className="o-btn-primary" style={{ width: '100%' }} onClick={() => setSongBrowserOpen(true)}>
+              <LayoutGrid size={15} strokeWidth={1.5} /> {t`Browse songs`}
             </button>
             {songBrowserOpen && (
               <SongBrowser
@@ -969,103 +937,43 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
 
             {/* Active library path — click opens the folder (shows files; the folder-picker dialog above never does, that's OS-level) */}
             <Tooltip title={t`Open folder`} oneLine wrapperStyle={{ display: 'block', width: '100%' }}>
-            <div
-              onClick={() => libraryFolder && window.electronAPI.openFolderInExplorer(libraryFolder)}
-              style={{
-                fontSize: 10, lineHeight: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)',
-                padding: '4px 2px', marginBottom: 6, cursor: 'pointer',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-            >
+            <button className="library-path" onClick={() => libraryFolder && window.electronAPI.openFolderInExplorer(libraryFolder)}>
               {libraryFolder}
-            </div>
+            </button>
             </Tooltip>
 
             {/* Filter tabs */}
-            <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-              {(['all', 'starred'] as const).map(f => (
-                <Tooltip key={f} title={f === 'all' ? 'Show all files' : 'Show favorites only'} oneLine wrapperStyle={f === 'all' ? { flex: 1 } : undefined}>
-                <button
-                  onClick={() => setFilter(f)}
-                  style={{
-                    ...(f === 'all' ? { flex: 1, width: '100%', padding: '3px 2px' } : { padding: '3px 6px', whiteSpace: 'nowrap' }),
-                    borderRadius: 4, fontSize: 10,
-                    border: filter === f ? '1px solid var(--accent-amber-strong)' : '1px solid var(--border2)',
-                    background: filter === f ? 'var(--accent-amber-medium)' : 'transparent',
-                    color: filter === f ? 'var(--text-amber)' : 'var(--text-inactive)',
-                    cursor: 'pointer', transition: 'all 0.12s',
-                  }}
-                >
-                  {f === 'all' ? `All (${libraryFiles.length})` : `★ ${starredCount}`}
-                </button>
-                </Tooltip>
-              ))}
+            <div className="library-row-tools">
+              <div className="o-seg">
+                {(['all', 'starred'] as const).map(f => (
+                  <Tooltip key={f} title={f === 'all' ? 'Show all files' : 'Show favorites only'} oneLine>
+                  <button aria-pressed={filter === f} onClick={() => setFilter(f)}>
+                    {f === 'all' ? `All (${libraryFiles.length})` : `★ ${starredCount}`}
+                  </button>
+                  </Tooltip>
+                ))}
+              </div>
+              <Tooltip title="Change library folder" oneLine>
+              <button className="o-icon-btn" onClick={handlePickFolder} aria-label="Change library folder"><FolderOpen size={15} /></button>
+              </Tooltip>
               <Tooltip title="New folder" oneLine>
-              <button
-                onClick={() => handleCreateFolder()}
-                style={{
-                  padding: '3px 6px', borderRadius: 4, fontSize: 10,
-                  border: '1px solid var(--border2)', background: 'transparent',
-                  color: 'var(--text-inactive)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-inactive)'}
-              >
-                <Folders size={10} />
-              </button>
+              <button className="o-icon-btn" onClick={() => handleCreateFolder()} aria-label="New folder"><Folders size={15} /></button>
               </Tooltip>
               <Tooltip title={showHiddenLibraryFiles ? 'Hide hidden files in library' : 'Reveal hidden files in library'} oneLine>
-              <button
-                onClick={() => setShowHiddenLibraryFiles(!showHiddenLibraryFiles)}
-                style={{
-                  padding: '3px 6px', borderRadius: 4, fontSize: 10,
-                  border: showHiddenLibraryFiles ? '1px solid var(--accent-amber-strong)' : '1px solid var(--border2)',
-                  background: showHiddenLibraryFiles ? 'var(--accent-amber-medium)' : 'transparent',
-                  color: showHiddenLibraryFiles ? 'var(--text-amber)' : 'var(--text-inactive)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.12s',
-                }}
-                onMouseEnter={e => { if (!showHiddenLibraryFiles) e.currentTarget.style.color = 'var(--text-amber)' }}
-                onMouseLeave={e => { if (!showHiddenLibraryFiles) e.currentTarget.style.color = 'var(--text-inactive)' }}
-              >
-                <ChevronsDownUp size={10} />
+              <button className="o-icon-btn" aria-pressed={showHiddenLibraryFiles} aria-label={showHiddenLibraryFiles ? 'Hide hidden files in library' : 'Reveal hidden files in library'} onClick={() => setShowHiddenLibraryFiles(!showHiddenLibraryFiles)}>
+                <ChevronsDownUp size={15} />
               </button>
               </Tooltip>
               <Tooltip title={librarySongFirst ? t`Show artist first` : t`Show song first`} oneLine>
-              <button
-                onClick={() => setLibrarySongFirst(!librarySongFirst)}
-                style={{
-                  padding: '3px 6px', borderRadius: 4, fontSize: 10,
-                  border: librarySongFirst ? '1px solid var(--accent-amber-strong)' : '1px solid var(--border2)',
-                  background: librarySongFirst ? 'var(--accent-amber-medium)' : 'transparent',
-                  color: librarySongFirst ? 'var(--text-amber)' : 'var(--text-inactive)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.12s',
-                }}
-                onMouseEnter={e => { if (!librarySongFirst) e.currentTarget.style.color = 'var(--text-amber)' }}
-                onMouseLeave={e => { if (!librarySongFirst) e.currentTarget.style.color = 'var(--text-inactive)' }}
-              >
-                <ArrowLeftRight size={10} />
+              <button className="o-icon-btn" aria-pressed={librarySongFirst} aria-label={librarySongFirst ? t`Show artist first` : t`Show song first`} onClick={() => setLibrarySongFirst(!librarySongFirst)}>
+                <ArrowLeftRight size={15} />
               </button>
               </Tooltip>
             </div>
           </div>
         ) : (
-          <button
-            onClick={handlePickFolder}
-            className="loop-nudge-blink"
-            style={{
-              width: '100%', padding: '8px 0', borderRadius: 'var(--radius-md)',
-              border: '1px dashed var(--text-amber)', background: 'transparent',
-              color: 'var(--text-amber)', fontSize: 'var(--text-xs)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              transition: 'all 0.15s',
-            }}
-          >
-            <FolderOpen size={13} />
+          <button className="o-btn-primary loop-nudge-blink" style={{ width: '100%' }} onClick={handlePickFolder}>
+            <FolderOpen size={15} />
             Set your MIDI folder
           </button>
         )}
@@ -1095,14 +1003,8 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
 
         {/* ── Drop error toast — scoped inside the panel, auto-dismissed ─────── */}
         {dropError && (
-          <div style={{
-            position: 'absolute', bottom: 8, left: 8, right: 8,
-            background: 'var(--bg-panel2)', border: '1px solid var(--drag-handle-dot)',
-            borderRadius: 5, padding: '6px 10px',
-            color: 'var(--text-default)', fontSize: 'var(--text-xs)',
-            textAlign: 'center', pointerEvents: 'none',
-            zIndex: 11, boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-          }}>
+          <div role="alert" className="o-toast">
+            <span className="o-dot o-dot-alert" />
             {dropError}
           </div>
         )}
@@ -1116,7 +1018,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
             <ContextMenuItem
               onClick={() => {
                 const path = contextMenu.path
-                const name = libraryFiles.find(f => f.path === path)?.name ?? path.split(/[\/]/).pop() ?? path
+                const name = libraryFiles.find(f => f.path === path)?.name ?? path.split(/[\\/]/).pop() ?? path
                 setFileInfoTarget({ path, name })
                 setContextMenu(null)
               }}
@@ -1267,12 +1169,12 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                 {chordTranscriptionEnabled ? (
                   <TranscriptIcon filePath={loadedFile.path} noteNaming={noteNaming} accidentals={accidentals} addTranscriptEntry={addTranscriptEntry} onHoverChange={suppress} isLoaded />
                 ) : (
-                  <RowIcon size={11} strokeWidth={1.5} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
+                  <RowIcon size={15} strokeWidth={1.5} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
                 )}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <MarqueeText name={libraryDisplayName(loadedFile.name, librarySongFirst)} spanStyle={FILENAME_SPAN_ACTIVE} />
                   {loadedFileFolder && (
-                    <span style={{ fontSize: 8, color: 'var(--text-inactive)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{loadedFileFolder}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-inactive)', flexShrink: 0 }}>{loadedFileFolder}</span>
                   )}
                 </div>
                 {lastFolderOf.has(loadedFile.path) && (
@@ -1282,7 +1184,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                     onHoverChange={suppress}
                     style={{ padding: '2px 3px' }}
                   >
-                    <Undo2 size={11} />
+                    <Undo2 size={14} />
                   </RowIconButton>
                 )}
                 <TempoWarningDot path={loadedFile.path} onHoverChange={suppress} />
@@ -1316,9 +1218,9 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
               padding: '6px 10px', background: 'var(--bg-row)',
               borderBottom: '1px solid var(--bg-tile)',
             }}>
-              <FolderOpen size={12} style={{ color: 'var(--accent-amber-icon-dim)', flexShrink: 0 }} />
-              <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-tile-subtext)', fontWeight: 600 }}>Demo</span>
-              <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{demoFiles.length}</span>
+              <FolderOpen size={16} style={{ color: 'var(--ui-text)', flexShrink: 0 }} />
+              <span style={{ flex: 1, fontSize: 'var(--text-md)', color: 'var(--ui-text)', fontWeight: 400 }}>Demo</span>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{demoFiles.length}</span>
             </div>
             {(librarySongFirst ? sortBySong(demoFiles) : demoFiles).filter((f: { name: string; path: string }) => showHiddenLibraryFiles || !hiddenLibraryFiles.includes(f.path)).map(file => {
               const isLoaded = !!loadedFilePath &&
@@ -1332,7 +1234,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                 <div
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 10px 8px 26px', borderBottom: '1px solid var(--border-row)',
+                    padding: '10px 10px 10px 26px', borderBottom: '1px solid var(--border-row)',
                     minHeight: touchScreen ? 48 : undefined,
                     cursor: 'pointer', transition: 'background 0.08s',
                     background: isLoaded ? 'var(--accent-amber-medium)' : 'transparent',
@@ -1346,7 +1248,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                   {chordTranscriptionEnabled ? (
                     <TranscriptIcon filePath={file.path} noteNaming={noteNaming} accidentals={accidentals} addTranscriptEntry={addTranscriptEntry} onHoverChange={suppress} isLoaded={isLoaded} />
                   ) : (
-                    <RowIcon size={11} strokeWidth={1.5} style={{ color: isHidden ? 'var(--text-amber-dimmest)' : isLoaded ? 'var(--text-amber)' : 'var(--text-muted)', flexShrink: 0 }} />
+                    <RowIcon size={15} strokeWidth={1.5} style={{ color: isHidden ? 'var(--text-amber-dimmest)' : isLoaded ? 'var(--text-amber)' : 'var(--text-muted)', flexShrink: 0 }} />
                   )}
                   <MarqueeText name={libraryDisplayName(file.name, librarySongFirst)} spanStyle={isHidden ? FILENAME_SPAN_HIDDEN : isLoaded ? FILENAME_SPAN_ACTIVE : FILENAME_SPAN_DEFAULT} />
                 </div>
@@ -1370,13 +1272,13 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
               cursor: 'pointer', userSelect: 'none',
               position: 'sticky', top: pinnedBarOffset, zIndex: 4,
             }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#111120'}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--state-hover-bg)'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-row)'}
           >
             {foldersSectionExpanded
-              ? <ChevronDown size={11} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
-              : <ChevronRight size={11} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />}
-            <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-tile-subtext)', fontWeight: 600 }}>Folders</span>
+              ? <ChevronDown size={14} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />
+              : <ChevronRight size={14} style={{ color: 'var(--text-amber)', flexShrink: 0 }} />}
+            <span style={{ flex: 1, fontSize: 'var(--text-md)', color: 'var(--ui-text)', fontWeight: 400 }}>Folders</span>
           </div>
         )}
 
@@ -1425,15 +1327,15 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                     borderTop: gi > 0 ? '1px solid var(--border)' : 'none',
                     cursor: isRenaming ? 'default' : 'pointer', userSelect: 'none',
                   }}
-                  onMouseEnter={e => { if (!isDropTarget && !isProtectedHover) (e.currentTarget as HTMLElement).style.background = '#111120' }}
+                  onMouseEnter={e => { if (!isDropTarget && !isProtectedHover) (e.currentTarget as HTMLElement).style.background = 'var(--state-hover-bg)' }}
                   onMouseLeave={e => { if (!isDropTarget && !isProtectedHover) (e.currentTarget as HTMLElement).style.background = 'var(--bg-row)' }}
                 >
                   {/* ── Expanded indicator — dim chevron, shown only while this folder's
                       files are visible below; collapsed folders show just the plain icon ── */}
                   {isExpanded && (
-                    <ChevronDown size={9} style={{ color: 'var(--text-amber-dimmest)', flexShrink: 0 }} />
+                    <ChevronDown size={13} style={{ color: 'var(--ui-text-soft)', flexShrink: 0 }} />
                   )}
-                  <FolderOpen size={12} style={{ color: 'var(--accent-amber-icon-dim)', flexShrink: 0 }} />
+                  <FolderOpen size={16} style={{ color: 'var(--ui-text)', flexShrink: 0 }} />
                   {isRenaming ? (
                     <input
                       autoFocus
@@ -1454,7 +1356,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                     />
                   ) : (
                     <span style={{
-                      flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-tile-subtext)', fontWeight: 600,
+                      flex: 1, fontSize: 'var(--text-md)', color: 'var(--ui-text)', fontWeight: 400,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {group.folder}
@@ -1462,10 +1364,10 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                   )}
                   {/* ── Live drag feedback — native title tooltips don't reliably show mid-drag ── */}
                   {isProtectedHover && (
-                    <span style={{ fontSize: 9, color: 'var(--status-protected)', flexShrink: 0, whiteSpace: 'nowrap' }}>Can't move to system folder</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--status-protected)', flexShrink: 0, whiteSpace: 'nowrap' }}>Can't move to system folder</span>
                   )}
                   {isDropTarget && (
-                    <span style={{ fontSize: 9, color: 'var(--text-amber)', flexShrink: 0, whiteSpace: 'nowrap' }}>Move to {group.folder}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-amber)', flexShrink: 0, whiteSpace: 'nowrap' }}>Move to {group.folder}</span>
                   )}
                   {!protectedFolder && folderHasUndo && (
                     <RowIconButton
@@ -1474,7 +1376,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                       onHoverChange={suppress}
                       style={{ padding: '1px 2px' }}
                     >
-                      <Undo2 size={10} />
+                      <Undo2 size={14} />
                     </RowIconButton>
                   )}
                   {!protectedFolder && group.files.length > 0 && (
@@ -1486,7 +1388,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                       style={{ padding: '1px 2px' }}
                     />
                   )}
-                  <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', flexShrink: 0 }}>
                     {group.files.length}
                   </span>
                 </div>
@@ -1550,7 +1452,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 6,
                       // Indent subfolder files slightly
-                      padding: group.folder ? '8px 10px 8px 26px' : '8px 10px 8px 12px',
+                      padding: group.folder ? '10px 10px 10px 26px' : '10px 10px 10px 12px',
                       cursor: 'pointer', transition: 'background 0.08s',
                       background: rowBg,
                       borderLeft: isMultiSelected ? selectionBorder : 'none',
@@ -1571,7 +1473,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                     {chordTranscriptionEnabled ? (
                       <TranscriptIcon filePath={file.path} noteNaming={noteNaming} accidentals={accidentals} addTranscriptEntry={addTranscriptEntry} onHoverChange={suppress} isLoaded={isLoaded || isJustSaved} />
                     ) : (
-                      <RowIcon size={11} strokeWidth={1.5} style={{ color: isHidden ? 'var(--text-amber-dimmest)' : isLoaded || isSelected || isJustSaved ? 'var(--text-amber)' : 'var(--text-muted)', flexShrink: 0 }} />
+                      <RowIcon size={15} strokeWidth={1.5} style={{ color: isHidden ? 'var(--text-amber-dimmest)' : isLoaded || isSelected || isJustSaved ? 'var(--text-amber)' : 'var(--text-muted)', flexShrink: 0 }} />
                     )}
                     <MarqueeText name={libraryDisplayName(file.name, librarySongFirst)} spanStyle={isHidden ? FILENAME_SPAN_HIDDEN : isLoaded || isSelected || isJustSaved ? FILENAME_SPAN_ACTIVE : FILENAME_SPAN_DEFAULT} />
                     {lastFolderOf.has(file.path) && (
@@ -1581,7 +1483,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                         onHoverChange={suppress}
                         style={{ padding: '2px 3px' }}
                       >
-                        <Undo2 size={11} />
+                        <Undo2 size={14} />
                       </RowIconButton>
                     )}
                     <TempoWarningDot path={file.path} onHoverChange={suppress} />
@@ -1609,7 +1511,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
             onDrop={e => handleFolderDrop(e, null)}
             style={{
               padding: '10px', margin: '6px 10px', borderRadius: 4, textAlign: 'center',
-              fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)',
               border: `1px dashed ${dragOverFolder === '__root__' ? 'var(--accent-amber-strong)' : 'var(--border2)'}`,
               background: dragOverFolder === '__root__' ? 'var(--accent-amber-subtle)' : 'transparent',
             }}

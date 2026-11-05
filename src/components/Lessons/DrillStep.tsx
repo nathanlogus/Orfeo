@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import bravuraUrl from '@coderline/alphatab/font/Bravura.woff2?url'
+import { EyeOff } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import { metronomeContext, scheduleMetronomeClick } from '../../hooks/useMetronome'
@@ -38,6 +39,7 @@ export default function DrillStep({ lesson, check, onPass }: { lesson: Lesson; c
   const [score, setScore] = useState(0)
   const [answer, setAnswer] = useState<'right' | 'wrong' | null>(null)
   const [finished, setFinished] = useState(false)
+  const [results, setResults] = useState<boolean[]>([])
 
   // A prompt scored out of 1: partly right for rhythms, all or nothing otherwise
   const scorePrompt = useCallback((value: number) => {
@@ -46,6 +48,7 @@ export default function DrillStep({ lesson, check, onPass }: { lesson: Lesson; c
     const name = namesOf(prompt)
     if (name && miss) missed.current = [...missed.current, name]
     setScore(s => s + value)
+    setResults(r => [...r, !miss])
     setAnswer(miss ? 'wrong' : 'right')
     setTimeout(() => {
       setAnswer(null)
@@ -60,7 +63,7 @@ export default function DrillStep({ lesson, check, onPass }: { lesson: Lesson; c
 
   const retry = () => {
     missed.current = []
-    setIndex(0); setScore(0); setFinished(false)
+    setIndex(0); setScore(0); setFinished(false); setResults([])
     setPrompt(nextPrompt(check, context(0)))
   }
 
@@ -68,24 +71,30 @@ export default function DrillStep({ lesson, check, onPass }: { lesson: Lesson; c
     const percent = Math.round((score / total) * 100)
     const passed = score / total >= PASS
     return (
-      <div className="lesson-drill">
-        <p className="lesson-big">{percent}%</p>
-        <p>{passed ? t`Well read.` : t`You need 90% to go on. Try it again: it sticks with repetition.`}</p>
+      <div className="theme-paper lesson-result">
+        <span className="lesson-result-score">{percent}%</span>
+        <span className="o-note" style={{ flex: 1 }}>{passed ? t`Well read.` : t`You need 90% to go on. Try it again: it sticks with repetition.`}</span>
         {passed
-          ? <button className="home-action home-primary" onClick={onPass}>{t`Continue`}</button>
-          : <button className="home-action home-primary" onClick={retry}>{t`Try again`}</button>}
+          ? <button className="o-btn-primary o-btn-lg" onClick={onPass}>{t`Continue`}</button>
+          : <button className="o-btn-primary o-btn-lg" onClick={retry}>{t`Try again`}</button>}
       </div>
     )
   }
 
+  const answered = results.length
+  const noteName = prompt.kind === 'note' && `${t`That was`} ${noteParts(prompt.name).letter}${noteParts(prompt.name).accidental.replace('#', '♯').replace('b', '♭')}`
   return (
     <div className="lesson-drill">
-      <div className="lesson-progress" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={index}><span style={{ width: `${(index / total) * 100}%` }} /></div>
-      <PromptView key={index} prompt={prompt} answer={answer} onScore={scorePrompt} />
-      <p aria-live="polite" className={answer === 'wrong' ? 'lesson-wrong' : 'lesson-right'} style={{ minHeight: '1.5em' }}>
-        {answer === 'right' && t`Right`}
-        {answer === 'wrong' && (prompt.kind === 'note' ? `${t`That was`} ${noteParts(prompt.name).letter}${noteParts(prompt.name).accidental.replace('#', '♯').replace('b', '♭')}` : t`Not quite`)}
-      </p>
+      <span className="lesson-so-far">{`${answered ? t`${Math.round((score / answered) * 100)}% so far` : ''}${answered ? ' · ' : ''}${t`90% to pass`}`}</span>
+      <div className="lesson-stage">
+        <PromptView key={index} prompt={prompt} answer={answer} onScore={scorePrompt} />
+        <p aria-live="polite" className="lesson-answer" data-answer={answer ?? undefined}>
+          {answer && <><span className="lesson-answer-word">{answer === 'right' ? t`Right` : t`Not quite`}</span>{noteName && <span>{noteName}</span>}</>}
+        </p>
+      </div>
+      <div className="lesson-dots" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={index}>
+        {Array.from({ length: total }, (_, i) => <span key={i} data-state={i < answered ? (results[i] ? 'right' : 'wrong') : i === index ? 'now' : undefined} />)}
+      </div>
     </div>
   )
 }
@@ -98,7 +107,7 @@ function PromptView({ prompt, answer, onScore }: { prompt: Prompt; answer: 'righ
     case 'shape': return <ShapePrompt prompt={prompt} onScore={onScore} />
     case 'choice': return (
       <>
-        <p>{prompt.question}</p>
+        <h2 className="lesson-prompt">{prompt.question}</h2>
         <MiniStaff clef={prompt.clef} columns={prompt.columns} label={prompt.question} />
         <Options options={prompt.options} answer={answer} onPick={o => onScore(o === prompt.answer ? 1 : 0)} />
       </>
@@ -108,15 +117,16 @@ function PromptView({ prompt, answer, onScore }: { prompt: Prompt; answer: 'righ
   }
 }
 
-function Options({ options, answer, onPick }: { options: string[]; answer: unknown; onPick: (option: string) => void }) {
-  return <div className="lesson-options">{options.map(o => <button key={o} className="home-action" disabled={!!answer} onClick={() => onPick(o)}>{o}</button>)}</div>
+function Options({ options, answer, onPick }: { options: string[]; answer: 'right' | 'wrong' | null; onPick: (option: string) => void }) {
+  const [picked, setPicked] = useState<string | null>(null)
+  return <div role="group" aria-label={t`Answer`} className="lesson-options">{options.map(o => <button key={o} aria-pressed={picked === o} data-answer={(picked === o && answer) || undefined} disabled={!!answer} onClick={() => { setPicked(o); onPick(o) }}>{o}</button>)}</div>
 }
 
 function KeysPrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'keys' }>; onScore: (v: number) => void }) {
   useKeyPress(key => onScore(prompt.exact ? (key === 60 ? 1 : 0) : (key % 12 === 0 ? 1 : 0)))
   return (
     <>
-      <p>{prompt.exact ? t`Press Middle C` : t`Press any C`}</p>
+      <h2 className="lesson-prompt">{prompt.exact ? t`Press Middle C` : t`Press any C`}</h2>
       <KeyMap highlight={prompt.exact ? 'middle' : 'c'} />
     </>
   )
@@ -126,7 +136,7 @@ function NotePrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'note
   useKeyPress(key => onScore(key === midiOf(prompt.name) ? 1 : 0))
   return (
     <>
-      <p>{t`Press this note`}</p>
+      <h2 className="lesson-prompt">{t`Press this note`}</h2>
       <MiniStaff clef={prompt.clef} columns={[[prompt.name]]} keyName={prompt.key} label={t`Press this note`} />
     </>
   )
@@ -141,7 +151,7 @@ function PairPrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'pair
   })
   return (
     <>
-      <p>{t`Press both notes together`}</p>
+      <h2 className="lesson-prompt">{t`Press both notes together`}</h2>
       <MiniStaff clef="grand" columns={[[prompt.left, prompt.right]]} label={t`Press both notes together`} />
     </>
   )
@@ -161,8 +171,10 @@ function ShapePrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'sha
   })
   return (
     <>
-      <p>{hidden ? t`Now play it from memory` : t`Look at the shape`}</p>
-      <MiniStaff clef={prompt.clef} columns={hidden ? [] : prompt.names.map(n => [n])} label={t`Look at the shape`} />
+      <h2 className="lesson-prompt">{hidden ? t`Now play it from memory` : t`Look at the shape`}</h2>
+      {hidden
+        ? <div className="lesson-hidden"><EyeOff size={22} aria-hidden />{t`The notes are hidden. Play the bar you just read.`}</div>
+        : <MiniStaff clef={prompt.clef} columns={prompt.names.map(n => [n])} label={t`Look at the shape`} />}
     </>
   )
 }
@@ -182,10 +194,10 @@ function MiniScore({ tex }: { tex: string }) {
     })
     return () => { cancelled = true; api?.destroy() }
   }, [tex])
-  return <div ref={host} style={{ width: '100%', maxHeight: 340, overflow: 'auto', background: '#fff', borderRadius: 'var(--radius-md)' }} />
+  return <div ref={host} style={{ width: '100%', maxHeight: 340, overflow: 'auto', background: 'var(--paper-card)', borderRadius: 'var(--radius-md)' }} />
 }
 
-function ScanPrompt({ prompt, answer, onScore }: { prompt: Extract<Prompt, { kind: 'scan' }>; answer: unknown; onScore: (v: number) => void }) {
+function ScanPrompt({ prompt, answer, onScore }: { prompt: Extract<Prompt, { kind: 'scan' }>; answer: 'right' | 'wrong' | null; onScore: (v: number) => void }) {
   const [left, setLeft] = useState(SCAN_SEC)
   useEffect(() => {
     if (left <= 0) return
@@ -195,12 +207,12 @@ function ScanPrompt({ prompt, answer, onScore }: { prompt: Extract<Prompt, { kin
   if (left > 0) return (
     <>
       <MiniScore tex={prompt.tex} />
-      <button className="home-action" onClick={() => setLeft(0)}>{`${t`I've got it`} (${left})`}</button>
+      <button className="o-btn-primary o-btn-lg" onClick={() => setLeft(0)}>{`${t`I've got it`} (${left})`}</button>
     </>
   )
   return (
     <>
-      <p>{prompt.question}</p>
+      <h2 className="lesson-prompt">{prompt.question}</h2>
       <Options options={prompt.options} answer={answer} onPick={o => onScore(o === prompt.answer ? 1 : 0)} />
     </>
   )
@@ -234,9 +246,9 @@ function TapPrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'tap' 
 
   return (
     <>
-      <p>{prompt.fade ? t`Keep tapping when the clicks stop. Any key counts.` : t`Tap this rhythm on any key after the count-in.`}</p>
+      <h2 className="lesson-prompt">{prompt.fade ? t`Keep tapping when the clicks stop. Any key counts.` : t`Tap this rhythm on any key after the count-in.`}</h2>
       <RhythmLine tokens={prompt.tokens} beats={prompt.beats} activeBeat={activeBeat} />
-      {state === 'ready' && <button className="home-action home-primary" onClick={go}>{t`Start`}</button>}
+      {state === 'ready' && <button className="o-btn-primary o-btn-lg" onClick={go}>{t`Start`}</button>}
     </>
   )
 }

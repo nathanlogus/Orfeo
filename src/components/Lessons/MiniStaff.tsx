@@ -1,4 +1,5 @@
 import bravuraUrl from '@coderline/alphatab/font/Bravura.woff2?url'
+import { useStore } from '../../store'
 import { midiOf, noteParts, staffStep, tapBeats, tokenBeats } from '../../lessons/drill'
 import type { Clef } from '../../lessons/course'
 
@@ -56,7 +57,7 @@ export default function MiniStaff({ clef, columns, keyName, label }: { clef: Cle
   const height = grand ? top * 2 + STAFF_H * 2 + GRAND_GAP : top * 2 + STAFF_H
   const pick = (test: (midi: number) => boolean) => columns.map(c => c.filter(n => test(midiOf(n))))
   return (
-    <svg role="img" aria-label={label} viewBox={`0 0 ${width} ${height}`} width={width * 1.6} style={{ maxWidth: '100%', color: '#111', background: '#fff', borderRadius: 'var(--radius-md)' }}>
+    <svg role="img" aria-label={label} viewBox={`0 0 ${width} ${height}`} width={width * 1.6} style={{ maxWidth: '100%', color: '#000', background: 'var(--paper-card)', borderRadius: 'var(--radius-md)' }}>
       <style>{fontFace}</style>
       {grand ? <>
         <StaffNotes top={top} staff="treble" columns={pick(m => m >= 60)} keyName={keyName} x={12} />
@@ -86,11 +87,11 @@ export function RhythmLine({ tokens, beats, activeBeat }: { tokens: string[]; be
   }
   const bars = Array.from({ length: Math.floor(length / beats) + 1 }, (_, i) => 12 + i * beats * BEAT_W)
   return (
-    <svg role="img" aria-label="Rhythm" viewBox={`0 0 ${width} ${height}`} width={width * 1.5} style={{ maxWidth: '100%', color: '#111', background: '#fff', borderRadius: 'var(--radius-md)' }}>
+    <svg role="img" aria-label="Rhythm" viewBox={`0 0 ${width} ${height}`} width={width * 1.5} style={{ maxWidth: '100%', color: '#000', background: 'var(--paper-card)', borderRadius: 'var(--radius-md)' }}>
       <style>{fontFace}</style>
       <line x1={12} x2={width - 12} y1={mid} y2={mid} stroke="currentColor" strokeOpacity={0.3} />
       {bars.map(x => <line key={x} x1={x} x2={x} y1={mid - 22} y2={mid + 22} stroke="currentColor" strokeOpacity={0.5} />)}
-      {activeBeat != null && <rect x={14 + activeBeat * BEAT_W} y={14} width={BEAT_W - 4} height={height - 28} fill="rgba(245, 158, 11, 0.22)" />}
+      {activeBeat != null && <rect x={14 + activeBeat * BEAT_W} y={14} width={BEAT_W - 4} height={height - 28} fill="rgba(255, 222, 59, 0.55)" />}
       {marks.map(({ x, token, tied }, i) => {
         const rest = token.endsWith('r')
         const base = token.replace(/^d/, '')[0]
@@ -115,9 +116,29 @@ export function KeyMap({ highlight }: { highlight: 'c' | 'middle' }) {
       {Array.from({ length: whites }, (_, i) => {
         const isC = i % 7 === 0
         const lit = highlight === 'middle' ? i === 7 : isC
-        return <rect key={i} x={i * WHITE_W + 1} y={1} width={WHITE_W} height={HEIGHT} fill={lit ? 'var(--text-amber)' : '#fff'} stroke="#333" />
+        return <rect key={i} x={i * WHITE_W + 1} y={1} width={WHITE_W} height={HEIGHT} fill={lit ? 'var(--paint-yellow)' : '#fbf8f5'} stroke="#000" />
       })}
-      {blacks.map(i => <rect key={i} x={i * WHITE_W + 1 - 7} y={1} width={14} height={58} fill="#111" />)}
+      {blacks.map(i => <rect key={i} x={i * WHITE_W + 1 - 7} y={1} width={14} height={58} fill="#000" />)}
+    </svg>
+  )
+}
+
+// ── Three octaves that show what's held on the MIDI keyboard. Not played, only read ──
+const HELD_LOW = 48, HELD_HIGH = 84
+const IS_BLACK = [1, 3, 6, 8, 10]
+
+export function HeldKeys({ height, className }: { height: number; className?: string }) {
+  const held = useStore(s => s.midiHeldKeys)
+  const whites: number[] = [], blacks: { key: number; at: number }[] = []
+  for (let key = HELD_LOW; key <= HELD_HIGH; key++) {
+    if (IS_BLACK.includes(key % 12)) blacks.push({ key, at: whites.length })
+    else whites.push(key)
+  }
+  const w = 42
+  return (
+    <svg className={`held-keys ${className ?? ''}`} aria-hidden viewBox={`0 0 ${whites.length * w} ${height}`} preserveAspectRatio="none" width="100%" height={height} style={{ flexShrink: 0, background: '#000' }}>
+      {whites.map((key, i) => <rect key={key} x={i * w} width={w - 1} height={height} rx={3} fill={held.has(key) ? 'var(--paint-yellow)' : '#fbf8f5'} />)}
+      {blacks.map(({ key, at }) => <rect key={key} x={at * w - w * 0.31} width={w * 0.62} height={height * 0.6} rx={3} fill={held.has(key) ? 'var(--paint-yellow)' : '#000'} stroke="#3d3935" />)}
     </svg>
   )
 }
