@@ -107,10 +107,19 @@ function SoundEngineGlance() {
     : allSoundfonts(extraSoundfonts).find(sf => sf.id === selectedSoundfont)?.name ?? selectedSoundfont
   const soundfont = <InfoRow label={t`Soundfont`} marquee={soundfontName}>{amber(soundfontName)}</InfoRow>
 
+  // A failed start falls back to Studio and stopNative resets the phase, so go by the error: without this the tile just doesn't stick
+  const failed = error && <div role="alert" className="theme-studio set-alert" style={{ marginTop: 10 }}><span className="o-dot o-dot-alert" style={{ marginTop: 5 }} /><span>{t`Native engine unavailable:`} {error}</span></div>
   if (audioEngine === 'native') {
-    if (phase === 'failed') return <HelpText>{t`Native engine unavailable:`} {error}</HelpText>
+    if (phase === 'failed') return failed
     if (phase !== 'running' || !native) return <InfoRow label={t`Sound card`}>{t`starting…`}</InfoRow>
-    if (native.mode === 'none') return <div className="set-state"><span className="set-state-title">{t`Native · waiting for a sound card…`}</span></div>
+    // the engine reports "no device" and keeps retrying; it can't tell a busy card from an unplugged one
+    if (native.mode === 'none') return (
+      <div role="status" className="set-state">
+        <span className="set-state-title">{t`Native · waiting for a sound card…`}</span>
+        <span className="o-note">{t`Another app may have the sound card, or it's unplugged. Orfeo will pick it up when it's free.`}</span>
+        {wantsExclusive && <button className="o-link" style={{ alignSelf: 'flex-start' }} onClick={() => setLowLatency(false)}>{t`Switch to Shared`}</button>}
+      </div>
+    )
     return (
       <div>
         <div style={glanceBox}>
@@ -126,12 +135,15 @@ function SoundEngineGlance() {
   }
   const rate = getSamplesSampleRate(), buffer = getSamplesBufferSec()
   return (
+    <>
+    {failed}
     <div style={glanceBox}>
       <InfoRow label={t`Sound card`} marquee={audioEngine === 'gm' && gmExternal ? gmExternal : defaultName || t`Default output`} />
       <InfoRow label={t`Mode`} marquee={`${audioEngine} ${gmExternal} ${samplesStatus} ${rate} ${buffer}`}>{audioEngine === 'gm' && gmExternal ? t`External instrument` : <>{t`Shared`}{audioEngine === 'samples' && samplesStatus === 'ready' && rate > 0 && <> · {kHz(rate)}{buffer > 0 && <> · {msOf(buffer)} {t`buffer`}</>}</>}</>}</InfoRow>
       {latency}
       {soundfont}
     </div>
+    </>
   )
 }
 
@@ -198,12 +210,19 @@ function SoundEngineQuickExtra() {
 function SoundEngineLoading() {
   const samplesStatus = useSoundfontState((s) => s.samplesStatus)
   const samplesProgress = useSoundfontState((s) => s.samplesProgress)
+  const extra = useSoundfontState((s) => s.extra)
+  const selected = useStore((s) => s.selectedSoundfont)
+  const audioEngine = useStore((s) => s.audioEngine)
+  if (samplesStatus === 'error') return <div role="alert" className="theme-studio set-alert" style={{ marginTop: 12 }}><span className="o-dot o-dot-alert" style={{ marginTop: 5 }} /><span>{t`The Studio sound couldn't start. Choose it again to retry.`}</span></div>
   if (samplesStatus !== 'loading') return null
   const percent = Math.round(samplesProgress * 100)
+  const name = allSoundfonts(extra).find(sf => sf.id === selected)?.name ?? selected
   return (
     <div className="set-state">
       <span className="set-state-title">{t`Loading sound font… ${percent}%`}</span>
       <span className="o-progress" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label={t`Loading sound font`}><span style={{ width: `${percent}%` }} /></span>
+      {/* switching engines keeps the old one until this is ready; a restored Studio has nothing to play yet */}
+      <span className="o-note">{audioEngine === 'samples' ? name : t`${name} · the current sound plays until it's ready`}</span>
     </div>
   )
 }
@@ -238,7 +257,7 @@ function SoundFontsControl() {
   const extra = useSoundfontState((s) => s.extra)
   const error = useSoundfontState((s) => s.error)
   return (
-    <div style={{ opacity: gm ? 0.45 : 1, pointerEvents: gm ? 'none' : 'auto', transition: 'opacity 0.15s' }}>
+    <div style={{ opacity: gm ? 0.8 : 1, pointerEvents: gm ? 'none' : 'auto', transition: 'opacity 0.15s' }}>
       <div role="radiogroup" aria-label={t`Sound font in use`} className="set-fonts">
         {allSoundfonts(extra).map(sf => <SoundFontRow key={sf.id} sf={sf} />)}
       </div>

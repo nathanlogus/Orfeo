@@ -17,6 +17,7 @@ import { parseMidiMetadata, buildRenamedFileName, formatKeyOrDash, type MidiFile
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useDraggableDialog } from '../hooks/useDraggableDialog'
 import { MODAL_MAX_HEIGHT } from '../utils/modalDrag'
+import { tagHistory, versionLabel, type TaggedEvent } from '../utils/fileHistory'
 import '../styles/redesign-settings.css'
 
 interface FileLogEvent { type: string; timestamp: number; summary: string }
@@ -116,6 +117,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
   const [songDraft, setSongDraft] = useState('')
   const [log, setLog] = useState<FileLogEvent[] | null>(null)
   const [versions, setVersions] = useState<FileVersion[] | null>(null)
+  const [tagged, setTagged] = useState<TaggedEvent[] | null>(null)
   const [versionsOpen, setVersionsOpen] = useState(false)
   const versionsRef = useRef<HTMLDivElement>(null)
 
@@ -142,6 +144,16 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
     window.electronAPI.getFileLog(currentPath).then(setLog).catch(() => setLog([]))
     window.electronAPI.listFileVersions(currentPath).then(setVersions).catch(() => setVersions([]))
   }, [currentPath])
+
+  // Which version made each entry: compare this file's history with its siblings'
+  useEffect(() => {
+    setTagged(null)
+    if (!log || !versions) return
+    let live = true
+    Promise.all(versions.map(async v => ({ version: v.version, log: v.path === currentPath ? log : await window.electronAPI.getFileLog(v.path).catch(() => []) })))
+      .then(chain => { if (live) setTagged(tagHistory(log, chain)) })
+    return () => { live = false }
+  }, [log, versions, currentPath])
 
   useEffect(() => {
     let cancelled = false
@@ -224,6 +236,11 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
     { label: 'Tracks', value: String(meta.trackCount) },
     { label: 'Copyright', value: meta.copyright ?? '—' },
   ] : []
+
+  const newest = versions?.reduce((n, v) => Math.max(n, v.version), 0) ?? 0
+  const tagColor = (version: number) => (version === 0 ? 'var(--sand)' : version === newest ? 'var(--paint-yellow)' : 'var(--paint-lime)')
+  const original = versions?.find(v => v.version === 0)
+  const history: (FileLogEvent & { version?: number | null })[] = tagged ?? log ?? []
 
   const tiles = ['var(--paint-lime)', 'var(--paint-yellow)', 'var(--sand)', 'var(--sand)', 'var(--sand)']
 
@@ -313,20 +330,26 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
                   Renames/moves stay in a local sidecar JSON (electron/main.ts) since
                   they don't rewrite the file's bytes; fileinfo:getLog merges both. */}
               <div className="fi-history">
-                <div className="x-label">Edit history</div>
+                <div className="x-label">Edit history <span className="o-note">· saved inside the file</span></div>
                 {log === null ? (
                   <div className="o-note">Loading…</div>
-                ) : log.length === 0 ? (
+                ) : log.length === 0 && (versions?.length ?? 0) <= 1 ? (
                   <div className="o-note">No recorded changes yet.</div>
                 ) : (
                   <ol>
-                    {[...log].reverse().map((ev, i) => (
+                    {[...history].reverse().map((ev, i) => (
                       <li key={i}>
-                        <span className="o-tag">{formatLogDate(ev.timestamp)}</span>
+                        {ev.version != null && <span className="o-tag" style={{ background: tagColor(ev.version) }}>{versionLabel(ev.version)}</span>}
                         <span style={{ flex: 1, minWidth: 0 }}>{ev.summary}</span>
-                        <span className="o-note">{formatLogTime(ev.timestamp)}</span>
+                        <span className="o-note fi-when">{formatLogDate(ev.timestamp)} · {formatLogTime(ev.timestamp)}</span>
                       </li>
                     ))}
+                    {original && (
+                      <li>
+                        <span className="o-tag" style={{ background: tagColor(0) }}>{versionLabel(0)}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{original.name}</span>
+                      </li>
+                    )}
                   </ol>
                 )}
               </div>

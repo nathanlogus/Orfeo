@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
-import { KeyboardMusic, Zap, Timer, Speaker, Feather, Copy, Footprints, Stethoscope, Wrench, RefreshCw, FileDown, Plug, Music } from 'lucide-react'
+import { KeyboardMusic, Zap, Timer, Speaker, Feather, Copy, Footprints, Stethoscope, Wrench, RefreshCw, FileDown, Plug, Music, RotateCcw } from 'lucide-react'
 import { useStore } from '../../../store'
 import { t } from '../../../utils/i18n'
 import { OptionBtn, OptionGroup, Switch, SettingsDropdown, HelpText, GlanceLine, ZoomStepBtn } from '../controls'
@@ -446,6 +446,7 @@ function DelayCheckExtra() {
 function ToolsControl() {
   const resetSettings = async () => {
     const choice = await confirmDialog({
+      icon: RotateCcw,
       title: t`Reset MIDI keyboard settings?`,
       message: t`Everything on this page goes back to how it started. Your keyboards stay connected.`,
       buttons: [t`Reset`, t`Cancel`], destructiveIndex: 0,

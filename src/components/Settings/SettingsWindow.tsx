@@ -6,11 +6,12 @@ import { Search, X } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import Tooltip from '../Tooltip'
-import { useUpdateState, pressUpdateButton } from '../../hooks/useUpdateCheck'
+import { useUpdateState, pressUpdateButton, setUpdateDot } from '../../hooks/useUpdateCheck'
 import { GROUPS, SETTINGS, type GroupTab, type SettingId } from './catalog'
 import { searchSettings, gridColumns, CARD_GAP } from './search'
 import { SettingCard } from './SettingCard'
-import { UpdateButton, RateButton, DevModeBadge } from './controls'
+import { UpdateButton, RateButton, DevModeBadge, Switch } from './controls'
+import { NewVersionDot } from './NewVersionDot'
 import { GROUP_ICONS } from './groupIcons'
 import { TAB_ASIDES } from './defs/midi'
 import '../../styles/redesign-settings.css'
@@ -46,6 +47,7 @@ function SideSplit({ tab, width }: { tab: GroupTab; width: number }) {
 function UpdatesCard() {
   const status = useUpdateState(s => s.status)
   const mode = useUpdateState(s => s.info.mode)
+  const dot = useUpdateState(s => s.dot)
   const out = status.state === 'available' || status.state === 'ready' ? status.version ?? '' : null
   return (
     <div role="group" aria-label={t`Updates`} className="o-card set-card theme-studio set-card-dark" style={{ gridColumn: '1 / -1' }}>
@@ -64,10 +66,17 @@ function UpdatesCard() {
       {out !== null && (
         <div role="status" className="set-update">
           <span className="o-dot o-dot-alert" style={{ outline: '1px solid var(--ink)' }} />
-          <span style={{ flex: 1, minWidth: 0 }}>{status.state === 'ready' ? t`Orfeo ${out} is ready to install.` : t`Orfeo ${out} is out.`}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            {status.state === 'ready' ? t`Orfeo ${out} is ready to install.` : t`Orfeo ${out} is out.`}
+            <span className="set-update-note">{t`Your songs and settings stay as they are.`}</span>
+          </span>
           <button onClick={pressUpdateButton}>{status.state === 'ready' ? t`Install` : t`Download`}</button>
         </div>
       )}
+      <div className="set-row" style={{ marginTop: 8 }}>
+        <span>{t`Show a dot on Settings when a new version is out`}</span>
+        <Switch value={dot} onChange={setUpdateDot} label={t`Show a dot on Settings when a new version is out`} />
+      </div>
     </div>
   )
 }
@@ -75,6 +84,7 @@ function UpdatesCard() {
 export default function SettingsWindow() {
   const open = useStore(s => s.settingsWindowOpen)
   const group = useStore(s => s.settingsWindowGroup)
+  const dot = useUpdateState(s => s.dot)
   const [query, setQuery] = useState('')
   const [width, setWidth] = useState(0)
   // Tab within a tabbed group — back to the first tab whenever the group changes
@@ -145,12 +155,13 @@ export default function SettingsWindow() {
                 return (
                   <button key={x.id} aria-current={active ? 'page' : undefined} onClick={() => { setQuery(''); useStore.getState().openSettingsWindow(x.id) }}>
                     <Icon size={20} strokeWidth={1.7} style={{ flexShrink: 0 }} /><span>{x.name}</span>
+                    {x.id === 'appearance' && <NewVersionDot />}
                   </button>
                 )
               })}
             </div>
             {/* ── ORFEO + version (opens GitHub) | update check ── */}
-            <div className="set-about">
+            <div className="set-about" data-dot={dot ? undefined : 'off'}>
               <Tooltip title="Open Orfeo on GitHub" oneLine placement="top">
                 <button className="o-link" onClick={() => window.electronAPI.openExternal('https://github.com/Squarebow/Orfeo')}>
                   Orfeo v{displayVersion(__APP_VERSION__)}

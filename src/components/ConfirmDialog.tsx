@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom'
 import { subscribeConfirm, type ConfirmState } from '../utils/confirmController'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useDraggableDialog, dialogFitsScreen } from '../hooks/useDraggableDialog'
+import '../styles/redesign-settings.css'
 
 // ── ConfirmDialogHost ─────────────────────────────────────────────────────────
 // Always-mounted; renders a modal only when a confirmDialog() call is pending.
@@ -33,6 +34,7 @@ export function ConfirmDialogHost() {
   if (!state) return null
 
   const safeIndex = state.buttons.length - 1
+  const Icon = state.icon
 
   return createPortal(
     <div
@@ -49,6 +51,7 @@ export function ConfirmDialogHost() {
         style={{ width: 'min(480px, calc(100vw - 32px))', ...dialogFitsScreen, ...placed }}
         onMouseDown={(e) => e.stopPropagation()}
       >
+        {Icon && <span className="confirm-disc" onPointerDown={onDragStart}><Icon size={22} strokeWidth={1.8} aria-hidden /></span>}
         {/* The title's row moves the window; a titleless dialog drags by its message */}
         {state.title
           ? <h2 className="o-title o-window-head" onPointerDown={onDragStart}>{state.title}</h2>
