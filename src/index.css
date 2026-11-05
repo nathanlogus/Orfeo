@@ -356,6 +356,7 @@ button, input, select, textarea {
   --ui-selected: var(--paint-yellow);
   --ui-on-selected: var(--ink);
   --ui-control: transparent;
+  --ui-knob: var(--ink);
   --scrollbar-thumb: var(--line-600);
 
   /* ── Backgrounds — remapped to new lighter, layered scheme ─────────────── */
@@ -710,9 +711,7 @@ button, input, select, textarea {
    can't be yellow on cream, so --text-amber and its alpha family become ink
    there, and --text-on-amber turns white. That gives the design's idiom for
    free: selected = yellow on black in the studio, black on paper.
-   Paper only applies in the Warm theme: the Dark theme ("dark everywhere")
-   simply never matches this selector. .theme-studio goes back to dark inside
-   paper. Generated once from the design's palette; edit by hand from here on. */
+   .theme-studio goes back to dark inside paper. Generated once from the design's palette; edit by hand from here on. */
 .theme-studio {
   color: var(--text-default);
   --bg: #24211f;
@@ -813,6 +812,7 @@ button, input, select, textarea {
   --ui-selected: var(--paint-yellow);
   --ui-on-selected: var(--ink);
   --ui-control: transparent;
+  --ui-knob: var(--ink);
   --scrollbar-thumb: var(--line-600);
   --elevation-popover: 0 3px 10px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.4);
   --elevation-modal: 0 8px 24px rgba(0, 0, 0, 0.45);
@@ -831,7 +831,7 @@ button, input, select, textarea {
   --topbar-midi-off: var(--text-muted);
   --lock-chord-color: var(--text-amber);
 }
-:root[data-theme='warm'] .theme-paper {
+.theme-paper {
   color: var(--text-default);
   letter-spacing: -0.4px;
   --bg: #f1e8de;
@@ -932,6 +932,7 @@ button, input, select, textarea {
   --ui-selected: var(--ink);
   --ui-on-selected: #ffffff;
   --ui-control: #ffffff;
+  --ui-knob: var(--paint-yellow);
   --scrollbar-thumb: var(--stone);
   --elevation-popover: rgba(115, 115, 115, 0.16) 0 3px 10px, rgba(115, 115, 115, 0.16) 0 2px 4px;
   --elevation-modal: none;
@@ -1304,7 +1305,7 @@ textarea:focus-visible,
 .o-option { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); color: var(--ui-text); font: inherit; font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: background-color 0.12s, color 0.12s; }
 .o-option[aria-pressed='true'] { border-color: var(--ui-selected); background: var(--ui-selected); color: var(--ui-on-selected); }
 .o-option[data-tone='error'][aria-pressed='true'] { border-color: var(--status-error); background: var(--status-error); color: var(--ink); }
-:root[data-theme='warm'] .theme-paper .o-option[data-tone='error'][aria-pressed='true'] { color: #ffffff; }
+.theme-paper .o-option[data-tone='error'][aria-pressed='true'] { color: #ffffff; }
 .o-option:disabled { opacity: 0.45; cursor: default; }
 @media (hover: hover) { .o-option[aria-pressed='false']:hover:not(:disabled), .o-seg button[aria-pressed='false']:hover:not(:disabled) { background: var(--state-hover-bg); } }
 
@@ -1312,8 +1313,7 @@ textarea:focus-visible,
 .o-switch { flex-shrink: 0; display: flex; justify-content: flex-start; width: 46px; height: 26px; padding: 2px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); cursor: pointer; transition: background-color 0.12s; }
 .o-switch > span { width: 20px; height: 20px; border: 1px solid var(--ui-line); border-radius: 50%; background: var(--sand); }
 .o-switch[aria-checked='true'] { justify-content: flex-end; border-color: var(--ui-selected); background: var(--ui-selected); }
-.o-switch[aria-checked='true'] > span { border-color: var(--ink); background: var(--ink); }
-:root[data-theme='warm'] .theme-paper .o-switch[aria-checked='true'] > span { background: var(--paint-yellow); }
+.o-switch[aria-checked='true'] > span { border-color: var(--ink); background: var(--ui-knob); }
 
 /* Field, select trigger, and the list a select opens */
 .o-field { display: flex; align-items: center; gap: 10px; height: var(--control-h); padding: 0 14px; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--bg-field); color: var(--ui-text); font-size: var(--text-md); }

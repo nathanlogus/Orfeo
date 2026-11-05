@@ -72,7 +72,6 @@ export default function App() {
   // A theme switch repaints everything at once: nothing eases through it
   useLayoutEffect(() => {
     const root = document.documentElement
-    root.dataset.theme = appTheme   // index.css: paper surfaces only exist in Warm
     root.classList.add('theme-switching')
     const frame = requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')))
     return () => cancelAnimationFrame(frame)

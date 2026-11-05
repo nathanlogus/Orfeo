@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 
 // ── ContextMenu — shared shell for right-click popups (Library's file/folder
-// menus). A paper card in the Warm theme, wherever it opens. Click-anchored and
+// menus). A paper card, wherever it opens. Click-anchored and
 // dismissed by the caller (outside-click/Escape) — that logic stays with the
 // caller since it already owns the open/closed state. ───────────────────────
 
