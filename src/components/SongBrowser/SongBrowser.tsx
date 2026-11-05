@@ -29,7 +29,7 @@ function Art({ card }: { card: SongCard }) {
   useEffect(() => setBroken(false), [card.art])
   const box: CSSProperties = { aspectRatio: '1', width: '100%', display: 'block', objectFit: 'cover', background: 'var(--bg-tile)' }
   if (card.art && !broken) {
-    return <img src={card.art} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} style={box} />
+    return <img src={card.art} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} style={{ ...box, outline: '1px solid rgba(255, 255, 255, 0.1)', outlineOffset: -1 }} />
   }
   const hue = placeholderHue(card.genres[0]?.name ?? card.folder ?? card.title)
   return (

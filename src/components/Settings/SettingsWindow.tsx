@@ -110,7 +110,7 @@ export default function SettingsWindow() {
   return createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) close() }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t`Settings`} className="orfeo-modal-glow"
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t`Settings`} className="orfeo-modal-glow orfeo-settle-in touch-settings"
         style={{ width: 'min(1000px, calc(100vw - 48px))', height: 'min(640px, calc(100vh - 48px))',
           background: 'var(--bg-modal)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)',
           display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)', overflow: 'hidden',

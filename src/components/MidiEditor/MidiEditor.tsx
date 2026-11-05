@@ -602,7 +602,7 @@ function TrackRow({ track, onToggleIncluded, onToggleMerge, onChangeProgram, onU
         background: track.included ? 'var(--track-included-bg)' : 'transparent',
         color: track.included ? 'var(--track-included-color)' : 'var(--track-excluded)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
+        cursor: 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s', flexShrink: 0,
       }}>
         {track.included ? <Check size={13} /> : <X size={12} />}
       </button>
@@ -739,7 +739,7 @@ function TrackRow({ track, onToggleIncluded, onToggleMerge, onChangeProgram, onU
             border: '1.5px solid var(--border2)', background: 'transparent',
             color: 'var(--text-dim-control)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: rowDisabled ? 'default' : 'pointer', flexShrink: 0, transition: 'all 0.12s',
+            cursor: rowDisabled ? 'default' : 'pointer', flexShrink: 0, transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
           }}
           onMouseEnter={e => { if (rowDisabled) return; e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim-control)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
@@ -761,7 +761,7 @@ function TrackRow({ track, onToggleIncluded, onToggleMerge, onChangeProgram, onU
           border: '1.5px solid var(--border2)', background: 'transparent',
           color: 'var(--text-dim-control)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: rowDisabled ? 'default' : 'pointer', flexShrink: 0, transition: 'all 0.12s',
+          cursor: rowDisabled ? 'default' : 'pointer', flexShrink: 0, transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
         }}
         onMouseEnter={e => { if (rowDisabled) return; e.currentTarget.style.color = track.color; e.currentTarget.style.borderColor = track.color }}
         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim-control)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
@@ -1813,7 +1813,7 @@ export default function MidiEditor() {
             >
             <button
               onClick={() => window.electronAPI.showItemInFolder(saveResult.filePath!)}
-              style={{ width: '100%', padding: '5px 10px', borderRadius: 4, background: 'var(--bg-tile)', border: '1px solid var(--border2)', color: 'var(--text-muted)', fontSize: 12, lineHeight: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-1)', transition: 'all 0.12s', whiteSpace: 'nowrap' }}
+              style={{ width: '100%', padding: '5px 10px', borderRadius: 4, background: 'var(--bg-tile)', border: '1px solid var(--border2)', color: 'var(--text-muted)', fontSize: 12, lineHeight: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-1)', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s', whiteSpace: 'nowrap' }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
             >
@@ -1824,7 +1824,7 @@ export default function MidiEditor() {
             <button onClick={async () => {
               const p = await window.electronAPI.saveFileDialog({ defaultPath: state.outputPath, filters: [{ name: 'MIDI Files', extensions: ['mid'] }] })
               if (p) setState(s => s && ({ ...s, outputPath: p }))
-            }} style={{ padding: '5px 10px', borderRadius: 4, background: 'var(--bg-tile)', border: '1px solid var(--border2)', color: 'var(--text-muted)', fontSize: 12, lineHeight: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--space-1)', transition: 'all 0.12s' }}
+            }} style={{ padding: '5px 10px', borderRadius: 4, background: 'var(--bg-tile)', border: '1px solid var(--border2)', color: 'var(--text-muted)', fontSize: 12, lineHeight: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--space-1)', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s' }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
             >
@@ -1869,7 +1869,7 @@ export default function MidiEditor() {
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               <button
                 onClick={handleCancel}
-                style={{ width: FOOTER_BTN_W, padding: '6px 0', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'all 0.12s' }}
+                style={{ width: FOOTER_BTN_W, padding: '6px 0', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', cursor: 'pointer', transition: 'color 0.12s, background-color 0.12s, border-color 0.12s' }}
                 onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
               >
@@ -1895,7 +1895,7 @@ function TBtn({ onClick, children }: { onClick: () => void; children: React.Reac
     <button onClick={onClick} style={{
       background: 'none', border: '1px solid var(--border2)', borderRadius: 'var(--radius-md)',
       cursor: 'pointer', color: 'var(--text-dim-control)', fontSize: 12, lineHeight: '12px', padding: '3px 10px',
-      transition: 'all 0.12s',
+      transition: 'color 0.12s, background-color 0.12s, border-color 0.12s',
     }}
       onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)'; e.currentTarget.style.borderColor = 'var(--accent-amber-strong)' }}
       onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim-control)'; e.currentTarget.style.borderColor = 'var(--border2)' }}>

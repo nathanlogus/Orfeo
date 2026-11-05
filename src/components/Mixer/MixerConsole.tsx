@@ -2,8 +2,8 @@ import { useRef, useState, useEffect, useMemo, useCallback, type CSSProperties }
 import { X } from 'lucide-react'
 import { useStore } from '../../store'
 import { bringToFront, MODAL_BASE_Z } from '../../utils/modalFocus'
-import ChannelStrip from './ChannelStrip'
-import MasterStrip from './MasterStrip'
+import ChannelStrip, { CHANNEL_STRIP_W } from './ChannelStrip'
+import MasterStrip, { MASTER_STRIP_W } from './MasterStrip'
 import OrfeoMark from '../OrfeoMark'
 import { getPianoRollCenterX, modalTopAboveKeyboard } from '../../utils/modalAnchors'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../../utils/modalCloseButtonStyle'
@@ -16,6 +16,7 @@ import { KEYBOARD_GROUPS } from '../../utils/keyboardGroups'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
 import { startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
+import { touchScreen } from '../../utils/touchScreen'
 
 // ── MixerConsole — floating draggable modal ───────────────────────────────────
 // Opened via Ctrl+Shift+M or the Console (SlidersVertical) icon in the TrackPanel.
@@ -23,9 +24,9 @@ import { startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
 
 // ── Modal dimensions — derived from strip geometry ────────────────────────────
 // n strips × 120px + (n−1) inter-strip gaps × 8px + body-gap 8px + master 160px + padding 2×16px
-const STRIP_W   = 120
+const STRIP_W   = CHANNEL_STRIP_W
 const STRIP_GAP = 8
-const MASTER_W  = 184
+const MASTER_W  = MASTER_STRIP_W
 const BODY_PAD  = 16
 const MAX_STRIPS = 8
 
@@ -318,7 +319,8 @@ export default function MixerConsole() {
       role="dialog"
       aria-modal="true"
       aria-label="Console Mixer"
-      className="orfeo-modal-glow app-no-drag"
+      className="orfeo-modal-glow app-no-drag touch-hit"
+      data-instant
       onMouseDown={() => setZIndex(bringToFront())}
       style={{
         position: 'fixed',
@@ -350,7 +352,7 @@ export default function MixerConsole() {
       <div
         onPointerDown={startDrag}
         style={{
-          height: 36, flexShrink: 0, touchAction: 'none',
+          height: touchScreen ? 48 : 36, flexShrink: 0, touchAction: 'none',
           background: 'var(--bg-modal-header)',
           borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center',
@@ -386,7 +388,8 @@ export default function MixerConsole() {
             padding: '0 var(--space-3)',
           }}
         >
-          <span
+          {/* No hover on a touch screen, so a clipped sentence could never scroll */}
+          {!touchScreen && <span
             ref={headerDescRef}
             className={headerDescOverflow > 0 ? 'orfeo-marquee-text is-overflowing' : 'orfeo-marquee-text'}
             style={{
@@ -396,12 +399,12 @@ export default function MixerConsole() {
             }}
           >
             Adjust track levels, apply effects and compress overall loudness
-          </span>
+          </span>}
         </div>
 
         {/* ── Close button — bottom-aligned so the dash sits at X level ─────── */}
         <div
-          style={{ display: 'flex', alignItems: 'flex-end', gap: 2, paddingBottom: 2 }}
+          style={{ display: 'flex', alignItems: touchScreen ? 'center' : 'flex-end', gap: 2, paddingBottom: touchScreen ? 0 : 2 }}
         >
           <button
             onClick={requestClose}

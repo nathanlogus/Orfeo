@@ -105,7 +105,8 @@ window.addEventListener('touchmove', (e) => {
   // The first move decides, and it has to hold: let go once and the browser takes the gesture
   if (holdScroll === null) {
     const vertical = Math.abs(e.touches[0].clientY - touchAt.y) >= Math.abs(e.touches[0].clientX - touchAt.x)
-    holdScroll = !canScroll(e.target as Element, vertical)
+    // A slider's own drag runs on these moves, so a slider is never held
+    holdScroll = !(e.target as Element).closest('input[type=range]') && !canScroll(e.target as Element, vertical)
   }
   if (holdScroll && e.cancelable) e.preventDefault()
 }, { capture: true, passive: false })

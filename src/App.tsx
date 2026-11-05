@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import TopBar from './components/Transport/TopBar'
 import PianoRoll from './components/PianoRoll/PianoRoll'
 import ScoreView from './components/ScoreView'
@@ -66,6 +66,13 @@ export default function App() {
   const homeOpen = useStore((s) => s.homeOpen)
   const keyboardMode = useStore((s) => s.keyboardMode)
   const appTheme = useStore((s) => s.appTheme)
+  // A theme switch repaints everything at once: nothing eases through it
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    root.classList.add('theme-switching')
+    const frame = requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')))
+    return () => cancelAnimationFrame(frame)
+  }, [appTheme])
   const presentationMode = useStore((s) => s.presentationMode)
   const noteEditorActive = useStore((s) => s.noteEditorActive)
   const scoreViewMode = useStore((s) => s.scoreViewMode)
