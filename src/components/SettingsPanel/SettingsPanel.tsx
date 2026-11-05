@@ -1212,7 +1212,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
             <ContextMenuItem
               onClick={() => { const folder = folderContextMenu.folder; setFolderContextMenu(null); if (libraryFolder) window.electronAPI.openFolderInExplorer(`${libraryFolder}/${folder}`) }}
             >
-              Show in explorer
+              Show in folder
             </ContextMenuItem>
             {!isProtectedFolder(folderContextMenu.folder) && (<>
               <ContextMenuItem
