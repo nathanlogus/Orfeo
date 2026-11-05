@@ -13,7 +13,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { getNoteName } from '../../utils/noteNames'
-import { PITCH_CLASS_COLORS } from '../../utils/colors'
 import { pcPoint, ringOrder, starShape, shapePoints, ringPosition, type RingLayout } from '../../utils/starmap'
 import { useStarmapMorph } from '../../hooks/useStarmapMorph'
 import { t } from '../../utils/i18n'
@@ -24,9 +23,10 @@ export interface LitChord { pcs: number[]; rootPc: number; name: string }
 
 const R_DISC = 175      // same footprint as the Circle of Fifths' outer ring
 const R_STAR = 122      // where the stars (notes) sit
-const R_LABEL = 152     // note names, outside the stars
+const R_LABEL = 150     // note discs, outside the star
+const R_NOTE = 21       // a note disc
 const R_SECTOR_IN = R_STAR // hover sector = the band between the star ring and the edge, where the names are
-const BLUE_NOTE = '#5b9bd5'
+const BLUE_NOTE = 'var(--paint-blue)'
 
 // ── One note's sector of the disc (30°, centred on its ring position) ──────
 function sectorPath(cx: number, cy: number, pos: number): string {
@@ -71,21 +71,13 @@ export default function StarmapRing({
   // points re-sorted round the ring every frame, so the star never crosses itself
   const pts = [...f.positions].sort((a, b) => (((a % 12) + 12) % 12) - (((b % 12) + 12) % 12))
   const r = R_STAR * f.radiusK
-  const sizeFor = (n: string) => (n.length > 6 ? 21 : 27)
+  const sizeFor = (n: string) => (n.length > 6 ? 22 : 32)
 
   return (
     <g>
-      <defs>
-        {PITCH_CLASS_COLORS.map((c, pc) => (
-          <radialGradient key={pc} id={`starmap-halo-${pc}`}>
-            <stop offset="0%" stopColor={c} stopOpacity={0.55} />
-            <stop offset="100%" stopColor={c} stopOpacity={0} />
-          </radialGradient>
-        ))}
-      </defs>
-
       {/* Night-sky disc — same size and edge as the Circle of Fifths */}
-      <circle cx={cx} cy={cy} r={R_DISC} fill="var(--bg-circle-center)" stroke="var(--state-hover-bg)" strokeWidth={1} />
+      <circle cx={cx} cy={cy} r={R_DISC} fill="var(--ui-surface)" />
+      <circle cx={cx} cy={cy} r={R_STAR - 4} fill="var(--ui-floor)" style={{ pointerEvents: 'none' }} />
 
       {/* Note sectors — hover lights one amber, click picks it as the key */}
       {Array.from({ length: 12 }, (_, pc) => {
@@ -99,64 +91,41 @@ export default function StarmapRing({
         )
       })}
 
-      <circle cx={cx} cy={cy} r={R_STAR} fill="none" stroke="var(--border)" strokeWidth={1} style={{ pointerEvents: 'none' }} />
-
       {/* Faint outline of the scale — fades out while a chord is lit */}
       {scaleShape && (
-        <polygon points={shapePoints(scaleShape, cx, cy, R_STAR)} fill="var(--text-amber)" fillOpacity={0.03}
-          stroke="var(--text-amber)" strokeOpacity={0.28} strokeWidth={1} strokeLinejoin="round"
+        <polygon points={shapePoints(scaleShape, cx, cy, R_STAR)} fill="none"
+          stroke="var(--line-600)" strokeWidth={1.5} strokeDasharray="4 4" strokeLinejoin="round"
           style={{ pointerEvents: 'none', opacity: target ? 0 : 1, transition: 'opacity 0.3s ease' }} />
       )}
 
-      {/* The chord's star — wide faint glow under a crisp line, barely tinted
-          inside; points ride the rim while it glides */}
+      {/* The chord's star — a flat tint under a crisp line; points ride the
+          rim while it glides */}
       {pts.length >= 2 && f.opacity > 0 && (
         <g style={{ pointerEvents: 'none' }} opacity={f.opacity}>
-          <polygon points={shapePoints(pts, cx, cy, r)} fill={f.colour} fillOpacity={0.06}
-            stroke={f.colour} strokeOpacity={0.18} strokeWidth={6} strokeLinejoin="round" />
-          <polygon points={shapePoints(pts, cx, cy, r)} fill="none"
-            stroke={f.colour} strokeOpacity={0.95} strokeWidth={1.5} strokeLinejoin="round" />
+          <polygon points={shapePoints(pts, cx, cy, r)} fill={f.colour} fillOpacity={0.35}
+            stroke={f.colour} strokeWidth={2.5} strokeLinejoin="round" />
           {!f.settled && pts.map((p, i) => { const q = pcPoint(p, cx, cy, r); return <circle key={i} cx={q.x} cy={q.y} r={3.2} fill={f.colour} /> })}
         </g>
       )}
 
-      {/* The 12 notes — star and label; the star itself carries the key-name
-          tooltip, the label lights amber with its sector */}
+      {/* The 12 notes — home yellow, the scale's notes bright, the chord's
+          ringed in the star's colour; the disc carries the same click */}
       {Array.from({ length: 12 }, (_, pc) => {
-        const star = pcPoint(pos(pc), cx, cy, R_STAR)
-        const label = pcPoint(pos(pc), cx, cy, R_LABEL)
+        const at = pcPoint(pos(pc), cx, cy, R_LABEL)
         const isTonic = pc === tonicPc
         const scaleNote = inScale.has(pc)
         const chordNote = chordPcs.has(pc)
-        const isRoot = target?.rootPc === pc
         const name = getNoteName(60 + pc, naming, accidentals)
-        const labelFill = isTonic || hoverPc === pc ? 'var(--text-amber)' : scaleNote ? 'var(--text-key-label)' : 'var(--text-inactive)'
         return (
-          <g key={pc}>
-            <g style={{ pointerEvents: 'none' }}>
-              {chordNote ? (
-                <g opacity={f.mix * f.opacity}>
-                  <circle cx={star.x} cy={star.y} r={10} fill={`url(#starmap-halo-${pc})`} />
-                  <circle cx={star.x} cy={star.y} r={3.6} fill={PITCH_CLASS_COLORS[pc]} />
-                  {isRoot && <circle cx={star.x} cy={star.y} r={7} fill="none" stroke={PITCH_CLASS_COLORS[pc]} strokeWidth={1.2} />}
-                </g>
-              ) : scaleNote ? (
-                <circle cx={star.x} cy={star.y} r={isTonic ? 3.6 : 2.8} fill={isTonic ? 'var(--text-amber)' : 'var(--text-key-label)'} />
-              ) : (
-                <circle cx={star.x} cy={star.y} r={1.4} fill="var(--text-inactive)" />
-              )}
-              {pc === blueNotePc && (
-                <circle cx={star.x} cy={star.y} r={5.5} fill="none" stroke={BLUE_NOTE} strokeWidth={1.4} />
-              )}
-              <text x={label.x} y={label.y} textAnchor="middle" dominantBaseline="middle"
-                fontSize={scaleNote ? 15 : 12} fontWeight={scaleNote ? 700 : 400} fontFamily="var(--font-mono)"
-                fill={labelFill} style={{ userSelect: 'none', transition: 'fill 0.15s' }}
-              >{name}</text>
-            </g>
-            {/* small hit spot on the star — key-name tooltip, same click */}
-            <circle cx={star.x} cy={star.y} r={7} fill="transparent" style={{ cursor: 'pointer' }}
-              onMouseEnter={() => setHoverPc(pc)} onMouseLeave={() => setHoverPc(h => (h === pc ? null : h))}
-              onClick={() => onPickNote(pc)} />
+          <g key={pc} style={{ cursor: 'pointer' }} onClick={() => onPickNote(pc)}
+            onMouseEnter={() => setHoverPc(pc)} onMouseLeave={() => setHoverPc(h => (h === pc ? null : h))}>
+            <circle cx={at.x} cy={at.y} r={R_NOTE}
+              fill={isTonic ? 'var(--accent)' : scaleNote ? 'var(--paper-card)' : 'var(--ui-floor)'}
+              stroke={pc === blueNotePc ? BLUE_NOTE : chordNote ? f.colour : 'none'}
+              strokeOpacity={pc === blueNotePc ? 1 : f.mix * f.opacity} strokeWidth={3} />
+            <text x={at.x} y={at.y} textAnchor="middle" dominantBaseline="central" fontSize={14}
+              fontFamily="var(--font-ui)" fill={isTonic || scaleNote ? 'var(--ink)' : 'var(--ui-text-soft)'}
+              style={{ userSelect: 'none', pointerEvents: 'none' }}>{name}</text>
           </g>
         )
       })}
@@ -166,16 +135,16 @@ export default function StarmapRing({
       <g style={{ pointerEvents: 'none', userSelect: 'none' }}>
         {f.prevName && (
           <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" opacity={1 - f.mix}
-            fontSize={sizeFor(f.prevName)} fontWeight={700} fontFamily="var(--font-mono)" fill={f.colour}
+            fontSize={sizeFor(f.prevName)} fontFamily="var(--font-ui)" fill="var(--ui-text)"
           >{f.prevName}</text>
         )}
         {f.name && f.opacity > 0 && (
           <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" opacity={(f.prevName ? f.mix : 1) * f.opacity}
-            fontSize={sizeFor(f.name)} fontWeight={700} fontFamily="var(--font-mono)" fill={f.colour}
+            fontSize={sizeFor(f.name)} fontFamily="var(--font-ui)" fill="var(--ui-text)"
           >{f.name}</text>
         )}
         <g opacity={1 - f.opacity}>
-          <StarmapTitleMark cx={cx} cy={cy} width={160} fill="var(--text-amber)" />
+          <StarmapTitleMark cx={cx} cy={cy} width={160} fill="var(--accent)" />
         </g>
       </g>
     </g>

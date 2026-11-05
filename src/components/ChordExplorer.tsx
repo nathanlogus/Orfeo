@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react'
-import { createPortal } from 'react-dom'
-import { Search, Hand, RotateCcw, Square, ArrowUpRight, ChevronLeft, ChevronRight, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Search, Hand, RotateCcw, Square, Play, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Fuse from 'fuse.js'
 import { useStore } from '../store'
 import { getNoteName } from '../utils/noteNames'
@@ -15,7 +14,6 @@ import { getPianoRollCenterX, modalTopAboveKeyboard } from '../utils/modalAnchor
 import { startModalDrag, type ModalPos } from '../utils/modalDrag'
 import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
-import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import { buildChordMidi, formatChordSuffix, formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
 import {
   nextVoicing, intervalsToSemis, rootPositionFrom,
@@ -24,20 +22,26 @@ import {
 import {
   EXPLORER_RANGE, explorerLowRoot, SPEED_MS, VOICING_ICON, ALL_PROGRESSIONS,
   resolveProgressionStep, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
-  explorerKeyColors, captureStruckShape, restoreStruckShape, EXPLORER_SWITCH_STYLE, type ProgSpeed, type StruckShape,
+  explorerKeyColors, captureStruckShape, restoreStruckShape, type ProgSpeed, type StruckShape,
   explorerPosInWindow,
 } from '../utils/explorerShared'
-import ChevronPlayIcon from './ChevronPlayIcon'
+import ExplorerMenu from './ExplorerMenu'
 import ExplorerOctaveControl from './ExplorerOctaveControl'
 import { t } from '../utils/i18n'
-import { touchScreen } from '../utils/touchScreen'
+import '../styles/redesign-tools.css'
 import {
   COMMON_CHORDS, ALL_CHORDS, FULL_CHORD_TYPES, type ChordInfo,
 } from '../utils/chordVocabulary'
 
 // ── Modal dimensions for default positioning above the keyboard ───────────
-const MODAL_WIDTH = 770
-const MODAL_HEIGHT = 532
+const MODAL_WIDTH = 1180
+const MODAL_HEIGHT = 520
+const modalWidth = () => Math.min(MODAL_WIDTH, window.innerWidth - 32)
+// Centred on the roll, but the window is wider than the roll can be
+const defaultPos = () => explorerPosInWindow({
+  x: Math.round(getPianoRollCenterX() - modalWidth() / 2),
+  y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
+}, modalWidth(), MODAL_HEIGHT, 44)
 
 const ROOT_MIDIS = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
 
@@ -63,24 +67,8 @@ const RITE_PULSES = 8
 const RITE_PULSE_MS = 300
 const RITE_VELOCITY = 0.9
 
-// ── Shared row label style — dim uppercase, used across all control rows ──────
-const ROW_LABEL: React.CSSProperties = {
-  fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600,
-  color: 'var(--text-dimmest)', letterSpacing: '0.10em',
-  textTransform: 'uppercase', flexShrink: 0, userSelect: 'none',
-}
-
-// ── Footer labels — Show as, Inversion, Accent Root (Octave's own matches) ──
-const FOOTER_LABEL: React.CSSProperties = { ...ROW_LABEL, fontSize: 10 }
-
-// ── Shared row container — flex row with separator ────────────────────────────
-const ROW: React.CSSProperties = {
-  flexShrink: 0,
-  display: 'flex', alignItems: 'center',
-  justifyContent: 'space-between',
-  padding: '5px 12px',
-  borderBottom: '1px solid var(--border)',
-}
+// The card fills, cycling through the tiles
+const TILE_FILLS = ['var(--paint-lime)', 'var(--paint-yellow)', 'var(--paint-blue)', 'var(--sand)', 'var(--paint-rose)', 'var(--paint-olive)']
 
 export default function ChordExplorer() {
   const chordExplorerOpen       = useStore(s => s.chordExplorerOpen)
@@ -97,6 +85,7 @@ export default function ChordExplorer() {
   const noteNaming = useStore(s => s.noteNaming)
   const accidentals = useStore(s => s.accidentals)
   const chordNamingStyle = useStore(s => s.chordNamingStyle)
+  const explorerPausesPlayback = useStore(s => s.explorerPausesPlayback)
   const progressionVoicing = useStore(s => s.progressionVoicing)
   const setProgressionVoicing = useStore(s => s.setProgressionVoicing)
   const setAccidentals = useStore(s => s.setAccidentals)
@@ -115,10 +104,7 @@ export default function ChordExplorer() {
   // keyboard header, horizontally centered on the piano roll. Read each time
   // the modal opens, not while it's open (side-panel toggles don't move it);
   // content changing size only moves the bottom edge. ───────────────────────
-  const [pos, setPos] = useState(() => ({
-    x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
-    y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
-  }))
+  const [pos, setPos] = useState(defaultPos)
   const panelRef = useRef<HTMLDivElement>(null)
   useKeepBottomOnScreen(panelRef, setPos, chordExplorerOpen && !chordExplorerMinimized, 44)
   useFocusTrap(panelRef, chordExplorerOpen && !chordExplorerMinimized)
@@ -134,7 +120,6 @@ export default function ChordExplorer() {
   const [noteFilter, setNoteFilter] = useState<'any' | '3' | '4' | '5' | '6+'>('any')
   const [selectedProg, setSelectedProg] = useState<number | null>(null)
   const [progDropdownOpen, setProgDropdownOpen] = useState(false)
-  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number } | null>(null)
   const [progPlaying, setProgPlaying] = useState(false)
   const [progStep, setProgStep] = useState(0)
   const [progSpeed, setProgSpeed] = useState<ProgSpeed>('med')
@@ -144,14 +129,11 @@ export default function ChordExplorer() {
   const riteTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const explorerChordDisplay = useStore(s => s.explorerChordDisplay)
   const [styleDropdownOpen, setStyleDropdownOpen] = useState(false)
-  const [styleDropdownRect, setStyleDropdownRect] = useState<{ top: number; left: number } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const progTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const progRunningRef = useRef(false)
   const progTriggerRef = useRef<HTMLButtonElement>(null)
-  const progDropRef = useRef<HTMLDivElement>(null)
   const styleTriggerRef = useRef<HTMLButtonElement>(null)
-  const styleDropRef = useRef<HTMLDivElement>(null)
 
   const displayNaming: NoteNaming = noteNaming === 'hidden' ? 'english' : noteNaming
 
@@ -200,10 +182,7 @@ export default function ChordExplorer() {
   useEffect(() => {
     if (chordExplorerOpen) {
       const kept = useStore.getState().explorerPositions.chord
-      setPos(kept ? explorerPosInWindow(kept, MODAL_WIDTH, MODAL_HEIGHT, 44) : {
-        x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
-        y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
-      })
+      setPos(kept ? explorerPosInWindow(kept, modalWidth(), MODAL_HEIGHT, 44) : defaultPos())
       setSearch('')
       setSearchOpen(false)
       setHandFilter('all')
@@ -211,7 +190,6 @@ export default function ChordExplorer() {
       stopProgression()
       setSelectedProg(null)
       setProgDropdownOpen(false)
-      setDropdownRect(null)
       setSelectedPowerRoot(null)
       setRiteOpen(false)
     } else {
@@ -241,54 +219,19 @@ export default function ChordExplorer() {
     if (!chordExplorerOpen) return
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (progDropdownOpen) { setProgDropdownOpen(false); setDropdownRect(null); return }
+        if (progDropdownOpen) { setProgDropdownOpen(false); return }
+        if (styleDropdownOpen) { setStyleDropdownOpen(false); return }
         if (riteOpen) { setRiteOpen(false); return }
         close()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [chordExplorerOpen, close, progDropdownOpen, riteOpen])
+  }, [chordExplorerOpen, close, progDropdownOpen, styleDropdownOpen, riteOpen])
 
-  // Outside-click to close progression dropdown
-  useEffect(() => {
-    if (!progDropdownOpen) return
-    const handler = (e: MouseEvent) => {
-      if (
-        progDropRef.current?.contains(e.target as Node) ||
-        progTriggerRef.current?.contains(e.target as Node)
-      ) return
-      setProgDropdownOpen(false)
-      setDropdownRect(null)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [progDropdownOpen])
-
-  // Outside-click to close style dropdown
-  useEffect(() => {
-    if (!styleDropdownOpen) return
-    const handler = (e: MouseEvent) => {
-      if (
-        styleDropRef.current?.contains(e.target as Node) ||
-        styleTriggerRef.current?.contains(e.target as Node)
-      ) return
-      setStyleDropdownOpen(false)
-      setStyleDropdownRect(null)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [styleDropdownOpen])
-
-  const toggleSearch = () => {
-    if (searchOpen) {
-      setSearch('')
-      setSearchOpen(false)
-    } else {
-      setSearchOpen(true)
-      setTimeout(() => searchRef.current?.focus(), 0)
-    }
-  }
+  const closeProgMenu = useCallback(() => setProgDropdownOpen(false), [])
+  const closeStyleMenu = useCallback(() => setStyleDropdownOpen(false), [])
+  const closeSearch = () => { setSearch(''); setSearchOpen(false) }
 
   const rootLabels = useMemo(() =>
     ROOT_MIDIS.map(midi => ({
@@ -596,20 +539,7 @@ export default function ChordExplorer() {
     ringChord(Array.from(newNotes).sort((a, b) => a - b))
   }, [selectedKey, lightKeys])
 
-  const openProgDropdown = () => {
-    if (progDropdownOpen) {
-      setProgDropdownOpen(false)
-      setDropdownRect(null)
-    } else if (progTriggerRef.current) {
-      const r = progTriggerRef.current.getBoundingClientRect()
-      setDropdownRect({ top: r.bottom + 2, left: r.left })
-      setProgDropdownOpen(true)
-    }
-  }
-
   const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    setProgDropdownOpen(false)
-    setDropdownRect(null)
     let moved: ModalPos | null = null
     startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
       if (moved) useStore.getState().setExplorerPosition('chord', moved)
@@ -629,768 +559,339 @@ export default function ChordExplorer() {
     )
   }, [explorerChordDisplay, litNotes, displayNaming, accidentals])
 
-  // ── Pill button base — active: amber text + tinted bg; inactive: dim ─────────
-  const btnBase = (active: boolean): React.CSSProperties => ({
-    padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: 'none',
-    background: active ? 'var(--state-hover-bg)' : 'transparent',
-    color: active ? 'var(--text-amber)' : 'var(--text-inactive)',
-    fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600,
-    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  })
-
   // Closed (open=false): unmount entirely. Minimized (open=true, minimized=true): render but hide.
   if (!chordExplorerOpen) return null
 
   const isPowerMode = tier === 'power'
   const canClear = selectedKey !== null || selectedPowerRoot !== null || explorerKeys.size > 0 || progPlaying
   const activeProg = selectedProg !== null ? ALL_PROGRESSIONS[selectedProg] : null
+  const nowName = nowPlaying ? nowPlaying.chordLabel : rootLabel(selectedRoot)
 
   return (
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="orfeo-modal-glow app-no-drag touch-explorer" style={{
-      position: 'fixed',
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="orfeo-modal-glow app-no-drag touch-explorer theme-studio xp-window xp-chords" style={{
       left: pos.x,
       top: pos.y,
-      width: MODAL_WIDTH,
-      maxHeight: '65vh',
-      background: 'var(--bg-modal)',
-      border: '1px solid var(--state-hover-bg)',
-      borderRadius: 10,
       zIndex: 401,
-      display: chordExplorerMinimized ? 'none' : 'flex', flexDirection: 'column',
-      overflow: 'hidden',
+      display: chordExplorerMinimized ? 'none' : 'flex',
       '--_modal-shadow': 'var(--elevation-modal)',
     } as CSSProperties}>
 
       {/* Header — draggable */}
-      <div
-        onPointerDown={startDrag}
-        style={{
-          touchAction: 'none',
-          height: touchScreen ? 44 : 36, flexShrink: 0,
-          background: 'var(--bg-modal-header)',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 var(--space-3)',
-          cursor: 'grab',
-          userSelect: 'none',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          {/* Easter egg — the logo is a hidden link to the Rite of Spring chord.
-              Out of the Tab order: the focus trap would otherwise land on it
-              when the window opens (outline + Space/Enter opening the card). */}
-          <Tooltip title={t`A chord that shook the world`} description={t`Click to discover`}>
-            <button
-              tabIndex={-1}
-              onMouseDown={e => e.stopPropagation()}
-              onClick={() => { setRiteOpen(true); playRiteChord() }}
-              aria-label={t`Easter egg`}
-              style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-            ><OrfeoMark height={22} /></button>
-          </Tooltip>
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Chords Explorer
-          </span>
+      <div className="xp-head" onPointerDown={startDrag}>
+        {/* Easter egg — the logo is a hidden link to the Rite of Spring chord.
+            Out of the Tab order: the focus trap would otherwise land on it
+            when the window opens (outline + Space/Enter opening the card). */}
+        <Tooltip title={t`A chord that shook the world`} description={t`Click to discover`}>
+          <button
+            tabIndex={-1}
+            className="xp-logo"
+            onClick={() => { setRiteOpen(true); playRiteChord() }}
+            aria-label={t`Easter egg`}
+          ><OrfeoMark height={22} /></button>
+        </Tooltip>
+        <div className="xp-seg" data-accent role="group" aria-label={t`Explorers`}>
+          <button aria-pressed={true}>{t`Chords`}</button>
+          <button aria-pressed={false} onClick={() => { setChordExplorerOpen(false); setScaleExplorerOpen(true) }}>{t`Scales`}</button>
         </div>
-        <div
-          onMouseDown={e => e.stopPropagation()}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          {/* ── Search scope toggle — visible when search bar is open ────── */}
-          {searchOpen && (
-            <div style={{ display: 'flex', background: 'var(--bg-tile)', borderRadius: 4, padding: 2, gap: 1 }}>
-              {(['name', 'notes', 'both'] as const).map(scope => (
-                <Tooltip
-                  key={scope}
-                  title={scope === 'name' ? 'Search by name' : scope === 'notes' ? 'Search by notes' : 'Search both'}
-                  description={
-                    scope === 'name'  ? 'Matches chord names and types, like m7, maj7, dim…' :
-                    scope === 'notes' ? 'Matches note names in the chord for the selected root' :
-                    'Matches chord names and note names together'
-                  }
-                >
-                <button
-                  onClick={() => setSearchScope(scope)}
-                  style={{
-                    padding: '2px 6px', borderRadius: 'var(--radius-sm)', border: 'none',
-                    background: searchScope === scope ? 'var(--state-hover-bg)' : 'transparent',
-                    color: searchScope === scope ? 'var(--text-amber)' : 'var(--text-inactive)',
-                    fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600,
-                    cursor: 'pointer', textTransform: 'capitalize',
-                    transition: 'color 0.12s, background 0.12s',
-                  }}
-                  onMouseEnter={e => { if (searchScope !== scope) e.currentTarget.style.color = 'var(--text-muted)' }}
-                  onMouseLeave={e => { if (searchScope !== scope) e.currentTarget.style.color = 'var(--text-inactive)' }}
-                >
+        {explorerPausesPlayback && !searchOpen && <span className="xp-note xp-head-note">{t`The song is paused while you explore`}</span>}
+        <div className="o-spacer" />
+        {/* ── Search scope toggle — visible while searching ───────────────── */}
+        {searchOpen && (
+          <div className="xp-seg" role="group" aria-label={t`Search in`}>
+            {(['name', 'notes', 'both'] as const).map(scope => (
+              <Tooltip
+                key={scope}
+                title={scope === 'name' ? 'Search by name' : scope === 'notes' ? 'Search by notes' : 'Search both'}
+                description={
+                  scope === 'name'  ? 'Matches chord names and types, like m7, maj7, dim…' :
+                  scope === 'notes' ? 'Matches note names in the chord for the selected root' :
+                  'Matches chord names and note names together'
+                }
+              >
+                <button aria-pressed={searchScope === scope} onClick={() => setSearchScope(scope)}>
                   {scope === 'name' ? 'Name' : scope === 'notes' ? 'Notes' : 'Both'}
                 </button>
+              </Tooltip>
+            ))}
+          </div>
+        )}
+        <label className="xp-search" style={{ opacity: isPowerMode ? 0.45 : 1 }}>
+          <Search size={16} />
+          <input
+            ref={searchRef}
+            type="text"
+            value={search}
+            disabled={isPowerMode}
+            onFocus={() => setSearchOpen(true)}
+            onChange={e => { setSearch(e.target.value); setSearchOpen(true) }}
+            placeholder={isPowerMode ? t`Search is off in Power` : t`Find a chord: name or notes`}
+            aria-label={t`Find a chord by name or notes`}
+          />
+          {searchOpen && <button aria-label={t`Close search`} onClick={e => { e.preventDefault(); closeSearch() }}><X size={16} /></button>}
+        </label>
+        <button className="o-close" aria-label={t`Close`} onClick={close}><X size={18} /></button>
+      </div>
+
+      <div className="xp-chords-body amber-scroll">
+        <section className="xp-chords-main">
+          {/* ── Root — 12 pitch-class pills ──────────────────────────────────── */}
+          <div className="xp-roots" role="group" aria-label={t`Root note`}>
+            {rootLabels.map(({ pitchClass, label }) => (
+              <button key={pitchClass} aria-pressed={selectedRoot === pitchClass} onClick={() => handleRootChange(pitchClass)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Filters — family, hand, note count ───────────────────────────── */}
+          <div className="xp-filters">
+            <div className="xp-seg" role="group" aria-label={t`Chord family`}>
+              {(['common', 'extended', 'power'] as const).map(fam => (
+                <Tooltip
+                  key={fam}
+                  title={fam === 'common' ? 'Common' : fam === 'power' ? 'Power' : 'Extended'}
+                  description={
+                    fam === 'common' ? 'Triads, sevenths, everyday voicings' :
+                    fam === 'power'  ? 'Root + fifth, one per pitch class' :
+                                       '9ths, 11ths, 13ths, altered tensions'
+                  }
+                >
+                  <button aria-pressed={tier === fam} onClick={() => setTier(fam)}>
+                    {fam === 'common' ? 'Common' : fam === 'power' ? 'Power' : 'Extended'}
+                  </button>
                 </Tooltip>
               ))}
             </div>
-          )}
-          {/* ── Text input ───────────────────────────────────────────────── */}
-          {searchOpen && (
-            <input
-              ref={searchRef}
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search …"
-              style={{
-                height: 22, width: 120,
-                background: 'var(--bg-tile)',
-                border: '1px solid var(--state-hover-bg)',
-                borderRadius: 4,
-                color: 'var(--text-dim)',
-                fontFamily: 'var(--font-ui)', fontSize: 11,
-                padding: '0 8px', outline: 'none',
-                caretColor: 'var(--text-amber)',
-              }}
-            />
-          )}
-          <Tooltip
-            title={isPowerMode ? 'Search unavailable' : searchOpen ? 'Close search' : 'Find a chord'}
-            description={isPowerMode ? 'Switch out of Power mode to search chords' : searchOpen ? 'Hides the chord search bar' : 'Search by chord name or by the notes it contains'}
-          >
-          <button
-            onClick={isPowerMode ? undefined : toggleSearch}
-            style={{ background: 'none', border: 'none', cursor: isPowerMode ? 'default' : 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: isPowerMode ? 'var(--text-muted)' : searchOpen ? 'var(--text-amber)' : 'var(--text-dimmest)', opacity: isPowerMode ? 0.35 : 1, transition: 'opacity 0.15s' }}
-            onMouseEnter={e => { if (!isPowerMode) e.currentTarget.style.color = 'var(--text-amber)' }}
-            onMouseLeave={e => { if (!isPowerMode) e.currentTarget.style.color = searchOpen ? 'var(--text-amber)' : 'var(--text-dimmest)' }}
-          >
-            <Search size={14} />
-          </button>
+
+            <div className="xp-filter" style={{ opacity: isPowerMode ? 0.45 : 1, pointerEvents: isPowerMode ? 'none' : 'auto' }}>
+              <span className="xp-note">{t`Hand`}</span>
+              <div className="xp-seg" role="group" aria-label={t`Hand`}>
+                <Tooltip title="All" description="Chords playable with either hand">
+                  <button aria-pressed={handFilter === 'all'} onClick={() => setHandFilter('all')}>All</button>
+                </Tooltip>
+                <Tooltip title="One hand" description="Chords playable with a single hand">
+                  <button aria-pressed={handFilter === 'one'} aria-label={t`One hand`} onClick={() => setHandFilter('one')}>
+                    <span style={{ display: 'inline-flex', transform: 'rotate(-20deg)' }}><Hand size={15} /></span>
+                  </button>
+                </Tooltip>
+                <Tooltip title="Two hands" description="Chords that need both hands">
+                  <button aria-pressed={handFilter === 'two'} aria-label={t`Two hands`} onClick={() => setHandFilter('two')} style={{ gap: 0 }}>
+                    <span style={{ display: 'inline-flex', transform: 'rotate(20deg)' }}><Hand size={15} /></span>
+                    <span style={{ display: 'inline-flex', transform: 'scaleX(-1) rotate(20deg)' }}><Hand size={15} /></span>
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+
+            <div className="xp-filter" style={{ opacity: isPowerMode ? 0.45 : 1, pointerEvents: isPowerMode ? 'none' : 'auto' }}>
+              <span className="xp-note">{t`Notes`}</span>
+              <div className="xp-seg" role="group" aria-label={t`Notes in the chord`}>
+                {(['any', '3', '4', '5', '6+'] as const).map(n => (
+                  <Tooltip
+                    key={n}
+                    oneLine
+                    title={n === 'any' ? 'Chords regardless of note count' : n === '6+' ? 'Chords with 6 or more notes' : `Chords with exactly ${n} notes`}
+                  >
+                    <button aria-pressed={noteFilter === n} onClick={() => setNoteFilter(n)}>{n === 'any' ? 'Any' : n}</button>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Results grid — power chord tiles when tier === 'power', chord grid otherwise */}
+          <div className="xp-tiles">
+            {isPowerMode ? (
+              // ── 12 power chord tiles, one per pitch class C–B ─────────────────
+              ROOT_MIDIS.map((midi, i) => {
+                const pc = midi % 12
+                const rootMidi = pc + 60
+                const fifthMidi = rootMidi + 7
+                const rootName = getNoteName(rootMidi, displayNaming, accidentals)
+                const fifthName = getNoteName(fifthMidi, displayNaming, accidentals)
+                return (
+                  <button key={pc} className="xp-tile" aria-pressed={selectedPowerRoot === pc} style={{ background: TILE_FILLS[i % TILE_FILLS.length] }} onMouseDown={() => playPowerChord(pc)}>
+                    <span className="xp-tile-name">{rootName}5</span>
+                    <span className="xp-tile-note">{rootName} {fifthName}</span>
+                  </button>
+                )
+              })
+            ) : (
+              // ── Standard chord grid ────────────────────────────────────────────
+              <>
+                {filteredChords.map((chord, i) => {
+                  const isSel = selectedKey === chord.key
+                  const midiNotes = buildChordMidi(selectedRoot, chord.intervals, 61)
+                  const noteNames = midiNotes
+                    .map(m => getNoteName(m, displayNaming, accidentals))
+                    .filter(Boolean)
+                    .join(' ')
+                  const chordLabel = `${rootLabel(selectedRoot)}${formatChordSuffix(chord.suffix, chordNamingStyle)}`
+                  const showRoman = progPlaying && selectedProg !== null && isSel
+
+                  return (
+                    <button key={chord.key} className="xp-tile" aria-pressed={isSel} style={{ background: TILE_FILLS[i % TILE_FILLS.length] }} onMouseDown={() => playChordAt(chord.key, selectedRoot)}>
+                      {/* ── Current roman numeral during progression playback ── */}
+                      {showRoman && <span className="xp-tile-roman">{ALL_PROGRESSIONS[selectedProg!].labels[progStep]}</span>}
+                      <span className="xp-tile-name">{chordLabel || rootLabel(selectedRoot)}</span>
+                      <span className="xp-tile-note">{noteNames || chord.name}</span>
+                    </button>
+                  )
+                })}
+
+                {filteredChords.length === 0 && <div className="xp-empty">{t`No results`}</div>}
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* ── The chord sounding now, and what acts on it ───────────────────── */}
+        <aside className="theme-paper xp-aside">
+          <div className="xp-now">
+            <div className="xp-disc" style={{ fontSize: nowName.length <= 3 ? 34 : nowName.length <= 6 ? 24 : 16 }}>{nowName}</div>
+            <div className="xp-now-text">
+              <span className="xp-now-long">
+                {nowPlaying?.ordinal
+                  ? <>{nowPlaying.ordinal}{ordinalSuffix(Number(nowPlaying.ordinal))} {t`inversion`}</>
+                  : nowPlaying ? t`Root position` : t`Tap a chord`}
+              </span>
+              <span className="xp-note">{litNotes.map(m => getNoteName(m, displayNaming, accidentals)).join(' · ')}</span>
+            </div>
+          </div>
+
+          <div className="xp-row" style={{ opacity: isPowerMode ? 0.45 : 1, pointerEvents: isPowerMode ? 'none' : 'auto' }}>
+            <span>{t`Inversion`}</span>
+            <div className="xp-row-ctl">
+              <Tooltip oneLine title="Previous inversion">
+                <button className="o-icon-btn" aria-label={t`Previous inversion`} onMouseDown={() => handleInversion('prev')} disabled={!selectedKey}><ChevronLeft size={18} /></button>
+              </Tooltip>
+              <Tooltip oneLine title="Next inversion">
+                <button className="o-icon-btn" aria-label={t`Next inversion`} onMouseDown={() => handleInversion('next')} disabled={!selectedKey}><ChevronRight size={18} /></button>
+              </Tooltip>
+              <Tooltip oneLine title={t`Reset inversion`}>
+                <button className="o-icon-btn" aria-label={t`Reset inversion`} onClick={resetInversion} disabled={!inverted}><RotateCcw size={15} /></button>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="xp-row">
+            <span>{t`Octave`}</span>
+            <ExplorerOctaveControl showLabel={false} />
+          </div>
+
+          <div className="xp-row">
+            <span>{t`Show as`}</span>
+            <div className="o-seg" role="group" aria-label={t`Show as`}>
+              {(['flat', 'sharp'] as const).map(a => (
+                <button key={a} aria-pressed={accidentals === a} aria-label={a === 'flat' ? t`Flats` : t`Sharps`} onClick={() => setAccidentals(a)}>
+                  {a === 'flat' ? '♭' : '♯'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Accent Root (same setting as the Scales Explorer's) */}
+          <div className="xp-row">
+            <span>{t`Accent root`}</span>
+            <Tooltip title="Accent Root Note" description="Highlights the chord's true root pitch class in pink, in any octave, instead of blending it.">
+              <button role="switch" aria-checked={colorRootNoteEnabled} aria-label={t`Accent root note`} className="o-switch" onClick={() => setColorRootNoteEnabled(!colorRootNoteEnabled)}><span /></button>
+            </Tooltip>
+          </div>
+
+          {/* Clear — stops a progression, turns the lit chord off, deselects its tile */}
+          <Tooltip oneLine title={t`Clear selection`} wrapperStyle={{ alignSelf: 'flex-start' }}>
+            <button className="o-btn-quiet" style={{ height: 36, paddingLeft: 0, color: 'var(--ui-text)', cursor: 'pointer' }} onClick={clearSelection} disabled={!canClear}>{t`Clear`}</button>
           </Tooltip>
-          <button
-            onClick={close}
-            style={{ ...modalCloseButtonStyle, fontSize: 'var(--text-lg)', lineHeight: 1, fontFamily: 'var(--font-ui)' }}
-            onMouseEnter={e => e.currentTarget.style.color = modalCloseButtonHoverColor}
-            onMouseLeave={e => e.currentTarget.style.color = modalCloseButtonIdleColor}
-          >×</button>
-        </div>
+        </aside>
       </div>
 
-      {/* ── Root row — label left, 12 pitch-class buttons right ─────────────── */}
-      <div style={{ ...ROW, minHeight: 'var(--row-height)' }}>
-        <span style={ROW_LABEL}>Root</span>
-        <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-          {rootLabels.map(({ pitchClass, label }) => {
-            const isSel = selectedRoot === pitchClass
+      {/* ── Sequence — progression, its numerals, style, voicing, speed, play ── */}
+      <section className="xp-seq" aria-label={t`Sequence`} style={{ opacity: isPowerMode ? 0.45 : 1, pointerEvents: isPowerMode ? 'none' : 'auto' }}>
+        <span className="xp-note">{t`Sequence`}</span>
+        <button ref={progTriggerRef} className="xp-pick" aria-haspopup="listbox" aria-expanded={progDropdownOpen} onClick={() => setProgDropdownOpen(v => !v)}>
+          <span>{activeProg ? activeProg.name : t`Select`}</span><ChevronDown size={14} />
+        </button>
+        {activeProg && (
+          <Tooltip title="Clear progression" description="Stops playback and clears the selected progression">
+            <button className="o-btn-quiet" style={{ color: '#fff', cursor: 'pointer' }} onClick={() => { stopProgression(); setSelectedProg(null) }}>{t`Clear`}</button>
+          </Tooltip>
+        )}
+        <div className="xp-chips">
+          {activeProg?.labels.map((label, i) => (
+            <span key={i} className="xp-chip" data-on={i === progStep && progPlaying ? '' : undefined}>{label}</span>
+          ))}
+        </div>
+        <Tooltip oneLine title={GENRE_DESCRIPTIONS[progGenre]}>
+          <button ref={styleTriggerRef} className="xp-pick" aria-haspopup="listbox" aria-expanded={styleDropdownOpen} onClick={() => setStyleDropdownOpen(v => !v)}>
+            <span>{t`Style`}: {GENRE_LABELS[progGenre]}</span><ChevronDown size={14} />
+          </button>
+        </Tooltip>
+        <div className="xp-seg" data-tile role="group" aria-label={t`Chord voicing`}>
+          {PROGRESSION_VOICINGS.map(v => {
+            const Icon = VOICING_ICON[v]
             return (
-              <button
-                key={pitchClass}
-                onClick={() => handleRootChange(pitchClass)}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: 4, border: 'none',
-                  background: isSel ? 'var(--text-amber)' : 'var(--border)',
-                  color: isSel ? 'var(--bg)' : 'var(--text-muted)',
-                  fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', transition: 'background 0.1s, color 0.1s',
-                  minWidth: 30, textAlign: 'center',
-                }}
-                onMouseEnter={e => { if (!isSel) { e.currentTarget.style.background = 'var(--state-hover-bg)'; e.currentTarget.style.color = 'var(--text-pill-hover)' } }}
-                onMouseLeave={e => { if (!isSel) { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' } }}
-              >
-                {label}
-              </button>
+              <Tooltip key={v} oneLine title={`${PROGRESSION_VOICING_LABEL[v]} — ${PROGRESSION_VOICING_HINT[v]}`}>
+                <button aria-pressed={progressionVoicing === v} aria-label={PROGRESSION_VOICING_LABEL[v]} style={{ padding: 0 }} onClick={() => setProgressionVoicing(v)}><Icon size={16} /></button>
+              </Tooltip>
             )
           })}
         </div>
-      </div>
-
-      {/* ── Filter row — label left, tier / hand / notes controls right ──────── */}
-      <div style={{ ...ROW, minHeight: 'var(--row-height)' }}>
-        <span style={ROW_LABEL}>Filter</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          {/* Tier */}
-          <div style={{ display: 'flex', background: 'var(--bg-tile)', borderRadius: 'var(--radius-md)', padding: 2, gap: 1 }}>
-            {(['common', 'power', 'extended'] as const).map(t => (
-              <Tooltip
-                key={t}
-                title={t === 'common' ? 'Common' : t === 'power' ? 'Power' : 'Extended'}
-                description={
-                  t === 'common'   ? 'Triads, sevenths, everyday voicings' :
-                  t === 'power'    ? 'Root + fifth, one per pitch class' :
-                                     '9ths, 11ths, 13ths, altered tensions'
-                }
-              >
-              <button onClick={() => setTier(t)} style={btnBase(tier === t)}>
-                {t === 'common' ? 'Common' : t === 'power' ? 'Power' : 'Extended'}
-              </button>
-              </Tooltip>
-            ))}
-          </div>
-
-          <div style={{ width: 1, height: 16, background: 'var(--state-hover-bg)' }} />
-
-          {/* Hand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: isPowerMode ? 0.35 : 1, pointerEvents: isPowerMode ? 'none' : 'auto', transition: 'opacity 0.15s' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-ui)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Hand</span>
-            <div style={{ display: 'flex', background: 'var(--bg-tile)', borderRadius: 4, padding: 2, gap: 1 }}>
-              <Tooltip title="All" description="Chords playable with either hand">
-                <button onClick={() => setHandFilter('all')} style={btnBase(handFilter === 'all')}>All</button>
-              </Tooltip>
-              <Tooltip title="One hand" description="Chords playable with a single hand">
-                <button onClick={() => setHandFilter('one')} style={btnBase(handFilter === 'one')}>
-                  <span style={{ display: 'inline-flex', transform: 'rotate(-20deg)' }}><Hand size={12} /></span>
-                </button>
-              </Tooltip>
-              <Tooltip title="Two hands" description="Chords that need both hands">
-                <button onClick={() => setHandFilter('two')} style={btnBase(handFilter === 'two')}>
-                  <span style={{ display: 'inline-flex', transform: 'rotate(20deg)' }}><Hand size={12} /></span>
-                  <span style={{ display: 'inline-flex', transform: 'scaleX(-1) rotate(20deg)' }}><Hand size={12} /></span>
-                </button>
-              </Tooltip>
-            </div>
-          </div>
-
-          <div style={{ width: 1, height: 16, background: 'var(--state-hover-bg)' }} />
-
-          {/* Notes */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: isPowerMode ? 0.35 : 1, pointerEvents: isPowerMode ? 'none' : 'auto', transition: 'opacity 0.15s' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-ui)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Notes</span>
-            <div style={{ display: 'flex', background: 'var(--bg-tile)', borderRadius: 4, padding: 2, gap: 1 }}>
-              {(['any', '3', '4', '5', '6+'] as const).map(n => (
-                <Tooltip
-                  key={n}
-                  oneLine
-                  title={n === 'any' ? 'Chords regardless of note count' : n === '6+' ? 'Chords with 6 or more notes' : `Chords with exactly ${n} notes`}
-                >
-                  <button onClick={() => setNoteFilter(n)} style={{ ...btnBase(noteFilter === n), minWidth: 22 }}>{n}</button>
-                </Tooltip>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* PROGRESSIONS + INVERSIONS row — two sub-rows; genre nested below ── */}
-      <div style={{ flexShrink: 0, borderBottom: '1px solid var(--border)', opacity: isPowerMode ? 0.35 : 1, pointerEvents: isPowerMode ? 'none' : 'auto', transition: 'opacity 0.15s' }}>
-
-        {/* ── Sub-row 1: Progressions / Play / Inversions — three-column layout ─ */}
-        {/* No borderBottom here — the outer container div owns the separator.   */}
-        <div style={{ flexShrink: 0, minHeight: 'var(--row-height)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 12px', position: 'relative' }}>
-
-          {/* Left group: PROGRESSIONS dropdown | STYLE dropdown | INVERSIONS —
-              all in sequence, separated by thin dividers. ────────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={ROW_LABEL}>Progressions</span>
-            {/* Dropdown trigger */}
-            <button
-              ref={progTriggerRef}
-              onClick={openProgDropdown}
-              style={{
-                ...btnBase(false),
-                fontSize: 10,
-                color: activeProg ? 'var(--text-amber)' : 'var(--text-muted)',
-                padding: '2px 6px',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                maxWidth: 150, display: 'block',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-              onMouseLeave={e => { e.currentTarget.style.color = activeProg ? 'var(--text-amber)' : 'var(--text-muted)' }}
-            >
-              {activeProg ? activeProg.name : 'Select'} ▾
-            </button>
-            {activeProg && (
-              <Tooltip title="Clear progression" description="Stops playback and clears the selected progression">
-              <button
-                onClick={() => { stopProgression(); setSelectedProg(null) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-inactive)', fontSize: 14, lineHeight: 1, padding: '0 2px', fontFamily: 'var(--font-ui)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-inactive)'}
-              >×</button>
-              </Tooltip>
-            )}
-            <span style={{ width: 1, height: 14, background: 'var(--state-hover-bg)', margin: '0 16px' }} />
-            <span style={ROW_LABEL}>Style</span>
-            <Tooltip oneLine title={GENRE_DESCRIPTIONS[progGenre]}>
-            <button
-              ref={styleTriggerRef}
-              onClick={() => {
-                if (styleDropdownOpen) { setStyleDropdownOpen(false); setStyleDropdownRect(null); return }
-                const r = styleTriggerRef.current?.getBoundingClientRect()
-                if (r) setStyleDropdownRect({ top: r.bottom + 2, left: r.left })
-                setStyleDropdownOpen(true)
-              }}
-              style={{ ...btnBase(false), color: 'var(--text-amber)', padding: '2px 6px', whiteSpace: 'nowrap', textTransform: 'uppercase' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-amber)'}
-            >
-              {GENRE_LABELS[progGenre]} ▾
-            </button>
-            </Tooltip>
-            <span style={{ width: 1, height: 14, background: 'var(--state-hover-bg)', margin: '0 16px' }} />
-            <span style={ROW_LABEL}>Voicing</span>
-            {PROGRESSION_VOICINGS.map(v => {
-              const Icon = VOICING_ICON[v]
-              const active = progressionVoicing === v
-              return (
-                <Tooltip key={v} oneLine title={`${PROGRESSION_VOICING_LABEL[v]} — ${PROGRESSION_VOICING_HINT[v]}`}>
-                  <button
-                    onClick={() => setProgressionVoicing(v)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: active ? 'var(--text-amber)' : 'var(--text-inactive)' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-                    onMouseLeave={e => e.currentTarget.style.color = active ? 'var(--text-amber)' : 'var(--text-inactive)'}
-                  ><Icon size={14} /></button>
-                </Tooltip>
-              )
-            })}
-          </div>
-
-          {/* Right corner: PLAY/STOP button + SpeedControl — swapped with
-              Inversions, which moved into the left group above. ──────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* ── Progression play/stop button — green ready, red stop. Tooltip
-                only while disabled — PLAY/STOP already says what a click does
-                once a pattern's picked, so a hover explanation would be noise. ── */}
-            {(() => {
-              const playButton = (
-                <button
-                  onClick={() => progPlaying ? stopProgression() : startProgression()}
-                  disabled={selectedProg === null && !progPlaying}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                    padding: '3px 10px', borderRadius: 4, cursor: selectedProg !== null || progPlaying ? 'pointer' : 'default',
-                    background: 'none',
-                    border: `1.5px solid ${progPlaying ? 'var(--status-error)' : selectedProg !== null ? 'var(--status-success)' : 'var(--text-inactive)'}`,
-                    boxShadow: progPlaying ? '0 0 6px var(--status-error)' : selectedProg !== null ? '0 0 6px var(--status-success)' : 'none',
-                    color: progPlaying ? 'var(--status-error)' : selectedProg !== null ? 'var(--status-success)' : 'var(--text-inactive)',
-                  }}
-                >
-                  {progPlaying ? <Square size={12} /> : <ChevronPlayIcon size={12} />}
-                  {progPlaying ? 'STOP' : 'PLAY'}
-                </button>
-              )
-              // ── Only shown once a pattern's picked — space stays reserved so
-              // the speed chevrons never jump. ──────────────────────────────
-              return (
-                <span aria-hidden={selectedProg === null && !progPlaying} style={{ display: 'flex', visibility: selectedProg === null && !progPlaying ? 'hidden' : 'visible' }}>
-                  {playButton}
-                </span>
-              )
-            })()}
-            {/* Speed selector — chevrons, matching Scales Explorer's sizing */}
-            <SpeedControl value={progSpeed} onChange={setProgSpeed} size={11} />
-          </div>
-        </div>
-
-        {/* ── Sub-row 2: SEQUENCE + numerals | chord now playing | NOTES + names ─ */}
-        {/* Three equal grid tracks, so the chord name is truly centred. Each
-            label sits at a fixed spot ahead of its content (left edge / start
-            of a fixed-width notes slot), so neither moves as content changes. */}
-        <div style={{
-          minHeight: 'var(--row-height)', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', alignItems: 'center',
-          borderTop: '1px solid var(--border)',
-          padding: '5px 12px',
-        }}>
-          {/* Left: SEQUENCE + roman-numeral progression, active step amber ────── */}
-          <div style={{
-            display: 'flex', alignItems: 'baseline', gap: 6, justifySelf: 'start', minWidth: 0,
-            opacity: selectedProg === null ? 0.35 : 1, transition: 'opacity 0.15s',
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 4, alignSelf: 'center' }}>
-              <span style={ROW_LABEL}>{t`Sequence`}</span>
-              <ChevronRight size={12} color="var(--text-amber)" />
-            </span>
-            {activeProg?.labels.map((label, i) => (
-              <span key={i} style={{
-                fontFamily: 'var(--font-ui)',
-                fontSize: i === progStep && progPlaying ? 14 : 13,
-                fontWeight: i === progStep && progPlaying ? 700 : 400,
-                color: i === progStep && progPlaying ? 'var(--text-amber)' : 'var(--text-inactive)',
-                userSelect: 'none', lineHeight: 1,
-              }}>{label}</span>
-            ))}
-          </div>
-
-          {/* Centre: the chord sounding now — same name and inversion marks as
-              the keyboard's chord display; the selected root when nothing is lit. */}
-          <div style={{ display: 'flex', alignItems: 'baseline', justifySelf: 'center', gap: 5, maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 17, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.05em', userSelect: 'none' }}>
-              {nowPlaying ? nowPlaying.chordLabel : rootLabel(selectedRoot)}
-            </span>
-            {nowPlaying?.ordinal && (
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-default)', userSelect: 'none' }}>
-                {nowPlaying.ordinal}
-                <span style={{ fontSize: 8, verticalAlign: 'super' }}>{ordinalSuffix(Number(nowPlaying.ordinal))}</span>
-                {' inv'}
-              </span>
-            )}
-          </div>
-
-          {/* Right: the lit notes, low to high, then ‹ NOTES at the right edge —
-              mirrors SEQUENCE › on the left, so both labels stay fixed. ───── */}
-          <div style={{ display: 'flex', alignItems: 'baseline', justifySelf: 'end', gap: 10, minWidth: 0 }}>
-            <span style={{
-              minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right',
-              fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.04em',
-              color: 'var(--text-amber)', userSelect: 'none', whiteSpace: 'nowrap',
-            }}>
-              {litNotes.map(m => getNoteName(m, displayNaming, accidentals)).join(' ')}
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, alignSelf: 'center', flexShrink: 0 }}>
-              <ChevronLeft size={12} color="var(--text-amber)" />
-              <span style={ROW_LABEL}>{t`Notes`}</span>
-            </span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Results grid — power chord tiles when tier === 'power', chord grid otherwise */}
-      <div className="amber-scroll" style={{
-        flex: 1, overflowY: 'auto',
-        padding: 'var(--space-2) var(--space-3)',
-        display: 'grid',
-        gridTemplateColumns: isPowerMode ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
-        gap: 6,
-        alignContent: 'start',
-      }}>
-        {isPowerMode ? (
-          // ── 12 power chord tiles, one per pitch class C–B ─────────────────
-          ROOT_MIDIS.map(midi => {
-            const pc = midi % 12
-            const rootMidi = pc + 60
-            const fifthMidi = rootMidi + 7
-            const rootName = getNoteName(rootMidi, displayNaming, accidentals)
-            const fifthName = getNoteName(fifthMidi, displayNaming, accidentals)
-            const isSel = selectedPowerRoot === pc
-            return (
-              <button
-                key={pc}
-                onMouseDown={() => playPowerChord(pc)}
-                style={{
-                  background: isSel ? 'var(--accent-amber-medium)' : 'var(--bg-tile)',
-                  border: `1px solid ${isSel ? 'var(--text-amber)' : 'transparent'}`,
-                  borderRadius: 6,
-                  padding: '6px 8px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex', flexDirection: 'column', gap: 2,
-                  transition: 'border-color 0.1s, background 0.1s',
-                }}
-                onMouseEnter={e => { if (!isSel) e.currentTarget.style.borderColor = 'var(--state-hover-border)' }}
-                onMouseLeave={e => { if (!isSel) e.currentTarget.style.borderColor = 'transparent' }}
-              >
-                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 'var(--text-sm)', fontWeight: 700, color: isSel ? 'var(--text-amber)' : 'var(--text-dim)', lineHeight: 1.2 }}>
-                  {rootName}5
-                </span>
-                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-tile-subtext)', lineHeight: '11.7px' }}>
-                  {rootName} {fifthName}
-                </span>
-              </button>
-            )
-          })
-        ) : (
-          // ── Standard chord grid ────────────────────────────────────────────
-          <>
-            {filteredChords.map(chord => {
-              const isSel = selectedKey === chord.key
-              const midiNotes = buildChordMidi(selectedRoot, chord.intervals, 61)
-              const noteNames = midiNotes
-                .map(m => getNoteName(m, displayNaming, accidentals))
-                .filter(Boolean)
-                .join(' ')
-              const chordLabel = `${rootLabel(selectedRoot)}${formatChordSuffix(chord.suffix, chordNamingStyle)}`
-              const showRoman = progPlaying && selectedProg !== null && isSel
-
-              return (
-                <button
-                  key={chord.key}
-                  onMouseDown={() => playChordAt(chord.key, selectedRoot)}
-                  style={{
-                    position: 'relative',
-                    background: isSel ? 'var(--accent-amber-medium)' : 'var(--bg-tile)',
-                    border: `1px solid ${isSel ? 'var(--text-amber)' : 'transparent'}`,
-                    borderRadius: 6,
-                    padding: '6px 8px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex', flexDirection: 'column', gap: 2,
-                    transition: 'border-color 0.1s, background 0.1s',
-                  }}
-                  onMouseEnter={e => { if (!isSel) e.currentTarget.style.borderColor = 'var(--state-hover-border)' }}
-                  onMouseLeave={e => { if (!isSel) e.currentTarget.style.borderColor = 'transparent' }}
-                >
-                  {/* ── Current roman numeral during progression playback — top-right
-                      corner overlay, bigger than the chord name, no tile resize. ── */}
-                  {showRoman && (
-                    <span style={{
-                      position: 'absolute', top: 4, right: 6,
-                      fontFamily: 'var(--font-ui)', fontSize: 'var(--text-base)', fontWeight: 700,
-                      color: 'var(--text-amber)', lineHeight: 1,
-                    }}>
-                      {ALL_PROGRESSIONS[selectedProg!].labels[progStep]}
-                    </span>
-                  )}
-                  <span style={{
-                    fontFamily: 'var(--font-ui)', fontSize: 'var(--text-sm)', fontWeight: 700,
-                    color: isSel ? 'var(--text-amber)' : 'var(--text-dim)',
-                    lineHeight: 1.2,
-                  }}>
-                    {chordLabel || rootLabel(selectedRoot)}
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-tile-subtext)', lineHeight: '11.7px' }}>
-                    {noteNames || chord.name}
-                  </span>
-                </button>
-              )
-            })}
-
-            {filteredChords.length === 0 && (
-              <div style={{
-                gridColumn: '1 / -1', textAlign: 'center',
-                color: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-ui)', padding: '20px 0',
-              }}>
-                No results
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* ── Footer — six controls, evenly spaced edge to edge:
-          Show as | Octave | Inversion | Accent Root | Clear | Scales Explorer ── */}
-      <div style={{
-        ...ROW,
-        minHeight: 'var(--row-height)',
-        borderTop: '1px solid var(--border)',
-        borderBottom: 'none',
-        background: 'var(--bg-modal-header)',
-        padding: '0 var(--space-3)',
-      }}>
-        {/* Show as ♭ ♯ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={FOOTER_LABEL}>Show as</span>
-          {(['flat', 'sharp'] as const).map(a => (
-            <button key={a} onClick={() => setAccidentals(a)} style={{
-              background: 'none', border: 'none', padding: '0 4px',
-              cursor: 'pointer',
-              color: accidentals === a ? 'var(--text-amber)' : 'var(--text-inactive)',
-              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-lg)', fontWeight: 600,
-              lineHeight: 1,
-            }}>
-              {a === 'flat' ? '♭' : '♯'}
-            </button>
-          ))}
-        </div>
-
-        <ExplorerOctaveControl />
-
-        {/* Inversion ◁ ▷ ↺ */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          opacity: isPowerMode ? 0.35 : 1, pointerEvents: isPowerMode ? 'none' : 'auto', transition: 'opacity 0.15s',
-        }}>
-          <Tooltip oneLine title="Previous inversion">
-          <button
-            onMouseDown={() => handleInversion('prev')}
-            disabled={!selectedKey}
-            style={{ background: 'none', border: 'none', cursor: selectedKey ? 'pointer' : 'default', color: selectedKey ? 'var(--text-amber)' : 'var(--state-disabled)', padding: '0 2px', display: 'flex', alignItems: 'center' }}
-            onMouseEnter={e => { if (selectedKey) e.currentTarget.style.color = 'var(--accent-amber-hover)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = selectedKey ? 'var(--text-amber)' : 'var(--state-disabled)' }}
-          ><ChevronPlayIcon size={14} mirrored /></button>
-          </Tooltip>
-          <span style={FOOTER_LABEL}>{t`Inversion`}</span>
-          <Tooltip oneLine title="Next inversion">
-          <button
-            onMouseDown={() => handleInversion('next')}
-            disabled={!selectedKey}
-            style={{ background: 'none', border: 'none', cursor: selectedKey ? 'pointer' : 'default', color: selectedKey ? 'var(--text-amber)' : 'var(--state-disabled)', padding: '0 2px', display: 'flex', alignItems: 'center' }}
-            onMouseEnter={e => { if (selectedKey) e.currentTarget.style.color = 'var(--accent-amber-hover)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = selectedKey ? 'var(--text-amber)' : 'var(--state-disabled)' }}
-          ><ChevronPlayIcon size={14} /></button>
-          </Tooltip>
-          <Tooltip oneLine title={t`Reset inversion`}>
-            <button
-              onClick={resetInversion}
-              disabled={!inverted}
-              style={{ background: 'none', border: 'none', cursor: inverted ? 'pointer' : 'default', color: inverted ? 'var(--text-inactive)' : 'var(--state-hover-bg)', padding: '0 1px', marginLeft: 2, display: 'flex', alignItems: 'center' }}
-              onMouseEnter={e => { if (inverted) e.currentTarget.style.color = 'var(--text-amber)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = inverted ? 'var(--text-inactive)' : 'var(--state-hover-bg)' }}
-            ><RotateCcw size={12} /></button>
-          </Tooltip>
-        </div>
-
-        {/* Accent Root (same setting as the Scales Explorer's) */}
-        <Tooltip title="Accent Root Note" description="Highlights the chord's true root pitch class in pink, in any octave, instead of blending it.">
-          <button
-            onClick={() => setColorRootNoteEnabled(!colorRootNoteEnabled)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}
-          >
-            <span style={{ ...FOOTER_LABEL, whiteSpace: 'nowrap' }}>Accent Root</span>
-            <span style={{ display: 'flex', color: colorRootNoteEnabled ? 'var(--text-amber)' : 'var(--text-inactive)' }}>
-              {colorRootNoteEnabled ? <ToggleRight size={16} strokeWidth={1.5} /> : <ToggleLeft size={16} strokeWidth={1.5} />}
-            </span>
-          </button>
-        </Tooltip>
-
-        {/* Clear — stops a progression, turns the lit chord off, deselects its tile */}
-        <Tooltip oneLine title={t`Clear selection`}>
-          <button
-            onClick={clearSelection}
-            disabled={!canClear}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0,
-              fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase',
-              cursor: canClear ? 'pointer' : 'default',
-              color: canClear ? 'var(--text-inactive)' : 'var(--state-hover-bg)',
-            }}
-            onMouseEnter={e => { if (canClear) e.currentTarget.style.color = 'var(--text-amber)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = canClear ? 'var(--text-inactive)' : 'var(--state-hover-bg)' }}
-          >{t`Clear`}<RotateCcw size={12} /></button>
-        </Tooltip>
-
-        <Tooltip oneLine title="Switch to Scales Explorer">
+        <SpeedControl value={progSpeed} onChange={setProgSpeed} size={11} />
         <button
-          onClick={() => { setChordExplorerOpen(false); setScaleExplorerOpen(true) }}
-          style={EXPLORER_SWITCH_STYLE}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-inactive)' }}
-        >Scales Explorer <ArrowUpRight size={11} /></button>
-        </Tooltip>
-      </div>
+          className="xp-play"
+          aria-label={progPlaying ? t`Stop` : t`Play sequence`}
+          onClick={() => progPlaying ? stopProgression() : startProgression()}
+          disabled={selectedProg === null && !progPlaying}
+        >
+          {progPlaying ? <Square size={16} fill="currentColor" strokeWidth={0} /> : <Play size={18} fill="currentColor" strokeWidth={0} />}
+        </button>
+      </section>
 
       {/* Easter egg card — over the tiles, opened from the header logo */}
       {riteOpen && (
-        <div role="note" style={{
-          position: 'absolute', left: '50%', top: 236, transform: 'translateX(-50%)', width: 440,
-          background: 'var(--bg-modal)', border: '1px solid var(--text-amber)', borderRadius: 8,
-          boxShadow: '0 8px 30px rgba(0,0,0,0.7)', padding: '14px 18px 12px', zIndex: 2,
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 700, color: 'var(--text-amber)' }}>{t`The Rite of Spring chord`}</span>
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)' }}>{t`Igor Stravinsky, 1913`}</span>
+        <div role="note" className="theme-paper xp-rite">
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 'var(--text-xl)', letterSpacing: '-0.03em' }}>{t`The Rite of Spring chord`}</div>
+              <div className="xp-note">{t`Igor Stravinsky, 1913`}</div>
             </div>
-            <button
-              onClick={() => setRiteOpen(false)}
-              aria-label={t`Close`}
-              style={{ ...modalCloseButtonStyle, fontSize: 'var(--text-lg)', lineHeight: 1, fontFamily: 'var(--font-ui)' }}
-              onMouseEnter={e => e.currentTarget.style.color = modalCloseButtonHoverColor}
-              onMouseLeave={e => e.currentTarget.style.color = modalCloseButtonIdleColor}
-            >×</button>
+            <button className="o-close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ui-text)', cursor: 'pointer' }} onClick={() => setRiteOpen(false)} aria-label={t`Close`}><X size={18} /></button>
           </div>
-          <p style={{ margin: 0, fontFamily: 'var(--font-ui)', fontSize: 12, lineHeight: 1.5, color: 'var(--text-dim)', textWrap: 'pretty' } as CSSProperties}>
+          <p style={{ textWrap: 'pretty' } as CSSProperties}>
             {t`He wrote an E♭ dominant 7 chord directly on top of an F♭ major triad. Played by a full orchestral string section, it makes a legendary, heavy, jarring crunch that changed modern music forever. Here's how it sounds on piano.`}
           </p>
-          <button
-            onClick={playRiteChord}
-            style={{
-              alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 5,
-              background: 'none', border: '1.5px solid var(--text-amber)', borderRadius: 4, padding: '3px 10px',
-              color: 'var(--text-amber)', cursor: 'pointer',
-              fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-            }}
-          ><ChevronPlayIcon size={12} />{t`PLAY AGAIN`}</button>
+          <button className="o-btn-primary" style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--on-accent)', cursor: 'pointer' }} onClick={playRiteChord}>
+            <Play size={14} fill="currentColor" strokeWidth={0} />{t`Play again`}
+          </button>
         </div>
       )}
 
-      {/* Progression dropdown — portalled to body to escape overflow:hidden */}
-      {progDropdownOpen && dropdownRect && createPortal(
-        <div
-          ref={progDropRef}
-          className="amber-scroll"
-          style={{
-            position: 'fixed',
-            top: dropdownRect.top,
-            left: dropdownRect.left,
-            background: 'var(--bg-tile)',
-            border: '1px solid var(--state-hover-bg)',
-            borderRadius: 6,
-            zIndex: 1000,
-            minWidth: 300,
-            maxHeight: 340,
-            overflowY: 'auto',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.7)',
-          }}
-        >
-          {/* ── Base progressions with their rotations indented below ─── */}
+      {/* Progression list — base progressions with their rotations under them */}
+      {progDropdownOpen && (
+        <ExplorerMenu trigger={progTriggerRef} width={340} onClose={closeProgMenu}>
           {ALL_PROGRESSIONS.map((p, i) => {
             const isRot = !!p.isRotation
-            const baseColor = selectedProg === i ? 'var(--text-amber)' : (isRot ? 'var(--text-dim-control)' : 'var(--text-muted)')
             const rotLabel = isRot ? p.name.replace(p.baseName! + ' ', '') : ''
             return (
-              <button
-                key={p.name}
-                onClick={() => { setSelectedProg(i); setProgDropdownOpen(false); setDropdownRect(null) }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  width: '100%', textAlign: 'left',
-                  background: selectedProg === i ? 'var(--state-hover-bg)' : 'none',
-                  border: 'none',
-                  padding: isRot ? '3px 10px 3px 22px' : '5px 10px',
-                  color: baseColor,
-                  fontFamily: 'var(--font-ui)', fontSize: 10, cursor: 'pointer',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--state-hover-bg)'; e.currentTarget.style.color = 'var(--text-amber)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = selectedProg === i ? 'var(--state-hover-bg)' : 'none'; e.currentTarget.style.color = baseColor }}
-              >
-                {/* Left column: name — rotations show "↳ (vi start)" short form */}
-                <span style={{ minWidth: 110, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                  {isRot ? `↳ ${rotLabel}` : p.name}
-                </span>
-                {/* Right column: roman numerals */}
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, opacity: isRot ? 0.40 : 0.65, whiteSpace: 'nowrap' }}>
-                  {p.labels.join('  ')}
-                </span>
+              <button key={p.name} data-rotation={isRot ? '' : undefined} aria-selected={selectedProg === i} onClick={() => { setSelectedProg(i); closeProgMenu() }}>
+                <span>{isRot ? `↳ ${rotLabel}` : p.name}</span>
+                <span>{p.labels.join('  ')}</span>
               </button>
             )
           })}
-        </div>,
-        document.body
+        </ExplorerMenu>
       )}
 
-      {/* Style (genre voicing) dropdown — portalled, two columns: name left,
-          description right — matches the progression dropdown above it. ──── */}
-      {styleDropdownOpen && styleDropdownRect && createPortal(
-        <div
-          ref={styleDropRef}
-          className="amber-scroll"
-          style={{
-            position: 'fixed',
-            top: styleDropdownRect.top,
-            left: styleDropdownRect.left,
-            background: 'var(--bg-tile)',
-            border: '1px solid var(--state-hover-bg)',
-            borderRadius: 6,
-            zIndex: 1000,
-            minWidth: 340,
-            maxHeight: 340,
-            overflowY: 'auto',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.7)',
-          }}
-        >
-          {(Object.keys(GENRE_LABELS) as Genre[]).map(g => {
-            const sel = progGenre === g
-            return (
-              <button
-                key={g}
-                onClick={() => { setProgGenre(g); setStyleDropdownOpen(false); setStyleDropdownRect(null) }}
-                style={{
-                  display: 'flex', alignItems: 'baseline', gap: 12,
-                  width: '100%', textAlign: 'left',
-                  background: sel ? 'var(--state-hover-bg)' : 'none',
-                  border: 'none', padding: '5px 10px',
-                  color: sel ? 'var(--text-amber)' : 'var(--text-muted)',
-                  fontFamily: 'var(--font-ui)', fontSize: 10, cursor: 'pointer',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--state-hover-bg)'; e.currentTarget.style.color = 'var(--text-amber)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = sel ? 'var(--state-hover-bg)' : 'none'; e.currentTarget.style.color = sel ? 'var(--text-amber)' : 'var(--text-muted)' }}
-              >
-                {/* Left column: genre name */}
-                <span style={{ minWidth: 80, flexShrink: 0, whiteSpace: 'nowrap', fontWeight: 600, textTransform: 'uppercase' }}>{GENRE_LABELS[g]}</span>
-                {/* Right column: description */}
-                <span style={{ fontSize: 10, opacity: 0.7, color: 'var(--text-muted)' }}>{GENRE_DESCRIPTIONS[g]}</span>
-              </button>
-            )
-          })}
-        </div>,
-        document.body
+      {/* Style (genre voicing) list — name left, description right */}
+      {styleDropdownOpen && (
+        <ExplorerMenu trigger={styleTriggerRef} width={400} onClose={closeStyleMenu}>
+          {(Object.keys(GENRE_LABELS) as Genre[]).map(g => (
+            <button key={g} aria-selected={progGenre === g} onClick={() => { setProgGenre(g); closeStyleMenu() }}>
+              <span>{GENRE_LABELS[g]}</span>
+              <span>{GENRE_DESCRIPTIONS[g]}</span>
+            </button>
+          ))}
+        </ExplorerMenu>
       )}
     </div>
   )

@@ -1,19 +1,18 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react'
 import { Chord, Note } from 'tonal'
-import { RotateCcw, Play, Square, ArrowUpRight, ToggleLeft, ToggleRight } from 'lucide-react'
+import { RotateCcw, Play, Square, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from '../store'
 import { getNoteName } from '../utils/noteNames'
 import { formatChordSuffix, detectChordStructured, localizeChord } from '../utils/chordDetection'
 import type { NoteNaming, Accidentals, ChordNamingStyle } from '../types'
 import SpeedControl from './SpeedControl'
 import OrfeoMark from './OrfeoMark'
-import ChevronPlayIcon from './ChevronPlayIcon'
+import ExplorerMenu from './ExplorerMenu'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { getKeyboardHeaderTop } from '../utils/modalAnchors'
 import { startModalDrag, MODAL_MAX_HEIGHT, type ModalPos } from '../utils/modalDrag'
 import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
-import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import Tooltip from './Tooltip'
 import {
   nextVoicing, voiceProgression, semisFromMidi, intervalsToSemis,
@@ -22,7 +21,7 @@ import {
 import {
   EXPLORER_RANGE, explorerLowRoot, SPEED_MS, VOICING_ICON, ALL_PROGRESSIONS,
   resolveProgressionStep, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
-  explorerKeyColors, captureStruckShape, restoreStruckShape, EXPLORER_SWITCH_STYLE, type ProgSpeed, type StruckShape,
+  explorerKeyColors, captureStruckShape, restoreStruckShape, type ProgSpeed, type StruckShape,
   explorerPosInWindow,
 } from '../utils/explorerShared'
 import { ALL_CHORDS } from '../utils/chordVocabulary'
@@ -31,29 +30,26 @@ import CofTitleMark from './CofTitleMark'
 import StarmapRing, { type LitChord } from './Starmap/StarmapRing'
 import { STAR_MIN_NOTES, STAR_MAX_NOTES, type RingLayout } from '../utils/starmap'
 import { t } from '../utils/i18n'
-import { touchScreen } from '../utils/touchScreen'
+import '../styles/redesign-tools.css'
 
 // ── Modal dimensions — explorer area on the left, settings column on the
 // right. The modal opens centred on the window with its bottom edge just
 // above the keyboard's chord display row (MODAL_HEIGHT is only the first
 // guess; the real height is measured once the content is in). ───────────
-const LEFT_WIDTH = 770
-const SETTINGS_WIDTH = 250
-const MODAL_WIDTH = LEFT_WIDTH + SETTINGS_WIDTH
-const MODAL_HEIGHT = 700
+const MODAL_WIDTH = 1216
+const MODAL_HEIGHT = 640
+const modalWidth = () => Math.min(MODAL_WIDTH, window.innerWidth - 32)
 const ANCHOR_GAP = 6
 // ── Floor is 44, not a token-adjacent 8 — the Electron window uses a 40px
 // titleBarOverlay (electron/main.ts) where Windows draws its own native
 // minimize/maximize/close buttons ON TOP of the page regardless of DOM
 // z-index; anything higher put the × under Windows' real maximize button. ──
 const MIN_TOP = 44
-// ── Circle of Fifths drawing scale — the circle is drawn in a 380-unit
-// space and scaled up to fill the explorer area. ──────────────────────────
-const COF_SCALE = 1.12
+// The Starmap ring is drawn in a 380-unit space
 const COF_VIEW = { x: -8, y: -8, w: 396, h: 404 }
 
 const defaultPos = (height: number) => ({
-  x: Math.max(0, Math.round(window.innerWidth / 2 - MODAL_WIDTH / 2)),
+  x: Math.max(0, Math.round((window.innerWidth - modalWidth()) / 2)),
   y: Math.max(MIN_TOP, Math.round(getKeyboardHeaderTop() - height - ANCHOR_GAP)),
 })
 
@@ -69,6 +65,9 @@ interface ScaleDef {
   // blues scales: the "blue note", semitones above the tonic (Starmap marks it)
   blueNote?: number
 }
+
+// The tiles' fills, in order
+const TILE_FILLS = ['var(--paint-yellow)', 'var(--paint-lime)', 'var(--paint-blue)', 'var(--sand)', 'var(--paint-rose)', 'var(--paint-olive)', 'var(--stone)', 'var(--paint-yellow)']
 
 const SCALES: ScaleDef[] = [
   { name: 'Major',            intervals: [0,2,4,5,7,9,11], romans: ['I','ii','iii','IV','V','vi','vii°'] },
@@ -96,90 +95,6 @@ const COF_MAJOR_PC  = [0, 7, 2, 9, 4, 11, 6,  1,  8, 3, 10, 5]
 const COF_MINOR_PC  = [9, 4,11, 6, 1,  8, 3, 10,  5, 0,  7, 2]
 // Key signature: positive = sharps, negative = flats
 const COF_KEYSIG    = [0, 1, 2, 3, 4,  5, 6, -5, -4,-3,  -2,-1]
-
-// ── Shared row label style — dim uppercase, used across all control rows ──────
-const ROW_LABEL: React.CSSProperties = {
-  fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600,
-  color: 'var(--text-dimmest)', letterSpacing: '0.10em',
-  textTransform: 'uppercase', flexShrink: 0, userSelect: 'none',
-}
-// ── Settings column — every setting is one row: its control on the left,
-// title and a one-line description right-aligned beside it. ───────────────
-const SETTING_DESC: React.CSSProperties = {
-  fontFamily: 'var(--font-ui)', fontSize: 10, lineHeight: 1.35,
-  color: 'var(--text-dimmest)', opacity: 0.75, textAlign: 'right', userSelect: 'none',
-  textWrap: 'balance',
-} as React.CSSProperties
-
-// oneLine: the description never wraps (rows whose control changes width
-// must keep the same height, or the column jumps).
-function SettingRow({ title, desc, oneLine, children }: { title: string; desc: string; oneLine?: boolean; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', alignItems: 'center', columnGap: 12 }}>
-      <div style={{ justifySelf: 'start', display: 'flex', alignItems: 'center' }}>{children}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, minWidth: 0 }}>
-        <span style={{ ...ROW_LABEL, fontSize: 11, whiteSpace: 'nowrap' }}>{title}</span>
-        <span style={oneLine ? { ...SETTING_DESC, whiteSpace: 'nowrap' } : SETTING_DESC}>{desc}</span>
-      </div>
-    </div>
-  )
-}
-
-
-// ── SVG wedge path for CoF rings ─────────────────────────────────────────────
-function wedgePath(cx: number, cy: number, r1: number, r2: number, a1Deg: number, a2Deg: number): string {
-  const toRad = (d: number) => (d * Math.PI) / 180
-  const a1 = toRad(a1Deg)
-  const a2 = toRad(a2Deg)
-  const x1i = cx + r1 * Math.cos(a1), y1i = cy + r1 * Math.sin(a1)
-  const x2i = cx + r1 * Math.cos(a2), y2i = cy + r1 * Math.sin(a2)
-  const x1o = cx + r2 * Math.cos(a1), y1o = cy + r2 * Math.sin(a1)
-  const x2o = cx + r2 * Math.cos(a2), y2o = cy + r2 * Math.sin(a2)
-  return [
-    `M ${x1i} ${y1i}`,
-    `L ${x1o} ${y1o}`,
-    `A ${r2} ${r2} 0 0 1 ${x2o} ${y2o}`,
-    `L ${x2i} ${y2i}`,
-    `A ${r1} ${r1} 0 0 0 ${x1i} ${y1i}`,
-    'Z',
-  ].join(' ')
-}
-
-// ── SVG label position from centre + radius + angle ──────────────────────────
-function labelPos(cx: number, cy: number, r: number, angleDeg: number): { x: number; y: number } {
-  const rad = (angleDeg * Math.PI) / 180
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
-}
-
-// ── Key-signature label placement — equalize the visual gap to the ring ─────
-// The accidental string stays screen-aligned (never rotated to face the
-// centre), so a fixed anchor radius leaves a different gap at every angle:
-// near the horizontal midline the string's *width* eats into the gap, near
-// the vertical midline its *height* does — and both grow with symbol count.
-// The constants below are the real glyph metrics of ♯/♭ at KEYSIG_FONT_SIZE
-// (fitted from the rendered SVG's getBBox() — width scales ~linearly per
-// glyph, height maxes out once any symbol is raised). keySigRadius() solves,
-// per angle, for the radius that keeps the label's near edge a constant
-// KEYSIG_GAP from the ring for every position, 1 through 6 accidentals.
-const KEYSIG_FONT_SIZE = 12
-const KEYSIG_RAISE = 5
-const KEYSIG_GAP = 9
-const keySigSharpWidth = (len: number) => 0.516 + 6.484 * len
-const keySigFlatWidth  = (len: number) => 5.905 * len
-const KEYSIG_BOTTOM_EXTENT = 6
-const keySigTopExtent = (len: number) => (len <= 1 ? 9 : 9 + KEYSIG_RAISE)
-
-function keySigRadius(angleDeg: number, sig: string, ringOuterR: number): number {
-  if (!sig.length) return ringOuterR
-  const rad = (angleDeg * Math.PI) / 180
-  const c = Math.abs(Math.cos(rad))
-  const s = Math.abs(Math.sin(rad))
-  const halfWidth = (sig[0] === '♯' ? keySigSharpWidth(sig.length) : keySigFlatWidth(sig.length)) / 2
-  const halfHeight = Math.sin(rad) > 0 ? keySigTopExtent(sig.length) : KEYSIG_BOTTOM_EXTENT
-  const targetDist = ringOuterR + KEYSIG_GAP
-  const k = c * halfWidth + s * halfHeight
-  return k + Math.sqrt(Math.max(0, k * k - (halfWidth * halfWidth + halfHeight * halfHeight - targetDist * targetDist)))
-}
 
 // ── Diatonic chord type ─────────────────────────────────────────────────────
 interface DiatonicChord {
@@ -394,6 +309,9 @@ export default function ScaleExplorer() {
   const [progPlaying, setProgPlaying] = useState(false)
   const [progStep, setProgStep] = useState(0)
   const [progSpeed, setProgSpeed] = useState<ProgSpeed>('med')
+  const [progMenuOpen, setProgMenuOpen] = useState(false)
+  const progTriggerRef = useRef<HTMLButtonElement>(null)
+  const closeProgMenu = useCallback(() => setProgMenuOpen(false), [])
 
   // ── Info row: currently playing chord context ─────────────────────────────
   const [infoRowChord, setInfoRowChord] = useState<{ progName: string; labels: string[]; notes: string[]; step: number } | null>(null)
@@ -548,7 +466,7 @@ export default function ScaleExplorer() {
   useEffect(() => {
     if (scaleExplorerOpen) {
       const kept = useStore.getState().explorerPositions.scale
-      setPos(kept ? explorerPosInWindow(kept, MODAL_WIDTH, MODAL_HEIGHT, MIN_TOP) : defaultPos(MODAL_HEIGHT))
+      setPos(kept ? explorerPosInWindow(kept, modalWidth(), MODAL_HEIGHT, MIN_TOP) : defaultPos(MODAL_HEIGHT))
       needsAnchorRef.current = !kept
       // unless switched off: Settings › Playback › Explorers pause playback
       if (useStore.getState().playbackState === 'playing' && useStore.getState().explorerPausesPlayback) {
@@ -842,11 +760,11 @@ export default function ScaleExplorer() {
   useEffect(() => {
     if (!scaleExplorerOpen) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
+      if (e.key === 'Escape') { if (progMenuOpen) setProgMenuOpen(false); else close() }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [scaleExplorerOpen, close])
+  }, [scaleExplorerOpen, close, progMenuOpen])
 
   // ── Spacebar while this modal is open — controls the progression when one
   // is selected, otherwise toggles the "Chords in the Scale" auto-sequence. ─
@@ -868,6 +786,7 @@ export default function ScaleExplorer() {
 
   // ── Window drag handler ───────────────────────────────────────────────────
   const onDragStart = (e: React.PointerEvent) => {
+    setProgMenuOpen(false)
     let moved: ModalPos | null = null
     startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
       if (moved) useStore.getState().setExplorerPosition('scale', moved)
@@ -883,22 +802,12 @@ export default function ScaleExplorer() {
   function getMinorLabel(p: number): string {
     return getNoteName(60 + COF_MINOR_PC[p], displayNaming, accidentals) + 'm'
   }
-  // Repeated sharp/flat symbols for the given key signature count
-  function getKeySigSymbol(p: number): string {
+  // The key signature, in words
+  function keySigText(p: number): string {
     const sig = COF_KEYSIG[p]
-    if (sig === 0) return ''
-    if (sig > 0) return '♯'.repeat(sig)
-    return '♭'.repeat(-sig)
-  }
-  // Split a key-signature string into tspans with every second symbol raised
-  // like a printed superscript, matching how engraved key signatures stagger
-  // repeated accidentals for legibility — same size throughout, only offset.
-  function renderKeySigTspans(sig: string, raise: number) {
-    return Array.from(sig).map((ch, idx) => {
-      const isSup = idx % 2 === 1
-      const dy = idx === 0 ? 0 : (isSup ? -raise : raise)
-      return <tspan key={idx} dy={dy}>{ch}</tspan>
-    })
+    if (sig === 0) return t`no sharps or flats`
+    const n = Math.abs(sig)
+    return sig > 0 ? (n === 1 ? t`1 sharp` : t`${n} sharps`) : (n === 1 ? t`1 flat` : t`${n} flats`)
   }
 
   // ── Scale info: root name, scale name, note list ──────────────────────────
@@ -915,15 +824,13 @@ export default function ScaleExplorer() {
   // ── Key quality suffix — 'm' for minor-family scales, '' for major-family ───
   const keyQuality = MINOR_SCALES.has(scale.name) ? 'm' : ''
   const starmapSide: 'major' | 'minor' = MINOR_SCALES.has(scale.name) ? 'minor' : 'major'
+  const activeProg = selectedProg !== null ? ALL_PROGRESSIONS[selectedProg] : null
 
   // Closed (open=false): unmount entirely. Minimized (open=true, minimized=true): render but hide.
   if (!scaleExplorerOpen) return null
 
-  // ── SVG geometry constants ─────────────────────────────────────────────────
-  // Circle centre in SVG coordinate space; viewBox offset (-40) keeps top symbols visible
+  // Centre of the circle in SVG space (the Starmap ring)
   const CX = 190, CY = 190
-  const R_OUTER1 = 110, R_OUTER2 = 175
-  const R_INNER1 = 55,  R_INNER2 = 110
 
   return (
     // ── Modal container — app-no-drag: wherever the modal sits over the top
@@ -935,119 +842,64 @@ export default function ScaleExplorer() {
       aria-modal="true"
       aria-label="Scales Explorer"
       data-instant
-      className="orfeo-modal-glow app-no-drag touch-explorer"
+      className="orfeo-modal-glow app-no-drag touch-explorer theme-studio xp-window xp-scales"
       style={{
-        position: 'fixed',
         left: pos.x,
         top: pos.y,
-        width: MODAL_WIDTH,
-        maxHeight: MODAL_MAX_HEIGHT,
-        background: 'var(--bg-modal)',
-        border: '1px solid var(--state-hover-bg)',
-        borderRadius: 10,
         zIndex: 200,
         display: scaleExplorerMinimized ? 'none' : 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        fontFamily: 'var(--font-ui)',
         '--_modal-shadow': 'var(--elevation-explorer)',
       } as CSSProperties}
     >
       {/* Header — drag handle */}
-      <div onPointerDown={onDragStart} style={{ touchAction: 'none',
-        flexShrink: 0, height: touchScreen ? 44 : 36, display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', padding: '0 var(--space-3)',
-        background: 'var(--bg-modal-header)', borderBottom: '1px solid var(--border)',
-        cursor: 'grab', userSelect: 'none',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <OrfeoMark height={22} />
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Scales Explorer
-          </span>
+      <div className="xp-head" onPointerDown={onDragStart}>
+        <OrfeoMark height={22} />
+        <div className="xp-seg" data-accent role="group" aria-label={t`Explorers`}>
+          <button aria-pressed={false} onClick={() => { setScaleExplorerOpen(false); setChordExplorerOpen(true) }}>{t`Chords`}</button>
+          <button aria-pressed={true}>{t`Scales`}</button>
         </div>
-        <button
-          onMouseDown={e => e.stopPropagation()}
-          onClick={() => { stopProgression(); clearExplorerKeys(); clearExplorerChordDisplay(); setScaleExplorerOpen(false) }}
-          style={{ ...modalCloseButtonStyle, fontSize: 16, lineHeight: 1 }}
-          onMouseEnter={e => e.currentTarget.style.color = modalCloseButtonHoverColor}
-          onMouseLeave={e => e.currentTarget.style.color = modalCloseButtonIdleColor}
-        >×</button>
+        {/* Circle shown — the Starmap needs Settings › Appearance › Starmap */}
+        <Tooltip oneLine title={!starmapEnabled ? t`Turn on in Settings › Appearance` : showStarmap ? t`Back to the Circle of Fifths` : t`Show the Starmap`}>
+          <div className="xp-seg" role="group" aria-label={t`View`}>
+            <button aria-pressed={!showStarmap} onClick={() => setStarmapView(false)}>{t`Circle of Fifths`}</button>
+            <button aria-pressed={showStarmap} disabled={!starmapEnabled} onClick={() => setStarmapView(true)}>{t`Starmap`}</button>
+          </div>
+        </Tooltip>
+        <div className="o-spacer" />
+        {/* Starmap ring order — by semitone or by fifths */}
+        {showStarmap && (
+          <div className="xp-seg" role="group" aria-label={t`Note order`}>
+            {(['chromatic', 'fifths'] as const).map(l => (
+              <Tooltip key={l} oneLine title={l === 'chromatic' ? t`Notes in semitone order` : t`Notes in Circle of Fifths order`}>
+                <button onClick={() => setRingLayout(l)} aria-pressed={ringLayout === l}>{l === 'chromatic' ? t`Semitones` : t`Fifths`}</button>
+              </Tooltip>
+            ))}
+          </div>
+        )}
+        {/* Start over — clears the key, scale, progression and speed and
+            turns the keys off */}
+        <Tooltip oneLine title={t`Clear key, scale and progression`}>
+          <button
+            className="xp-pick"
+            onClick={() => {
+              setCofPos(null); setCofRing(null); setSelectedScaleIdx(0)
+              setSelectedDegree(null); setOctaveTileSelected(false)
+              stopProgression(); stopChordSequence(); setSelectedProg(null)
+              setProgSpeed('med'); speedRef.current = 'med'
+              setInfoRowChord(null); clearExplorerChordDisplay(); setLitChord(null)
+              clearExplorerKeys(); clearLockedKeys(); useStore.getState().clearDisplayedChord()
+              struckShapeRef.current = null; setInverted(false)
+            }}
+          ><span>{t`Clear & reset`}</span></button>
+        </Tooltip>
+        <button className="o-close" aria-label={t`Close`} onClick={close}><X size={18} /></button>
       </div>
 
-      {/* Body — explorer area | settings column */}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: `${LEFT_WIDTH}px ${SETTINGS_WIDTH}px` }}>
-      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-
-      {/* CoF section — guideline + scale list | Circle of Fifths + note names,
-          then the Chords in the Scale play button centred above the tiles */}
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        padding: '14px 12px 10px',
-        background: 'var(--bg-modal-header)', borderBottom: '1px solid var(--border)',
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '250px minmax(0,1fr)', alignItems: 'start' }}>
-          {/* Left — guideline text, evenly broken lines, then the scale list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 44, minWidth: 0 }}>
-            <div style={{
-              fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-dimmest)', opacity: 0.75, lineHeight: '1.6',
-              textWrap: 'balance', userSelect: 'none',
-            } as CSSProperties}>
-              {showStarmap
-                ? t`Click a note on the ring to explore its scale and chords: every chord you play lights up as a star. Select a progression and click play to watch the stars move.`
-                : 'Click a key on the circle to explore its scale and diatonic chords. Select a progression and click play to hear the chords in the scale. Try chord inversions and variations!'}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, width: 116 }}>
-              <span style={{ ...ROW_LABEL, fontSize: 12, marginBottom: 3, color: 'var(--text-amber)' }}>Scale</span>
-              {SCALES.map((s, i) => {
-                const sel = selectedScaleIdx === i
-                return (
-                  <button key={s.name} onClick={() => selectScaleType(i)}
-                    style={{
-                      fontFamily: 'var(--font-ui)', fontSize: 12, padding: '4px 6px',
-                      background: sel ? 'var(--accent-amber-medium)' : 'none',
-                      color: sel ? 'var(--text-amber)' : 'var(--text-muted)',
-                      border: `1px solid ${sel ? 'var(--text-amber)' : 'transparent'}`,
-                      borderRadius: 4, cursor: 'pointer', textAlign: 'left',
-                    }}
-                    onMouseEnter={e => { if (!sel) e.currentTarget.style.color = 'var(--text-list-hover)' }}
-                    onMouseLeave={e => { if (!sel) e.currentTarget.style.color = 'var(--text-muted)' }}
-                  >{s.name}</button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Right — CoF SVG with the note-names row under it, centred in the
-              space beside the guideline/scale column */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, minWidth: 0, position: 'relative' }}>
-          {/* Starmap ring order — by semitone or by fifths, in the corner the
-              round disc leaves free */}
-          {showStarmap && (
-            <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1, display: 'flex', background: 'var(--bg-tile)', borderRadius: 'var(--radius-md)', padding: 2, gap: 1 }}>
-              {(['chromatic', 'fifths'] as const).map(l => {
-                const active = ringLayout === l
-                return (
-                  <Tooltip key={l} oneLine title={l === 'chromatic' ? t`Notes in semitone order` : t`Notes in Circle of Fifths order`}>
-                    <button onClick={() => setRingLayout(l)} aria-pressed={active}
-                      style={{
-                        padding: '2px 7px', borderRadius: 'var(--radius-sm)', border: 'none',
-                        background: active ? 'var(--state-hover-bg)' : 'transparent',
-                        color: active ? 'var(--text-amber)' : 'var(--text-inactive)',
-                        fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >{l === 'chromatic' ? t`Semitones` : t`Fifths`}</button>
-                  </Tooltip>
-                )
-              })}
-            </div>
-          )}
-          <svg
-            width={Math.round(COF_VIEW.w * COF_SCALE)} height={Math.round(COF_VIEW.h * COF_SCALE)}
-            viewBox={`${COF_VIEW.x} ${COF_VIEW.y} ${COF_VIEW.w} ${COF_VIEW.h}`}
-            style={{ overflow: 'visible', flexShrink: 0 }}
-          >
-            {showStarmap ? (
+      <div className="xp-scales-body amber-scroll">
+        {/* Left — the circle, then the scale's notes */}
+        <div className="xp-scales-left">
+          {showStarmap ? (
+            <svg className="xp-ring" viewBox={`${COF_VIEW.x} ${COF_VIEW.y} ${COF_VIEW.w} ${COF_VIEW.h}`} style={{ overflow: 'visible' }}>
               <StarmapRing
                 cx={CX} cy={CY}
                 layout={ringLayout}
@@ -1062,498 +914,219 @@ export default function ScaleExplorer() {
                 morphMs={Math.min(400, Math.round(SPEED_MS[progSpeed] * 0.6))}
                 onPickNote={pc => pickKey(pc, starmapSide, true)}
               />
-            ) : (<>
-            {Array.from({ length: 12 }, (_, i) => {
-              const startDeg = -90 + i * 30
-              const endDeg   = startDeg + 30
-              const midDeg   = startDeg + 15
-              const isSelOuter = cofPos === i && cofRing === 'major'
-              const isSelInner = cofPos === i && cofRing === 'minor'
-              const outerFill = isSelOuter ? 'var(--accent-amber-medium)' : 'var(--border)'
-              const innerFill = isSelInner ? 'var(--accent-amber-medium)' : 'var(--border-row)'
-              const outerLabel = labelPos(CX, CY, (R_OUTER1 + R_OUTER2) / 2, midDeg)
-              const innerLabel = labelPos(CX, CY, (R_INNER1 + R_INNER2) / 2, midDeg)
-              const keySig = getKeySigSymbol(i)
-              // Fixed size for every position — only every second symbol is raised
-              // (superscript-style), never shrunk. Radius is solved per-angle via
-              // keySigRadius() so the visual gap to the ring stays constant.
-              const sigFontSize = KEYSIG_FONT_SIZE
-              const sigR = keySigRadius(midDeg, keySig, R_OUTER2)
-              const sigLabel = labelPos(CX, CY, sigR, midDeg)
-              return (
-                <g key={i}>
-                  {/* Outer ring wedge — major key */}
-                  <path
-                    d={wedgePath(CX, CY, R_OUTER1, R_OUTER2, startDeg, endDeg)}
-                    fill={outerFill} stroke="var(--state-hover-bg)" strokeWidth={1}
-                    style={{ cursor: 'pointer', transition: 'fill 0.15s' }}
-                    onClick={() => pickKey(COF_MAJOR_PC[i], 'major', false)}
-                    onMouseEnter={e => { if (!isSelOuter) (e.target as SVGPathElement).setAttribute('fill', 'var(--state-hover-bg)') }}
-                    onMouseLeave={e => { if (!isSelOuter) (e.target as SVGPathElement).setAttribute('fill', 'var(--border)') }} />
-                  {/* Inner ring wedge — minor key */}
-                  <path
-                    d={wedgePath(CX, CY, R_INNER1, R_INNER2, startDeg, endDeg)}
-                    fill={innerFill} stroke="var(--state-hover-bg)" strokeWidth={1}
-                    style={{ cursor: 'pointer', transition: 'fill 0.15s' }}
-                    onClick={() => pickKey(COF_MINOR_PC[i], 'minor', false)}
-                    onMouseEnter={e => { if (!isSelInner) (e.target as SVGPathElement).setAttribute('fill', 'var(--state-hover-bg-inner)') }}
-                    onMouseLeave={e => { if (!isSelInner) (e.target as SVGPathElement).setAttribute('fill', 'var(--border-row)') }} />
-                  <circle cx={CX} cy={CY} r={R_INNER1} fill="var(--bg-circle-center)" stroke="var(--state-hover-bg)" strokeWidth={1} style={{ pointerEvents: 'none' }} />
-                  {/* Major key label */}
-                  <text x={outerLabel.x} y={outerLabel.y}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fontSize={15} fontWeight={700} fontFamily="var(--font-mono)"
-                    fill={isSelOuter ? 'var(--text-amber)' : 'var(--text-key-label)'}
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >{getMajorLabel(i)}</text>
-                  {/* Minor key label */}
-                  <text x={innerLabel.x} y={innerLabel.y}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fontSize={12} fontFamily="var(--font-ui)"
-                    fill={isSelInner ? 'var(--text-amber)' : 'var(--text-key-label)'}
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >{getMinorLabel(i)}</text>
-                  {/* Key signature accidentals — every second symbol staggered as a
-                      raised "superscript" the way engraved key signatures do, same size throughout */}
-                  {keySig && (
-                    <text x={sigLabel.x} y={sigLabel.y}
-                      textAnchor="middle" dominantBaseline="middle"
-                      fontSize={sigFontSize} fontFamily="var(--font-ui)"
-                      fill="var(--accent-amber-bold)"
-                      style={{ pointerEvents: 'none', userSelect: 'none' }}
-                    >{renderKeySigTspans(keySig, KEYSIG_RAISE)}</text>
-                  )}
-                </g>
-              )
-            })}
-            {/* Centre label — hand-lettered "Circle of Fifths" title */}
-            <CofTitleMark cx={CX} cy={CY} width={80} fill="var(--text-amber)" />
-            </>)}
-          </svg>
-          {/* Note-names row — centred under the CoF (same column, same width),
-              pushed down below it. Trailing octave-repeat note completes the
-              run; each note highlights amber in sequence as the scale plays. ── */}
-          {infoText && (
-            <div style={{
-              display: 'flex', alignItems: 'baseline', gap: 8,
-              background: 'var(--bg-info-overlay)', borderRadius: 6, padding: '5px 12px',
-            }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, lineHeight: '22px', fontWeight: 700, color: 'var(--text-amber)' }}>
-                {infoText.rootName}
-              </span>
-              <span style={{ fontSize: 14, lineHeight: '16px', color: 'var(--text-muted)' }}>{infoText.scaleName}</span>
-              <span style={{ fontSize: 14, lineHeight: '16px', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
-                {infoText.noteNames.map((n, i) => (
-                  <span key={i} style={{ color: i === scalePlayIndex ? 'var(--text-amber)' : 'var(--text-inactive)' }}>
-                    {n}{i < infoText.noteNames.length - 1 ? ' ' : ''}
+            </svg>
+          ) : (
+            <div className="xp-cof" role="group" aria-label={t`Circle of Fifths`}>
+              <div className="xp-cof-hole" />
+              {Array.from({ length: 12 }, (_, i) => {
+                const a = ((i * 30 - 90) * Math.PI) / 180
+                const at = (r: number): CSSProperties => ({ left: `${50 + r * Math.cos(a)}%`, top: `${50 + r * Math.sin(a)}%` })
+                return (
+                  <span key={i}>
+                    <button className="xp-cof-major" style={at(42)} aria-label={`${getMajorLabel(i)} major`} aria-pressed={cofPos === i && cofRing === 'major'} onClick={() => pickKey(COF_MAJOR_PC[i], 'major', false)}>{getMajorLabel(i)}</button>
+                    <button className="xp-cof-minor" style={at(25)} aria-label={`${getMinorLabel(i)} minor`} aria-pressed={cofPos === i && cofRing === 'minor'} onClick={() => pickKey(COF_MINOR_PC[i], 'minor', false)}>{getMinorLabel(i)}</button>
                   </span>
+                )
+              })}
+              {/* Centre — the key picked, else the hand-lettered title */}
+              <div className="xp-cof-centre">
+                {infoText ? (
+                  <>
+                    <span>{infoText.rootName}{keyQuality}</span>
+                    <span>{infoText.scaleName.toLowerCase()}</span>
+                    {/* the signature only belongs to the plain major and minor */}
+                    {selectedScaleIdx <= 1 && cofPos !== null && <span>{keySigText(cofPos)}</span>}
+                  </>
+                ) : (
+                  <svg viewBox="0 0 100 100" width="80%"><CofTitleMark cx={50} cy={50} width={90} fill="currentColor" /></svg>
+                )}
+              </div>
+            </div>
+          )}
+          {/* The scale's notes, each lit in turn as the scale plays; the
+              trailing octave repeat completes the run. ── */}
+          {infoText && (
+            <div className="xp-scale-line">
+              <b>{infoText.rootName} {infoText.scaleName}</b>
+              <span>
+                {infoText.noteNames.map((n, i) => (
+                  <span key={i} data-on={i === scalePlayIndex ? '' : undefined}>{n} </span>
                 ))}
-                <span style={{ color: 'var(--text-inactive)' }}> · </span>
-                <span style={{ color: scalePlayIndex === infoText.noteNames.length ? 'var(--text-amber)' : 'var(--text-inactive)' }}>
-                  {infoText.rootName}
-                </span>
+                <span>· </span>
+                <span data-on={scalePlayIndex === infoText.noteNames.length ? '' : undefined}>{infoText.rootName}</span>
               </span>
             </div>
           )}
-          </div>
-        </div>
-
-        {/* Chords in the Scale — label + play on top, hint below, centred
-            under the circle (same columns as the grid above) */}
-        <div style={{ marginTop: 'auto', paddingTop: 32, display: 'grid', gridTemplateColumns: '250px minmax(0,1fr)' }}>
-        <div style={{ gridColumn: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ ...ROW_LABEL, fontSize: 13 }}>Chords in the Scale</span>
-            <Tooltip title="Play Chords" description={chordSeqPlaying ? 'Stop playback.' : 'Play all chords in the scale one after another.'}>
-              <button
-                onClick={playChordsInSequence}
-                disabled={selectedRoot === null}
-                style={{
-                  background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center',
-                  cursor: selectedRoot === null ? 'default' : 'pointer',
-                  color: selectedRoot === null ? 'var(--state-disabled)' : 'var(--text-amber)',
-                }}
-                onMouseEnter={e => { if (selectedRoot !== null) e.currentTarget.style.color = 'var(--accent-amber-hover)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = selectedRoot === null ? 'var(--state-disabled)' : 'var(--text-amber)' }}
-              >
-                {chordSeqPlaying
-                  ? <Square size={13} fill="currentColor" strokeWidth={0} />
-                  : <Play size={15} fill="currentColor" strokeWidth={0} />}
-              </button>
-            </Tooltip>
-          </div>
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-dimmest)', opacity: 0.75, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-            {t`Click tiles to hear chords`}
-          </span>
-        </div>
-        </div>
-      </div>
-
-      {/* Diatonic chord tiles — one per chord, plus the octave tile */}
-      <div style={{ flexShrink: 0, padding: 'var(--space-1) var(--space-3)', minHeight: 'var(--row-height)' }}>
-        {selectedRoot === null ? (
-          <div style={{ minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Select a key from the circle above to see diatonic chords</span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-            {[...diatonicChords, ...(diatonicChords[0] ? [diatonicChords[0]] : [])].map((chord, idx) => {
-              const isOctave = idx === diatonicChords.length
-              const sel = isOctave ? octaveTileSelected : selectedDegree === idx
-              const voicing = tileVoicings[idx]
-              const notes = voicing ? [...voicing].sort((a, b) => a - b) : chord.midiNotes
-              return (
-                // Chord tile: notes on top, chord name + roman numeral below
-                <button
-                  key={isOctave ? 'octave' : chord.degree}
-                  onMouseDown={() => { stopChordSequence(); playTile(idx, 'click') }}
-                  style={{
-                    flex: 1, minWidth: 0, background: sel ? 'var(--accent-amber-medium)' : 'var(--bg-tile)',
-                    border: `1px solid ${sel ? 'var(--text-amber)' : 'var(--state-hover-bg)'}`,
-                    borderRadius: 6,
-                    paddingTop: 6, paddingBottom: 'var(--space-2)', paddingLeft: 6, paddingRight: 6,
-                    cursor: 'pointer', textAlign: 'left',
-                    display: 'flex', flexDirection: 'column', gap: 5,
-                  }}
-                  onMouseEnter={e => { if (!sel) e.currentTarget.style.borderColor = 'var(--state-hover-border)' }}
-                  onMouseLeave={e => { if (!sel) e.currentTarget.style.borderColor = 'var(--state-hover-bg)' }}
-                >
-                  {/* Top: every note of the voicing, low to high, on its own line */}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                    {notes.map(m => getNoteName(m, displayNaming, accidentals)).join(' ')}
-                  </span>
-                  {/* Bottom: chord name as voiced, roman numeral on the right */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4, minWidth: 0 }}>
-                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700, color: sel ? 'var(--text-amber)' : 'var(--text-key-label)', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                      {voicedName(chord, voicing)}
-                    </span>
-                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--accent-amber-bold)', lineHeight: 1, flexShrink: 0 }}>
-                      {chord.roman}{isOctave ? '⁸' : ''}
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Chord/inversion info display row */}
-      <div style={{
-        flexShrink: 0, minHeight: 'var(--row-height)', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', padding: '0 var(--space-3)',
-        borderTop: '1px solid var(--border)', background: 'var(--bg-modal-header)',
-        position: 'relative',
-      }}>
-        {selectedRoot === null ? (
-          <span style={{ fontSize: 10, color: 'var(--state-disabled)', fontFamily: 'var(--font-ui)', margin: '0 auto' }}>—</span>
-        ) : (
-          <>
-            {/* Left — CHORD QUALITY label + all progression steps on one line.
-                Active step amber/bold; inactive steps dim. Only once a tile
-                has been played; the "Key Of" block on the right shows from
-                the moment a key is picked on the circle. */}
-            {infoRowChord ? (
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: 'var(--space-1)', minWidth: 60, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: 'var(--text-dimmest)', letterSpacing: '0.10em', textTransform: 'uppercase', userSelect: 'none', flexShrink: 0 }}>
-                  Chord Quality
-                </span>
-                {infoRowChord.labels.map((label, i) => (
-                  <span key={i} style={{
-                    fontFamily: 'var(--font-ui)',
-                    fontSize: i === infoRowChord.step ? 14 : 13,
-                    fontWeight: i === infoRowChord.step ? 700 : 400,
-                    color: i === infoRowChord.step ? 'var(--text-amber)' : 'var(--text-inactive)',
-                    userSelect: 'none', lineHeight: 1,
-                  }}>{label}</span>
+          {showStarmap && (
+            <div className="xp-legend">
+              <span><i style={{ background: 'var(--accent)' }} />{t`Home note`}</span>
+              <span><i style={{ background: 'var(--paper-card)' }} />{t`In the scale`}</span>
+              {selectedRoot !== null && scale.blueNote !== undefined && <span><i style={{ border: '2px solid var(--paint-blue)' }} />{t`Blue note`}</span>}
+              <div className="xp-seg" data-tile role="group" aria-label={t`Key picked by a note`}>
+                {(['major', 'minor'] as const).map(side => (
+                  <button key={side} aria-pressed={starmapSide === side} onClick={() => { if (selectedRoot !== null && starmapSide !== side) pickKey(selectedRoot, side, true) }}>
+                    {side === 'major' ? t`Major` : t`Minor`}
+                  </button>
                 ))}
               </div>
-            ) : <span style={{ minWidth: 60 }} />}
-            {/* Centre — note names, large, absolutely centred in the row */}
-            {infoRowChord && (
-              <span style={{
-                position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-                fontFamily: 'var(--font-mono)', fontSize: 'var(--text-lg)', color: 'var(--text-dim)',
-                letterSpacing: '0.06em', userSelect: 'none', whiteSpace: 'nowrap',
-              }}>
-                {infoRowChord.notes.join('  ')}
-              </span>
-            )}
-            {/* Right — fixed "KEY OF [root]" label; root sits in a fixed-width
-                slot (worst case: 3 chars, e.g. "C#m") so it never shifts. ──── */}
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-1)', minWidth: 60 }}>
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: 'var(--text-dimmest)', letterSpacing: '0.10em', textTransform: 'uppercase', userSelect: 'none' }}>
-                Key Of
-              </span>
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 700, color: 'var(--text-amber)', userSelect: 'none', lineHeight: 1, minWidth: '3ch', display: 'inline-block' }}>
-                {infoText ? `${infoText.rootName}${keyQuality}` : ''}
-              </span>
             </div>
-          </>
-        )}
-      </div>
-
-      </div>
-
-      {/* Settings column — progressions list + PLAY, then one row per
-          setting (control left, title + description right) */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0, minWidth: 0,
-        padding: '14px 16px', borderLeft: '1px solid var(--border)',
-      }}>
-        {/* Progressions — always-open list in a fixed, scrolling box; the
-            same list as the Chord Explorer, rotations indented under each */}
-        <div style={{ flex: '1 1 0', minHeight: 150, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ ...ROW_LABEL, fontSize: 11, textAlign: 'right' }}>{t`Progressions`}</span>
-          <div className="amber-scroll" style={{
-            flex: '1 1 0', minHeight: 0, overflowY: 'auto',
-            background: 'var(--bg-tile)', border: '1px solid var(--state-hover-bg)', borderRadius: 6,
-            padding: 3,
-          }}>
-            {ALL_PROGRESSIONS.map((p, i) => {
-              const sel = selectedProg === i
-              const isRot = !!p.isRotation
-              const baseColor = sel ? 'var(--text-amber)' : (isRot ? 'var(--text-dim-control)' : 'var(--text-muted)')
-              const rotLabel = isRot ? p.name.replace(p.baseName! + ' ', '') : ''
-              return (
-                <button key={p.name}
-                  onClick={() => pickProgression(i)}
-                  style={{
-                    display: 'flex', alignItems: 'baseline', gap: 8,
-                    width: '100%', textAlign: 'left',
-                    // ── The picked one stays pinned to the top of the box while
-                    // scrolling — amber tint over the box colour so the rows
-                    // scrolling underneath never show through it. ───────────
-                    background: sel ? 'linear-gradient(var(--accent-amber-medium), var(--accent-amber-medium)) var(--bg-tile)' : 'none',
-                    position: sel ? 'sticky' : undefined, top: sel ? 0 : undefined, zIndex: sel ? 1 : undefined,
-                    border: `1px solid ${sel ? 'var(--text-amber)' : 'transparent'}`, borderRadius: 4,
-                    padding: isRot ? '2px 6px 2px 16px' : '3px 6px',
-                    color: baseColor,
-                    fontFamily: 'var(--font-ui)', fontSize: 11, cursor: 'pointer',
-                  }}
-                  onMouseEnter={e => { if (!sel) e.currentTarget.style.color = 'var(--text-amber)' }}
-                  onMouseLeave={e => { if (!sel) e.currentTarget.style.color = baseColor }}
-                >
-                  <span style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{isRot ? `↳ ${rotLabel}` : p.name}</span>
-                  <span style={{
-                    flex: 1, minWidth: 0, textAlign: 'right',
-                    fontFamily: 'var(--font-mono)', fontSize: 9, opacity: isRot ? 0.45 : 0.65,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>{p.labels.join(' ')}</span>
-                </button>
-              )
-            })}
-          </div>
-          {/* Clear & Reset icon (left) | PLAY / STOP (right) — PLAY always shown, greyed
-              out until a progression is picked */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-            <Tooltip oneLine title={t`Clear progression`}>
-              <button
-                onClick={() => { setSelectedProg(null); stopProgression() }}
-                disabled={selectedProg === null}
-                style={{
-                  background: 'none', border: 'none', padding: '0 1px', display: 'flex', alignItems: 'center',
-                  color: selectedProg === null ? 'var(--state-hover-bg)' : 'var(--text-inactive)',
-                  cursor: selectedProg === null ? 'default' : 'pointer',
-                }}
-                onMouseEnter={e => { if (selectedProg !== null) e.currentTarget.style.color = 'var(--text-amber)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = selectedProg === null ? 'var(--state-hover-bg)' : 'var(--text-inactive)' }}
-              ><RotateCcw size={12} /></button>
-            </Tooltip>
-            {(() => {
-              const canPlay = selectedProg !== null && diatonicChords.length > 0
-              const tone = progPlaying ? 'var(--status-error)' : canPlay ? 'var(--status-success)' : 'var(--state-disabled)'
-              return (
-                <button
-                  onClick={() => { if (progPlaying) stopProgression(); else startProgression() }}
-                  disabled={!canPlay && !progPlaying}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                    padding: '4px 12px', borderRadius: 4, background: 'none',
-                    cursor: canPlay || progPlaying ? 'pointer' : 'default',
-                    border: `1.5px solid ${tone}`, color: tone,
-                    boxShadow: canPlay || progPlaying ? `0 0 6px ${tone}` : 'none',
-                  }}
-                >
-                  {progPlaying ? <Square size={12} /> : <ChevronPlayIcon size={12} />}
-                  {progPlaying ? 'STOP' : 'PLAY'}
-                </button>
-              )
-            })()}
-          </div>
+          )}
+          <span className="xp-note" style={{ textAlign: 'center', textWrap: 'balance' } as CSSProperties}>
+            {showStarmap
+              ? t`Click a note on the ring to explore its scale and chords: every chord you play lights up as a star. Select a progression and click play to watch the stars move.`
+              : t`Click a key on the circle to explore its scale and diatonic chords.`}
+          </span>
         </div>
 
-        <SettingRow title={t`Inversions`} desc={t`Step through inversions`}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Tooltip oneLine title="Previous inversion">
-              <button onMouseDown={() => stepInversion('prev')} disabled={!hasTileSelected}
-                style={{ background: 'none', border: 'none', color: hasTileSelected ? 'var(--text-amber)' : 'var(--state-disabled)', cursor: hasTileSelected ? 'pointer' : 'default', padding: '0 2px', display: 'flex', alignItems: 'center' }}
-                onMouseEnter={e => { if (hasTileSelected) e.currentTarget.style.color = 'var(--accent-amber-hover)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = hasTileSelected ? 'var(--text-amber)' : 'var(--state-disabled)' }}
-              ><ChevronPlayIcon size={14} mirrored /></button>
-            </Tooltip>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, color: 'var(--text-inactive)', letterSpacing: '0.12em', textTransform: 'uppercase', userSelect: 'none' }}>
-              {t`Play`}
-            </span>
-            <Tooltip oneLine title="Next inversion">
-              <button onMouseDown={() => stepInversion('next')} disabled={!hasTileSelected}
-                style={{ background: 'none', border: 'none', color: hasTileSelected ? 'var(--text-amber)' : 'var(--state-disabled)', cursor: hasTileSelected ? 'pointer' : 'default', padding: '0 2px', display: 'flex', alignItems: 'center' }}
-                onMouseEnter={e => { if (hasTileSelected) e.currentTarget.style.color = 'var(--accent-amber-hover)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = hasTileSelected ? 'var(--text-amber)' : 'var(--state-disabled)' }}
-              ><ChevronPlayIcon size={14} /></button>
-            </Tooltip>
-            <Tooltip oneLine title={t`Reset inversion`}>
-              <button
-                onClick={resetInversion}
-                disabled={!inverted}
-                style={{ background: 'none', border: 'none', cursor: inverted ? 'pointer' : 'default', color: inverted ? 'var(--text-inactive)' : 'var(--state-hover-bg)', padding: '0 1px', marginLeft: 2, display: 'flex', alignItems: 'center' }}
-                onMouseEnter={e => { if (inverted) e.currentTarget.style.color = 'var(--text-amber)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = inverted ? 'var(--text-inactive)' : 'var(--state-hover-bg)' }}
-              ><RotateCcw size={12} /></button>
-            </Tooltip>
+        {/* Right — scale, chords, progression, options */}
+        <div className="xp-scales-right">
+          <div className="xp-group">
+            <span className="xp-note">{t`Scale`}</span>
+            <div className="xp-scale-grid" role="group" aria-label={t`Scale`}>
+              {SCALES.map((s, i) => (
+                <button key={s.name} aria-pressed={selectedScaleIdx === i} onClick={() => selectScaleType(i)}>{s.name}</button>
+              ))}
+            </div>
           </div>
-        </SettingRow>
 
-        {/* Voicing — shared with the Chord Explorer; sets how the tiles, the
-            chords-in-the-scale run and progressions are voiced */}
-        <SettingRow title={t`Chord voicing`} desc={t`Roots, climbing or smooth`}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {PROGRESSION_VOICINGS.map(v => {
-              const Icon = VOICING_ICON[v]
-              const active = progressionVoicing === v
-              return (
-                <Tooltip key={v} oneLine title={`${PROGRESSION_VOICING_LABEL[v]} — ${PROGRESSION_VOICING_HINT[v]}`}>
-                  <button
-                    onClick={() => setProgressionVoicing(v)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: active ? 'var(--text-amber)' : 'var(--text-inactive)' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-                    onMouseLeave={e => e.currentTarget.style.color = active ? 'var(--text-amber)' : 'var(--text-inactive)'}
-                  ><Icon size={15} /></button>
-                </Tooltip>
-              )
-            })}
-          </div>
-        </SettingRow>
-
-        <SettingRow title={t`Playback speed`} desc={t`How fast the chords change`}>
-          <SpeedControl
-            value={progSpeed}
-            onChange={v => { setProgSpeed(v); speedRef.current = v }}
-            size={11}
-          />
-        </SettingRow>
-
-        <SettingRow title={t`Octave`} desc={t`Move it all up or down`}>
-          <ExplorerOctaveControl showLabel={false} />
-        </SettingRow>
-
-        <SettingRow title={t`Accidentals`} desc={t`Show flats or sharps`}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {(['flat', 'sharp'] as const).map(v => (
-              <button key={v} onClick={() => setAccidentals(v)}
-                style={{
-                  fontFamily: 'var(--font-ui)', fontSize: 'var(--text-lg)', lineHeight: 1, background: 'none', border: 'none',
-                  color: accidentals === v ? 'var(--text-amber)' : 'var(--text-inactive)', cursor: 'pointer', padding: '0 4px',
-                }}
-                onMouseEnter={e => { if (accidentals !== v) e.currentTarget.style.color = 'var(--text-muted)' }}
-                onMouseLeave={e => { if (accidentals !== v) e.currentTarget.style.color = 'var(--text-inactive)' }}
-              >{v === 'flat' ? '♭' : '♯'}</button>
-            ))}
-          </div>
-        </SettingRow>
-
-        {/* Accent root note — on by default: each chord's root (any octave)
-            shows pink on the keyboard instead of blending into the amber */}
-        <SettingRow title={t`Accent root note`} desc={t`Each chord's root lights pink`}>
-          <button
-            onClick={() => setColorRootNoteEnabled(!colorRootNoteEnabled)}
-            aria-pressed={colorRootNoteEnabled}
-            style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: colorRootNoteEnabled ? 'var(--text-amber)' : 'var(--text-inactive)' }}
-          >
-            {colorRootNoteEnabled ? <ToggleRight size={20} strokeWidth={1.5} /> : <ToggleLeft size={20} strokeWidth={1.5} />}
-          </button>
-        </SettingRow>
-
-        {/* Starmap — swaps the Circle of Fifths for the Starmap (made
-            available in Settings › Appearance); in Starmap mode Major | Minor
-            decides which key a clicked note picks */}
-        <SettingRow
-          title={t`Starmap`}
-          oneLine
-          desc={!starmapEnabled ? t`Turn on in Settings › Appearance` : showStarmap ? t`Major or minor keys` : t`Swap the circle for the Starmap`}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Tooltip oneLine title={!starmapEnabled ? t`Turn on in Settings › Appearance` : showStarmap ? t`Back to the Circle of Fifths` : t`Show the Starmap`}>
-              <button
-                onClick={() => { if (starmapEnabled) setStarmapView(v => !v) }}
-                disabled={!starmapEnabled}
-                aria-pressed={showStarmap}
-                style={{
-                  display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0,
-                  cursor: starmapEnabled ? 'pointer' : 'default',
-                  color: !starmapEnabled ? 'var(--state-disabled)' : showStarmap ? 'var(--text-amber)' : 'var(--text-inactive)',
-                }}
-              >
-                {showStarmap ? <ToggleRight size={20} strokeWidth={1.5} /> : <ToggleLeft size={20} strokeWidth={1.5} />}
-              </button>
-            </Tooltip>
-            {showStarmap && (
-              <div style={{ display: 'flex', background: 'var(--bg-tile)', borderRadius: 'var(--radius-md)', padding: 2, gap: 1 }}>
-                {(['major', 'minor'] as const).map(side => {
-                  const active = starmapSide === side
+          {/* Chords in this key — one tile per chord, plus the octave tile */}
+          <div className="xp-group">
+            <div className="xp-group-head">
+              <span className="xp-note">{t`Chords in this key · tap to hear`}</span>
+              <Tooltip title="Play Chords" description={chordSeqPlaying ? 'Stop playback.' : 'Play all chords in the scale one after another.'}>
+                <button className="o-icon-btn" style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ui-text)', cursor: 'pointer' }} aria-label={chordSeqPlaying ? t`Stop` : t`Play the chords`} onClick={playChordsInSequence} disabled={selectedRoot === null}>
+                  {chordSeqPlaying ? <Square size={12} fill="currentColor" strokeWidth={0} /> : <Play size={14} fill="currentColor" strokeWidth={0} />}
+                </button>
+              </Tooltip>
+              <div className="o-spacer" />
+              {infoRowChord && <span className="xp-note">{infoRowChord.labels[infoRowChord.step]} · {infoRowChord.notes.join(' ')}</span>}
+            </div>
+            {selectedRoot === null ? (
+              <div className="xp-empty">{t`Select a key from the circle to see its chords`}</div>
+            ) : (
+              <div className="xp-degrees">
+                {[...diatonicChords, ...(diatonicChords[0] ? [diatonicChords[0]] : [])].map((chord, idx) => {
+                  const isOctave = idx === diatonicChords.length
+                  const voicing = tileVoicings[idx]
+                  const notes = voicing ? [...voicing].sort((a, b) => a - b) : chord.midiNotes
                   return (
-                    <button key={side}
-                      onClick={() => { if (selectedRoot !== null && !active) pickKey(selectedRoot, side, true) }}
-                      aria-pressed={active}
-                      style={{
-                        padding: '2px 7px', borderRadius: 'var(--radius-sm)', border: 'none',
-                        background: active ? 'var(--state-hover-bg)' : 'transparent',
-                        color: active ? 'var(--text-amber)' : 'var(--text-inactive)',
-                        fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >{side === 'major' ? t`Maj` : t`Min`}</button>
+                    <button
+                      key={isOctave ? 'octave' : chord.degree}
+                      className="xp-tile"
+                      aria-pressed={isOctave ? octaveTileSelected : selectedDegree === idx}
+                      style={{ background: TILE_FILLS[idx % TILE_FILLS.length] }}
+                      onMouseDown={() => { stopChordSequence(); playTile(idx, 'click') }}
+                    >
+                      <span className="xp-tile-note">{notes.map(m => getNoteName(m, displayNaming, accidentals)).join(' ')}</span>
+                      <span className="xp-degree-foot">
+                        <span className="xp-tile-name">{voicedName(chord, voicing)}</span>
+                        <span>{chord.roman}{isOctave ? '⁸' : ''}</span>
+                      </span>
+                    </button>
                   )
                 })}
               </div>
             )}
           </div>
-        </SettingRow>
 
-        {/* Start over — clears the key, scale, progression and speed and
-            turns the keys off */}
-        <SettingRow title={t`Reset explorer`} desc={t`Clear key, scale and progression`}>
-          <Tooltip oneLine title={t`Clear & Reset`}>
+          {/* Progression — the same list as the Chord Explorer */}
+          <section className="xp-seq" aria-label={t`Progression`}>
+            <span className="xp-note">{t`Progression`}</span>
+            <button ref={progTriggerRef} className="xp-pick" aria-haspopup="listbox" aria-expanded={progMenuOpen} onClick={() => setProgMenuOpen(v => !v)}>
+              <span>{activeProg ? activeProg.name : t`Select`}</span><ChevronDown size={14} />
+            </button>
+            {activeProg && (
+              <Tooltip oneLine title={t`Clear progression`}>
+                <button className="o-btn-quiet" style={{ color: '#fff', cursor: 'pointer' }} onClick={() => { setSelectedProg(null); stopProgression() }}>{t`Clear`}</button>
+              </Tooltip>
+            )}
+            <div className="xp-chips">
+              {activeProg?.labels.map((label, i) => (
+                <span key={i} className="xp-chip" data-on={i === progStep && progPlaying ? '' : undefined}>{label}</span>
+              ))}
+            </div>
             <button
-              onClick={() => {
-                setCofPos(null); setCofRing(null); setSelectedScaleIdx(0)
-                setSelectedDegree(null); setOctaveTileSelected(false)
-                stopProgression(); stopChordSequence(); setSelectedProg(null)
-                setProgSpeed('med'); speedRef.current = 'med'
-                setInfoRowChord(null); clearExplorerChordDisplay(); setLitChord(null)
-                clearExplorerKeys(); clearLockedKeys(); useStore.getState().clearDisplayedChord()
-                struckShapeRef.current = null; setInverted(false)
-              }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-inactive)', padding: '0 1px', display: 'flex', alignItems: 'center' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-inactive)'}
-            ><RotateCcw size={12} /></button>
-          </Tooltip>
-        </SettingRow>
+              className="xp-play"
+              aria-label={progPlaying ? t`Stop` : t`Play progression`}
+              onClick={() => { if (progPlaying) stopProgression(); else startProgression() }}
+              disabled={!(selectedProg !== null && diatonicChords.length > 0) && !progPlaying}
+            >
+              {progPlaying ? <Square size={16} fill="currentColor" strokeWidth={0} /> : <Play size={18} fill="currentColor" strokeWidth={0} />}
+            </button>
+          </section>
 
-        {/* Switch to Chord Explorer */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Tooltip oneLine title="Switch to Chords Explorer">
-            <button
-              onClick={() => { setScaleExplorerOpen(false); setChordExplorerOpen(true) }}
-              style={EXPLORER_SWITCH_STYLE}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-amber)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-inactive)' }}
-            >Chords Explorer <ArrowUpRight size={11} /></button>
-          </Tooltip>
+          <div className="xp-cards">
+            <div className="xp-card">
+              <span>{t`Accidentals`}</span>
+              <div className="xp-seg" role="group" aria-label={t`Accidentals`}>
+                {(['flat', 'sharp'] as const).map(v => (
+                  <button key={v} aria-pressed={accidentals === v} aria-label={v === 'flat' ? t`Flats` : t`Sharps`} onClick={() => setAccidentals(v)}>{v === 'flat' ? '♭' : '♯'}</button>
+                ))}
+              </div>
+            </div>
+            <div className="xp-card">
+              <span>{t`Octave`}</span>
+              <ExplorerOctaveControl showLabel={false} />
+            </div>
+            <div className="xp-card">
+              <span>{t`Inversions`}</span>
+              <div className="xp-ctl">
+                <Tooltip oneLine title="Previous inversion">
+                  <button className="o-icon-btn" aria-label={t`Previous inversion`} onMouseDown={() => stepInversion('prev')} disabled={!hasTileSelected}><ChevronLeft size={18} /></button>
+                </Tooltip>
+                <Tooltip oneLine title="Next inversion">
+                  <button className="o-icon-btn" aria-label={t`Next inversion`} onMouseDown={() => stepInversion('next')} disabled={!hasTileSelected}><ChevronRight size={18} /></button>
+                </Tooltip>
+                <Tooltip oneLine title={t`Reset inversion`}>
+                  <button className="o-icon-btn" aria-label={t`Reset inversion`} onClick={resetInversion} disabled={!inverted}><RotateCcw size={15} /></button>
+                </Tooltip>
+              </div>
+            </div>
+            {/* Voicing — shared with the Chord Explorer; sets how the tiles, the
+                chords-in-the-scale run and progressions are voiced */}
+            <div className="xp-card">
+              <span>{t`Chord voicing`}</span>
+              <div className="xp-seg" role="group" aria-label={t`Chord voicing`}>
+                {PROGRESSION_VOICINGS.map(v => {
+                  const Icon = VOICING_ICON[v]
+                  return (
+                    <Tooltip key={v} oneLine title={`${PROGRESSION_VOICING_LABEL[v]} — ${PROGRESSION_VOICING_HINT[v]}`}>
+                      <button style={{ padding: 0 }} aria-pressed={progressionVoicing === v} aria-label={PROGRESSION_VOICING_LABEL[v]} onClick={() => setProgressionVoicing(v)}><Icon size={16} /></button>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="xp-card">
+              <span>{t`Playback speed`}</span>
+              <SpeedControl value={progSpeed} onChange={v => { setProgSpeed(v); speedRef.current = v }} size={11} />
+            </div>
+            {/* Accent root note — on by default: each chord's root (any octave)
+                shows pink on the keyboard instead of blending into the amber */}
+            <div className="xp-card">
+              <span>{t`Accent root note`}</span>
+              <div className="xp-ctl">
+                <button role="switch" aria-checked={colorRootNoteEnabled} aria-label={t`Accent root note`} className="o-switch" onClick={() => setColorRootNoteEnabled(!colorRootNoteEnabled)}><span /></button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      </div>
+
+      {progMenuOpen && (
+        <ExplorerMenu trigger={progTriggerRef} width={340} onClose={closeProgMenu}>
+          {ALL_PROGRESSIONS.map((p, i) => {
+            const isRot = !!p.isRotation
+            const rotLabel = isRot ? p.name.replace(p.baseName! + ' ', '') : ''
+            return (
+              <button key={p.name} data-rotation={isRot ? '' : undefined} aria-selected={selectedProg === i} onClick={() => { pickProgression(i); closeProgMenu() }}>
+                <span>{isRot ? `↳ ${rotLabel}` : p.name}</span>
+                <span>{p.labels.join(' ')}</span>
+              </button>
+            )
+          })}
+        </ExplorerMenu>
+      )}
     </div>
   )
 }

@@ -1,18 +1,16 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from 'react'
-import { RotateCcw, X } from 'lucide-react'
-import ChevronPlayIcon from './ChevronPlayIcon'
+import { ChevronLeft, ChevronRight, Lock, Play, X } from 'lucide-react'
 import { useStore } from '../store'
 import { formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
 import { getNoteName } from '../utils/noteNames'
-import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
-import OrfeoMark from './OrfeoMark'
+import '../styles/redesign-tools.css'
 import { getPianoRollCenterX, modalTopAboveKeyboard } from '../utils/modalAnchors'
 import { startModalDrag } from '../utils/modalDrag'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
 
-const MODAL_WIDTH  = 220
-const MODAL_HEIGHT = 100
+const MODAL_WIDTH  = 650
+const MODAL_HEIGHT = 280
 
 // ── Rotate voicing one inversion up — lowest note moves up an octave ─────────
 function nextInversion(notes: Set<number>): Set<number> {
@@ -63,7 +61,7 @@ export default function LockedChordModal() {
     if (!positioned.current) {
       positioned.current = true
       setPos({
-        x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
+        x: Math.max(16, Math.min(Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2), window.innerWidth - MODAL_WIDTH - 16)),
         y: modalTopAboveKeyboard(MODAL_HEIGHT, 23),
       })
     }
@@ -129,104 +127,37 @@ export default function LockedChordModal() {
 
   if (!modalOpen) return null
 
+  const notes = Array.from(lockedKeys).sort((a, b) => a - b).map(m => getNoteName(m, noteNaming, accidentals))
+
   return (
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Lock-a-Chord" className="orfeo-modal-glow app-no-drag" style={{
-      position: 'fixed',
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Lock-a-Chord" data-instant className="orfeo-modal-glow app-no-drag theme-paper xp-lock" style={{
       left: pos.x,
       top: pos.y,
-      width: MODAL_WIDTH,
-      background: 'var(--bg)',
-      border: '1px solid var(--state-hover-border)',
-      borderRadius: 'var(--radius-lg)',
-      zIndex: 401,
-      display: 'flex',
-      flexDirection: 'column',
       '--_modal-shadow': 'var(--elevation-modal)',
-      userSelect: 'none',
     } as CSSProperties}>
-
-      {/* ── Header — drag handle + amber title + close. Styled exactly like
-          MIDI Note Editor's header (NoteEditorToolbar.tsx): same logo size,
-          same title font, no separate header background — just part of the
-          panel like the Note Editor's is. ── */}
-      <div
-        onPointerDown={startDrag}
-        style={{
-          touchAction: 'none',
-          minHeight: 32,
-          display: 'flex', alignItems: 'center', gap: 7,
-          padding: '0 var(--space-3)',
-          cursor: 'grab',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <OrfeoMark height={16} />
-        {/* ── Title in amber to distinguish from other panels ──────────────── */}
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Lock-a-Chord
-        </span>
-        <button
-          onClick={handleClose}
-          style={modalCloseButtonStyle}
-          onMouseEnter={e => (e.currentTarget.style.color = modalCloseButtonHoverColor)}
-          onMouseLeave={e => (e.currentTarget.style.color = modalCloseButtonIdleColor)}
-        >
-          <X size={14} />
-        </button>
+      <div className="xp-lock-head" onPointerDown={startDrag}>
+        <span className="xp-lock-tag"><Lock size={14} /> Locked chord</span>
+        <div className="o-spacer" />
+        <button className="o-close" aria-label="Unlock and close" onClick={handleClose}><X size={18} /></button>
       </div>
 
-      {/* ── Chord name + inversion ordinal ────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 5, padding: '10px 12px 6px' }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: 'var(--text-amber)', letterSpacing: '0.05em' }}>
-          {lockedDisplay?.chordLabel ?? [0, 1, 2].map(i => partialNotes?.[i] ?? '—').join(' ')}
-        </span>
-        {lockedDisplay?.ordinal && (
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-dimmest)' }}>
-            {lockedDisplay.ordinal}
-            <span style={{ fontSize: 7, verticalAlign: 'super' }}>{ordinalSuffix(Number(lockedDisplay.ordinal))}</span>
-            {' inv'}
+      {/* ── Inversion arrows either side of the chord's name ─────────────────── */}
+      <div className="xp-lock-body">
+        <button className="xp-lock-step" aria-label="Previous inversion" onClick={() => applyInversion(prevInversion, -1)}><ChevronLeft size={22} /></button>
+        <div className="xp-lock-name">
+          <span className="xp-lock-chord">{lockedDisplay?.chordLabel ?? [0, 1, 2].map(i => partialNotes?.[i] ?? '—').join(' ')}</span>
+          <span className="xp-lock-sub">
+            {lockedDisplay ? (lockedDisplay.ordinal ? `${lockedDisplay.ordinal}${ordinalSuffix(Number(lockedDisplay.ordinal))} inversion · ` : 'Root position · ') : ''}
+            {notes.join(' · ')}
           </span>
-        )}
+        </div>
+        <button className="xp-lock-step" aria-label="Next inversion" onClick={() => applyInversion(nextInversion, 1)}><ChevronRight size={22} /></button>
       </div>
 
-      {/* ── Controls: ‹ prev | play | next › | clear — grey idle, amber hover ─── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', padding: '0 10px 10px' }}>
-        {/* Previous inversion — Play icon mirrored */}
-        <button
-          onClick={() => applyInversion(prevInversion, -1)}
-          style={{ background: 'none', border: 'none', color: 'var(--text-dimmest)', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-amber)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-dimmest)')}
-        >
-          <ChevronPlayIcon size={13} mirrored />
-        </button>
-        {/* Play chord */}
-        <button
-          onClick={playLockedChord}
-          style={{ background: 'transparent', border: '1px solid var(--text-inactive)', color: 'var(--text-dimmest)', borderRadius: 'var(--radius-sm)', padding: '2px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'color 0.12s, border-color 0.12s' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-amber)'; e.currentTarget.style.color = 'var(--text-amber)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-inactive)'; e.currentTarget.style.color = 'var(--text-dimmest)' }}
-        >
-          <ChevronPlayIcon size={10} /> Play
-        </button>
-        {/* Next inversion — Play icon normal */}
-        <button
-          onClick={() => applyInversion(nextInversion, 1)}
-          style={{ background: 'none', border: 'none', color: 'var(--text-dimmest)', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-amber)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-dimmest)')}
-        >
-          <ChevronPlayIcon size={13} />
-        </button>
-        {/* Clear locked chord — removes highlighted keys, modal stays open */}
-        <button
-          onClick={handleClear}
-          style={{ background: 'none', border: 'none', color: 'var(--text-inactive)', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-amber)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-inactive)')}
-        >
-          <RotateCcw size={13} />
-        </button>
+      <div className="xp-lock-foot">
+        <button className="o-btn-primary o-btn-lg" onClick={playLockedChord}><Play size={14} fill="currentColor" strokeWidth={0} /> Play chord</button>
+        {/* Clear — removes the highlighted keys, the window stays open */}
+        <button className="o-btn-quiet" onClick={handleClear}>Clear</button>
       </div>
     </div>
   )
