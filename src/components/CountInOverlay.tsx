@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
+import { cancelCountIn } from '../utils/countInRunner'
+import { t } from '../utils/i18n'
+import '../styles/redesign-tools.css'
 
 // ── Big 1-2-3-4 over the piano roll while a count-in runs (see
 // utils/countInRunner.ts). Follows the click schedule by wall clock; the
-// accented "1" of each bar is amber. ────────────────────────────────────
+// disc changes in the same frame as the click, with no animation. ────────────────────────────────────
 export function CountInOverlay() {
   const countIn = useStore((s) => s.countIn)
   const [shown, setShown] = useState<{ n: number; key: number } | null>(null)
@@ -21,19 +24,18 @@ export function CountInOverlay() {
     return () => cancelAnimationFrame(raf)
   }, [countIn])
   if (!countIn || !shown) return null
+  const beats = Math.max(...countIn.clicks.map(c => c.n))
+  const bars = Math.round(countIn.clicks.length / beats)
+  const [a, b] = countIn.clicks
+  const bpm = b ? Math.round(60 / (b.rel - a.rel)) : null
   return (
-    <div aria-live="polite" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 20 }}>
-      <span
-        key={shown.key}
-        className="orfeo-countin-pop"
-        style={{
-          fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 140, lineHeight: 1,
-          color: shown.n === 1 ? 'var(--text-amber)' : 'var(--text-default)', opacity: 0.85,
-          textShadow: '0 4px 24px rgba(0,0,0,0.6)',
-        }}
-      >
-        {shown.n}
-      </span>
+    <div aria-live="polite" className="xp-countin">
+      <div className="xp-countin-disc">{shown.n}</div>
+      <div className="xp-countin-dots" aria-hidden="true">
+        {Array.from({ length: beats }, (_, i) => <i key={i} data-on={i < shown.n ? (i === 0 ? '1' : '') : undefined} />)}
+      </div>
+      <span className="xp-countin-note">{t`Count-in`} · {bars === 1 ? t`1 bar` : t`${bars} bars`}{bpm ? ` ${t`at`} ${bpm} BPM` : ''}</span>
+      <button data-instant onClick={cancelCountIn}>{t`Tap to cancel`}</button>
     </div>
   )
 }

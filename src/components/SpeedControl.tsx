@@ -11,8 +11,6 @@ interface SpeedControlProps {
   size?: number
 }
 
-const AMBER = 'var(--text-amber)'
-const MUTED = 'var(--text-dim-control)'
 const DEFAULT_H = 13
 
 // One ">" angle-bracket stroke, viewBox 0 0 10 16
@@ -56,31 +54,14 @@ const SPEEDS: Array<['slow' | 'med' | 'fast', string]> = [
 // ── SpeedControl component ────────────────────────────────────────────────────
 export default function SpeedControl({ value, onChange, size = DEFAULT_H }: SpeedControlProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className="xp-seg" data-tile role="group" aria-label="Playback speed">
       {SPEEDS.map(([v, label]) => {
-        const active = value === v
-        const Icon   = ICONS[v]
+        const Icon = ICONS[v]
         return (
           <Tooltip key={v} oneLine title={`Plays back at ${label.toLowerCase()} speed.`}>
-          <button
-            onClick={() => onChange(v)}
-            aria-label={label}
-            aria-pressed={active}
-            style={{
-              background: 'none',
-              border:     'none',
-              padding:    0,
-              cursor:     'pointer',
-              color:      active ? AMBER : MUTED,
-              display:    'flex',
-              alignItems: 'center',
-              filter:     active ? `drop-shadow(0 0 2px ${AMBER}99)` : 'none',
-              transition: 'color 0.15s, filter 0.15s',
-              opacity:    active ? 1 : 0.65,
-            }}
-          >
-            <Icon h={size} />
-          </button>
+            <button onClick={() => onChange(v)} aria-label={label} aria-pressed={value === v} style={{ padding: 0 }}>
+              <Icon h={size} />
+            </button>
           </Tooltip>
         )
       })}

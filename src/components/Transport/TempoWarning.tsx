@@ -50,10 +50,6 @@ export function TempoWarning({ anchor }: { anchor: 'pad' | 'key' }) {
     if (!s.tapTempoPadEnabled) s.setTapTempoPadEnabled(true)
     armTapSession()
   }
-  const btn: React.CSSProperties = {
-    background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-    color: 'var(--text-default)', fontSize: 'var(--text-xs)', padding: '3px 8px', cursor: 'pointer',
-  }
   const keepFocus = (e: React.MouseEvent) => e.preventDefault()
 
   return (
@@ -72,33 +68,27 @@ export function TempoWarning({ anchor }: { anchor: 'pad' | 'key' }) {
           onClick={(e) => {
             if (panel || performance.now() - closedAt.current < 250) return
             const r = e.currentTarget.getBoundingClientRect()
-            setPanel({ x: r.left + r.width / 2, y: r.bottom + 8 })
+            setPanel({ x: Math.max(196, Math.min(r.left + r.width / 2, window.innerWidth - 196)), y: r.bottom + 8 })
           }}
           style={{ background: 'none', border: 'none', padding: anchor === 'pad' ? '0 4px' : 4, cursor: 'pointer', display: 'flex' }}
         >
-          <span className="orfeo-warn-pulse" style={{ width: anchor === 'pad' ? 7 : 9, height: anchor === 'pad' ? 7 : 9, borderRadius: '50%', background: 'var(--text-amber)' }} />
+          <span className="orfeo-warn-pulse" style={{ width: anchor === 'pad' ? 7 : 9, height: anchor === 'pad' ? 7 : 9, borderRadius: '50%', background: 'var(--paint-pink)' }} />
         </button>
       </Tooltip>
       {panel && createPortal(
         <div
           ref={panelRef}
-          className="app-no-drag orfeo-modal-glow"
+          className="app-no-drag orfeo-modal-glow theme-paper xp-warn"
           role="dialog"
-          aria-label={t`Tempo looks off`}
-          style={{
-            position: 'fixed', top: panel.y, left: panel.x, transform: 'translateX(-50%)', zIndex: 9400, width: 300,
-            background: 'var(--bg-tooltip)', border: '1px solid var(--accent-amber-strong)', borderRadius: 'var(--radius-md)',
-            padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--text-xs)', color: 'var(--text-default)',
-          }}
+          aria-labelledby="xp-warn-title"
+          style={{ top: panel.y, left: panel.x, maxHeight: `calc(100vh - ${panel.y + 12}px)`, '--_modal-shadow': 'none' } as React.CSSProperties}
         >
-          <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-amber)' }}>{t`Tempo looks off`}</span>
-          <span style={{ lineHeight: 1.45 }}>{warningText(trust)}</span>
-          <span style={{ color: 'var(--text-faint)', fontSize: 10, lineHeight: 1.4 }}>{t`Tap Tempo fixes this: park the playhead where it goes wrong and tap along. Your MIDI file isn't changed.`}</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button onMouseDown={keepFocus} disabled={noteEditorActive}
-              style={{ ...btn, borderColor: 'var(--accent-amber-strong)', color: 'var(--text-amber)', opacity: noteEditorActive ? 0.4 : 1, cursor: noteEditorActive ? 'default' : 'pointer' }} onClick={fix}>{t`Fix with Tap Tempo`}</button>
-            <button onMouseDown={keepFocus} style={btn} onClick={() => { useStore.getState().dismissTempoWarning(key); close() }}>{t`It's fine, don't warn me for this song`}</button>
-          </div>
+          <span className="xp-warn-tag">{t`Tempo warning`}</span>
+          <h2 id="xp-warn-title">{t`Tempo looks off`}</h2>
+          <p>{warningText(trust)}</p>
+          <p>{t`Tap Tempo fixes this: park the playhead where it goes wrong and tap along. Your MIDI file isn't changed.`}</p>
+          <button className="o-btn-primary" onMouseDown={keepFocus} disabled={noteEditorActive} onClick={fix}>{t`Fix with Tap Tempo`}</button>
+          <button className="o-btn-quiet" onMouseDown={keepFocus} onClick={() => { useStore.getState().dismissTempoWarning(key); close() }}>{t`It's fine, don't warn me for this song`}</button>
         </div>,
         document.body,
       )}
@@ -117,7 +107,7 @@ export function TempoWarningDot({ path, onHoverChange }: { path: string; onHover
         // hide the row's own "Right-click for options" tooltip while over the dot
         onMouseEnter={() => onHoverChange?.(true)}
         onMouseLeave={() => onHoverChange?.(false)}
-        style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-amber)', flexShrink: 0, display: 'inline-block' }}
+        style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--paint-pink)', flexShrink: 0, display: 'inline-block' }}
       />
     </Tooltip>
   )
