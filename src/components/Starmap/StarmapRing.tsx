@@ -7,7 +7,8 @@
 // its notes, in the colour of its root, with its name in the centre; with no
 // chord lit a faint outline joins the scale's notes.
 // Each note owns a sector of the disc: hovering lights it amber, clicking
-// picks that note as the key (parent decides major or minor). The star
+// picks that note as the key (parent decides major or minor), and a real
+// button sits on its disc, for keys and screen readers. The star
 // glides from chord to chord (hooks/useStarmapMorph.ts) in `morphMs`, which
 // the parent keeps shorter than one progression step.
 
@@ -117,8 +118,7 @@ export default function StarmapRing({
         const chordNote = chordPcs.has(pc)
         const name = getNoteName(60 + pc, naming, accidentals)
         return (
-          <g key={pc} style={{ cursor: 'pointer' }} onClick={() => onPickNote(pc)}
-            onMouseEnter={() => setHoverPc(pc)} onMouseLeave={() => setHoverPc(h => (h === pc ? null : h))}>
+          <g key={pc}>
             <circle cx={at.x} cy={at.y} r={R_NOTE}
               fill={isTonic ? 'var(--accent)' : scaleNote ? 'var(--paper-card)' : 'var(--ui-floor)'}
               stroke={pc === blueNotePc ? BLUE_NOTE : chordNote ? f.colour : 'none'}
@@ -126,6 +126,12 @@ export default function StarmapRing({
             <text x={at.x} y={at.y} textAnchor="middle" dominantBaseline="central" fontSize={14}
               fontFamily="var(--font-ui)" fill={isTonic || scaleNote ? 'var(--ink)' : 'var(--ui-text-soft)'}
               style={{ userSelect: 'none', pointerEvents: 'none' }}>{name}</text>
+            <foreignObject x={at.x - R_NOTE} y={at.y - R_NOTE} width={R_NOTE * 2} height={R_NOTE * 2}>
+              {/* Space belongs to the note, not to the Explorer's play shortcut */}
+              <button className="xp-star-note" aria-label={t`${name} as the key`} aria-pressed={isTonic} onClick={() => onPickNote(pc)}
+                onKeyDown={e => { if (e.key === ' ') e.stopPropagation() }}
+                onMouseEnter={() => setHoverPc(pc)} onMouseLeave={() => setHoverPc(h => (h === pc ? null : h))} />
+            </foreignObject>
           </g>
         )
       })}

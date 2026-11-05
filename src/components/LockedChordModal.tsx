@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Lock, Play, X } from 'lucide-react'
 import { useStore } from '../store'
-import { formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
+import { detectChordStructured, formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
 import { getNoteName } from '../utils/noteNames'
 import '../styles/redesign-tools.css'
 import { getPianoRollCenterX, modalTopAboveKeyboard } from '../utils/modalAnchors'
-import { startModalDrag } from '../utils/modalDrag'
+import { clampModalPos, startModalDrag } from '../utils/modalDrag'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
 
@@ -64,6 +64,10 @@ export default function LockedChordModal() {
         x: Math.max(16, Math.min(Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2), window.innerWidth - MODAL_WIDTH - 16)),
         y: modalTopAboveKeyboard(MODAL_HEIGHT, 23),
       })
+    } else {
+      // Closed windows don't hear a resize: the last spot may be off screen by now
+      const w = Math.min(MODAL_WIDTH, window.innerWidth - 32)
+      setPos(p => clampModalPos(p, w, MODAL_HEIGHT, window.innerWidth, window.innerHeight))
     }
   }, [lockedKeys.size])
 
@@ -113,6 +117,26 @@ export default function LockedChordModal() {
   // ── Clear button — clears locked keys only; modal stays open ─────────────
   const handleClear = useCallback(() => { clearLockedKeys() }, [clearLockedKeys])
 
+  // ── Open this chord in the Chord Explorer, in this voicing. Named from its
+  // root position: Am7 on its 1st inversion has the notes of a C6, and must stay
+  // Am7. The Explorer opening lets go of the lock and closes this window. ────
+  const lockedChord = useMemo(() => {
+    let notes = lockedKeys
+    for (let i = 0; i < Math.abs(lockedInversionCount); i++) notes = lockedInversionCount > 0 ? prevInversion(notes) : nextInversion(notes)
+    return detectChordStructured(notes)
+  }, [lockedKeys, lockedInversionCount])
+  const openInExplorer = useCallback(() => {
+    if (!lockedChord) return
+    const s = useStore.getState()
+    s.setPendingChordExplorerSeed({
+      rootPitchClass: lockedChord.rootPitchClass,
+      intervals: lockedChord.intervals,
+      voicing: Array.from(lockedKeys),
+      inversionCount: s.lockedInversionCount,
+    })
+    s.setChordExplorerOpen(true)
+  }, [lockedChord, lockedKeys])
+
   // ── Close on Escape ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!modalOpen) return
@@ -138,6 +162,7 @@ export default function LockedChordModal() {
       <div className="xp-lock-head" onPointerDown={startDrag}>
         <span className="xp-lock-tag"><Lock size={14} /> Locked chord</span>
         <div className="o-spacer" />
+        <button className="o-btn-quiet" disabled={!lockedChord} onClick={openInExplorer}>Open in Chord Explorer</button>
         <button className="o-close" aria-label="Unlock and close" onClick={handleClose}><X size={18} /></button>
       </div>
 

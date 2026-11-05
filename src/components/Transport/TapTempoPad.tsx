@@ -7,7 +7,8 @@ import Tooltip from '../Tooltip'
 import { ContextMenu, ContextMenuItem, ContextMenuDivider, useMenuDismiss } from '../ContextMenu'
 import { confirmDialog } from '../../utils/confirmController'
 import { useTapTempo } from '../../hooks/useTapTempo'
-import { describeCorrection, correctionToSong, formatBarPattern, type TempoSegment } from '../../utils/tempoCorrection'
+import { describeCorrection, correctionToSong, fileGridOf, formatBarPattern, sigAt, type TempoSegment } from '../../utils/tempoCorrection'
+import { fileBpmAt, tappedBpm } from '../../utils/tapReadout'
 import { TempoWarning } from './TempoWarning'
 import { startCountIn } from '../../utils/countInRunner'
 import { useDraggableDialog } from '../../hooks/useDraggableDialog'
@@ -100,6 +101,10 @@ export function TapTempoPad() {
 
   const seg = ses?.segment ?? null
   const fittedBpm = seg ? (60 / seg.period).toFixed(1) : null
+  // the tempo so far as you tap, beside the file's own where this session starts
+  const grid = ses && midi ? fileGridOf(midi) : null
+  const fileBpm = grid ? Math.round(fileBpmAt(grid.tempoMap, ses!.start)) : 0
+  const tapped = ses && grid ? tappedBpm(ses.taps, mode === 'bar' ? Math.max(1, sigAt(grid.timeSigMap, ses.start).num) : 1) : null
   const savedText = saved.length
     ? t`Kept for this song: ` + saved.map(x => `${x.bpm.toFixed(1)} bpm from ${fmtSongTime(x.start)}`).join(', ') + '. ' + t`Right-click to adjust or remove.`
     : ''
@@ -175,6 +180,9 @@ export function TapTempoPad() {
                   <div className="xp-beats" role="img" aria-label={t`Beat ${beat} of 4`}>
                     {[1, 2, 3, 4].map(n => <span key={n} data-on={n === beat ? (n === 1 ? '1' : '') : undefined}>{n}</span>)}
                   </div>
+                  <div className="xp-tap-bpm">
+                    {tapped ? tapped.toFixed(1) : '—'} <small>{t`BPM tapped`}{fileBpm > 0 ? <> · {t`the file says ${fileBpm}`}</> : null}</small>
+                  </div>
                   <span className="xp-tap-status">{ses.message ?? t`Taps: ${ses.taps.length}`}</span>
                   <span className="xp-tap-note">{t`Space, the TAP pad or any key on your piano. Start on a 1, whenever you're ready.`}</span>
                 </div>
@@ -187,7 +195,7 @@ export function TapTempoPad() {
           ) : seg && (
             <>
               <div className="xp-tap-bpm">
-                {seg.map ? t`Copied bars` : <>{fittedBpm} <small>{t`bpm`} · {seg.pattern ? formatBarPattern(seg) : `${seg.beatsPerBar}/${seg.den}`}</small></>}
+                {seg.map ? t`Copied bars` : <>{fittedBpm} <small>{t`bpm`} · {seg.pattern ? formatBarPattern(seg) : `${seg.beatsPerBar}/${seg.den}`}{fileBpm > 0 ? <> · {t`the file says ${fileBpm}`}</> : null}</small></>}
               </div>
               <span className="xp-tap-status">
                 <span className={`o-dot ${seg.map || ses.insert || ses.editIndex != null || ses.snapped ? 'o-dot-on' : 'o-dot-warn'}`} />

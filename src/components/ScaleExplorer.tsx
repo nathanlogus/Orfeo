@@ -1,18 +1,16 @@
-import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react'
 import { Chord, Note } from 'tonal'
-import { RotateCcw, Play, Square, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Play, Square, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from '../store'
 import { getNoteName } from '../utils/noteNames'
-import { formatChordSuffix, detectChordStructured, localizeChord } from '../utils/chordDetection'
+import { formatChordSuffix, detectChordStructured } from '../utils/chordDetection'
 import type { NoteNaming, Accidentals, ChordNamingStyle } from '../types'
 import SpeedControl from './SpeedControl'
 import OrfeoMark from './OrfeoMark'
 import ExplorerMenu from './ExplorerMenu'
+import ExplorerMiniKeyboard from './ExplorerMiniKeyboard'
 import { useFocusTrap } from '../hooks/useFocusTrap'
-import { getKeyboardHeaderTop } from '../utils/modalAnchors'
-import { startModalDrag, MODAL_MAX_HEIGHT, type ModalPos } from '../utils/modalDrag'
-import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
-import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
+import { useHeldChord } from '../hooks/useHeldChord'
 import Tooltip from './Tooltip'
 import {
   nextVoicing, voiceProgression, semisFromMidi, intervalsToSemis,
@@ -20,38 +18,19 @@ import {
 } from '../utils/voiceLeading'
 import {
   EXPLORER_RANGE, explorerLowRoot, SPEED_MS, VOICING_ICON, ALL_PROGRESSIONS,
-  resolveProgressionStep, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
+  resolveProgressionStep, progressionSteps, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
   explorerKeyColors, captureStruckShape, restoreStruckShape, type ProgSpeed, type StruckShape,
-  explorerPosInWindow,
 } from '../utils/explorerShared'
 import { ALL_CHORDS } from '../utils/chordVocabulary'
 import ExplorerOctaveControl from './ExplorerOctaveControl'
 import CofTitleMark from './CofTitleMark'
 import StarmapRing, { type LitChord } from './Starmap/StarmapRing'
-import { STAR_MIN_NOTES, STAR_MAX_NOTES, type RingLayout } from '../utils/starmap'
+import type { RingLayout } from '../utils/starmap'
 import { t } from '../utils/i18n'
 import '../styles/redesign-tools.css'
 
-// ── Modal dimensions — explorer area on the left, settings column on the
-// right. The modal opens centred on the window with its bottom edge just
-// above the keyboard's chord display row (MODAL_HEIGHT is only the first
-// guess; the real height is measured once the content is in). ───────────
-const MODAL_WIDTH = 1216
-const MODAL_HEIGHT = 640
-const modalWidth = () => Math.min(MODAL_WIDTH, window.innerWidth - 32)
-const ANCHOR_GAP = 6
-// ── Floor is 44, not a token-adjacent 8 — the Electron window uses a 40px
-// titleBarOverlay (electron/main.ts) where Windows draws its own native
-// minimize/maximize/close buttons ON TOP of the page regardless of DOM
-// z-index; anything higher put the × under Windows' real maximize button. ──
-const MIN_TOP = 44
 // The Starmap ring is drawn in a 380-unit space
 const COF_VIEW = { x: -8, y: -8, w: 396, h: 404 }
-
-const defaultPos = (height: number) => ({
-  x: Math.max(0, Math.round((window.innerWidth - modalWidth()) / 2)),
-  y: Math.max(MIN_TOP, Math.round(getKeyboardHeaderTop() - height - ANCHOR_GAP)),
-})
 
 // ── Scale definitions ───────────────────────────────────────────────────────
 // `chords` (blues scales only): the tiles are the chords the scale is played
@@ -273,19 +252,9 @@ export default function ScaleExplorer() {
   const setAccidentals = useStore(s => s.setAccidentals)
   const explorerOctave = useStore(s => s.explorerOctave)
   const starmapEnabled = useStore(s => s.starmapEnabled)
-  const midiHeldKeys = useStore(s => s.midiHeldKeys)
 
-  // ── Window position — where you last dragged it, else centred on the window
-  // with its bottom edge just above the keyboard's chord display row. Read each
-  // time the modal opens; content changing size only moves the bottom edge. ───
-  const [pos, setPos] = useState(() => defaultPos(MODAL_HEIGHT))
   const panelRef = useRef<HTMLDivElement>(null)
-  // ── Set on open; the first render after the open state has settled
-  // measures the real height and anchors the bottom edge from it. ─────────
-  const needsAnchorRef = useRef(false)
-  useKeepBottomOnScreen(panelRef, setPos, scaleExplorerOpen && !scaleExplorerMinimized, MIN_TOP)
   useFocusTrap(panelRef, scaleExplorerOpen && !scaleExplorerMinimized)
-  useClampPositionOnZoom(pos, setPos, panelRef)
 
   // ── CoF + scale selection state ───────────────────────────────────────────
   const [cofPos, setCofPos] = useState<number | null>(null)
@@ -351,24 +320,10 @@ export default function ScaleExplorer() {
 
   const displayNaming: NoteNaming = noteNaming === 'hidden' ? 'english' : noteNaming
 
-  // ── A chord held on the MIDI keyboard (3–6 different notes) takes over the
-  // Starmap's star while it's held — drawing only, the explorer's own chord
-  // and keys stay as they are, and the star glides back on release. Read a
-  // moment after the last key change so a rolled chord doesn't flicker
-  // through its first two notes. ──────────────────────────────────────────
-  const [heldChord, setHeldChord] = useState<LitChord | null>(null)
-  useEffect(() => {
-    if (!showStarmap) { setHeldChord(null); return }
-    const id = setTimeout(() => {
-      const pcs = new Set(Array.from(midiHeldKeys, m => m % 12))
-      if (pcs.size < STAR_MIN_NOTES || pcs.size > STAR_MAX_NOTES) { setHeldChord(null); return }
-      const found = detectChordStructured(midiHeldKeys)
-      const lowest = Math.min(...midiHeldKeys) % 12
-      const name = found ? (localizeChord(found.rawRootName, displayNaming, accidentals, chordNamingStyle) ?? '') : ''
-      setHeldChord({ pcs: Array.from(pcs), rootPc: found?.rootPitchClass ?? lowest, name })
-    }, 40)
-    return () => clearTimeout(id)
-  }, [midiHeldKeys, showStarmap, displayNaming, accidentals, chordNamingStyle])
+  // ── A chord held on the MIDI keyboard takes over the Starmap's star while
+  // it's held — drawing only, the explorer's own chord and keys stay as they
+  // are, and the star glides back on release. ─────────────────────────────
+  const heldChord = useHeldChord(showStarmap, displayNaming)
 
   // ── Derived root pitch class from CoF selection ───────────────────────────
   const selectedRoot = useMemo(() => {
@@ -465,9 +420,6 @@ export default function ScaleExplorer() {
   // ── On open: pause playback, reset all transient state ────────────────────
   useEffect(() => {
     if (scaleExplorerOpen) {
-      const kept = useStore.getState().explorerPositions.scale
-      setPos(kept ? explorerPosInWindow(kept, modalWidth(), MODAL_HEIGHT, MIN_TOP) : defaultPos(MODAL_HEIGHT))
-      needsAnchorRef.current = !kept
       // unless switched off: Settings › Playback › Explorers pause playback
       if (useStore.getState().playbackState === 'playing' && useStore.getState().explorerPausesPlayback) {
         ;(window as any).__orfeoPlayer?.pause?.()
@@ -494,17 +446,6 @@ export default function ScaleExplorer() {
       clearExplorerChordDisplay()
     }
   }, [scaleExplorerOpen, stopProgression, clearScalePlayTimers, stopChordSequence, clearExplorerKeys, clearExplorerChordDisplay])
-
-  // ── Once the opening key (C major) is in and the tiles have rendered, put
-  // the bottom edge just above the chord display row using the real height
-  // (first opening only: after that it opens where you left it). ───────────
-  useLayoutEffect(() => {
-    if (!needsAnchorRef.current || !scaleExplorerOpen || selectedRoot === null) return
-    const el = panelRef.current
-    if (!el) return
-    needsAnchorRef.current = false
-    setPos(defaultPos(el.offsetHeight))
-  })
 
   // ── Light keys on the keyboard, remembering which root is accented — the
   // shared colour rule reads the "Accent root note" toggle live, so a run
@@ -784,15 +725,6 @@ export default function ScaleExplorer() {
     return () => window.removeEventListener('keydown', handler)
   }, [scaleExplorerOpen, selectedProg, progPlaying, stopProgression, startProgression, playChordsInSequence])
 
-  // ── Window drag handler ───────────────────────────────────────────────────
-  const onDragStart = (e: React.PointerEvent) => {
-    setProgMenuOpen(false)
-    let moved: ModalPos | null = null
-    startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
-      if (moved) useStore.getState().setExplorerPosition('scale', moved)
-    })
-  }
-
   // ── CoF label helpers ─────────────────────────────────────────────────────
   // Major key name for outer ring position
   function getMajorLabel(p: number): string {
@@ -825,6 +757,10 @@ export default function ScaleExplorer() {
   const keyQuality = MINOR_SCALES.has(scale.name) ? 'm' : ''
   const starmapSide: 'major' | 'minor' = MINOR_SCALES.has(scale.name) ? 'minor' : 'major'
   const activeProg = selectedProg !== null ? ALL_PROGRESSIONS[selectedProg] : null
+  const chipNames = activeProg
+    ? selectedRoot === null ? activeProg.labels
+      : progressionSteps(activeProg, selectedRoot).map(s => getNoteName(s.rootPc, displayNaming, accidentals) + formatChordSuffix(s.suffix, chordNamingStyle))
+    : []
 
   // Closed (open=false): unmount entirely. Minimized (open=true, minimized=true): render but hide.
   if (!scaleExplorerOpen) return null
@@ -833,26 +769,17 @@ export default function ScaleExplorer() {
   const CX = 190, CY = 190
 
   return (
-    // ── Modal container — app-no-drag: wherever the modal sits over the top
-    // bar (Windows treats that strip as the window's own title bar), clicks
-    // on it must reach the modal, not grab and un-maximize the app window. ─
     <div
       ref={panelRef}
       role="dialog"
       aria-modal="true"
       aria-label="Scales Explorer"
       data-instant
-      className="orfeo-modal-glow app-no-drag touch-explorer theme-studio xp-window xp-scales"
-      style={{
-        left: pos.x,
-        top: pos.y,
-        zIndex: 200,
-        display: scaleExplorerMinimized ? 'none' : 'flex',
-        '--_modal-shadow': 'var(--elevation-explorer)',
-      } as CSSProperties}
+      className="orfeo-modal-glow touch-explorer theme-studio xp-full xp-scales"
+      style={{ display: scaleExplorerMinimized ? 'none' : 'flex' }}
     >
-      {/* Header — drag handle */}
-      <div className="xp-head" onPointerDown={onDragStart}>
+      <div className="xp-full-head">
+        <button className="xp-back" aria-label={t`Back to practice`} onClick={close}><ArrowLeft size={16} />{t`Practice`}</button>
         <OrfeoMark height={22} />
         <div className="xp-seg" data-accent role="group" aria-label={t`Explorers`}>
           <button aria-pressed={false} onClick={() => { setScaleExplorerOpen(false); setChordExplorerOpen(true) }}>{t`Chords`}</button>
@@ -892,7 +819,6 @@ export default function ScaleExplorer() {
             }}
           ><span>{t`Clear & reset`}</span></button>
         </Tooltip>
-        <button className="o-close" aria-label={t`Close`} onClick={close}><X size={18} /></button>
       </div>
 
       <div className="xp-scales-body amber-scroll">
@@ -1033,16 +959,16 @@ export default function ScaleExplorer() {
           <section className="xp-seq" aria-label={t`Progression`}>
             <span className="xp-note">{t`Progression`}</span>
             <button ref={progTriggerRef} className="xp-pick" aria-haspopup="listbox" aria-expanded={progMenuOpen} onClick={() => setProgMenuOpen(v => !v)}>
-              <span>{activeProg ? activeProg.name : t`Select`}</span><ChevronDown size={14} />
+              <span>{activeProg ? `${activeProg.name} · ${activeProg.labels.join(' ')}` : t`Select`}</span><ChevronDown size={14} />
             </button>
             {activeProg && (
               <Tooltip oneLine title={t`Clear progression`}>
                 <button className="o-btn-quiet" style={{ color: '#fff', cursor: 'pointer' }} onClick={() => { setSelectedProg(null); stopProgression() }}>{t`Clear`}</button>
               </Tooltip>
             )}
-            <div className="xp-chips">
-              {activeProg?.labels.map((label, i) => (
-                <span key={i} className="xp-chip" data-on={i === progStep && progPlaying ? '' : undefined}>{label}</span>
+            <div className="xp-chips amber-scroll">
+              {chipNames.map((name, i) => (
+                <span key={i} className="xp-chip" data-on={i === progStep && progPlaying ? '' : undefined}>{name}</span>
               ))}
             </div>
             <button
@@ -1110,6 +1036,9 @@ export default function ScaleExplorer() {
               </div>
             </div>
           </div>
+
+          <div className="o-spacer" />
+          <ExplorerMiniKeyboard label={infoText ? t`${infoText.rootName} ${infoText.scaleName} on the keyboard` : t`Keyboard`} />
         </div>
       </div>
 

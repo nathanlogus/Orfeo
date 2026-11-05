@@ -1,5 +1,5 @@
-import { useEffect, useState, useReducer, useRef, useCallback, useMemo } from 'react'
-import { PenLine, SquareDashed, CircleDashed, Save, Undo2, Redo2, X } from 'lucide-react'
+import { useEffect, useState, useReducer, useRef, useCallback, useMemo, useSyncExternalStore } from 'react'
+import { PenLine, SquareDashed, CircleDashed, Save, Undo2, Redo2, X, ChevronDown } from 'lucide-react'
 import { useStore } from '../../store'
 import { NES, buildNoteEditSummary, type NETool } from '../../utils/noteEditorState'
 import { confirmDialog } from '../../utils/confirmController'
@@ -10,21 +10,31 @@ import { parseMidiBuffer } from '../../utils/midiParser'
 import { songKey } from '../../utils/songIdentity'
 import { carryCorrection } from '../../utils/tempoCorrection'
 import { detectKeyFromTracks, parseKeySignature } from '../../utils/keyDetection'
-import { getPianoRollAreaRect, getPianoRollCenterX } from '../../utils/modalAnchors'
-import { clampModalPos, startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
+import { getPianoRollAreaRect } from '../../utils/modalAnchors'
 import { HAND_ASSIGN_GROUPS } from '../../utils/keyboardGroups'
+import ExplorerMenu from '../ExplorerMenu'
+import { noteSelection, selectionHand, assignSelectedHand } from './noteSelection'
 import '../../styles/redesign-tools.css'
 
+const HANDS = [
+  { hand: 'L', label: 'Left hand', colour: 'var(--hand-lh)' },
+  { hand: 'R', label: 'Right hand', colour: 'var(--hand-rh)' },
+] as const
+
+// Docks over the top bar, exactly as tall and as wide as it is: the roll keeps its
+// size and the rail keeps Play. Opening it never moves a note on screen.
+const dockRect = () => {
+  const roll = getPianoRollAreaRect()
+  return { left: roll?.left ?? 0, height: roll?.top ?? 0 }
+}
+
 // ── NoteEditorToolbar ─────────────────────────────────────────────────────────
-// Floating draggable toolbar — appears when noteEditorActive is true.
+// Docked along the top — appears when noteEditorActive is true.
 // Reads/writes NES.* directly; subscribes to NES.onHistoryChange for re-renders.
 export default function NoteEditorToolbar() {
   const noteEditorActive        = useStore(s => s.noteEditorActive)
   const setNoteEditorActive     = useStore(s => s.setNoteEditorActive)
   const noteEditorEnabled       = useStore(s => s.noteEditorEnabled)
-  const noteEditorToolbarX      = useStore(s => s.noteEditorToolbarX)
-  const noteEditorToolbarY      = useStore(s => s.noteEditorToolbarY)
-  const setNoteEditorToolbarPos = useStore(s => s.setNoteEditorToolbarPos)
   const unsoloTrackForEdit      = useStore(s => s.unsoloTrackForEdit)
   const soloTrackForEdit        = useStore(s => s.soloTrackForEdit)
   const noteEditorSoloTrackIndex = useStore(s => s.noteEditorSoloTrackIndex)
@@ -49,12 +59,17 @@ export default function NoteEditorToolbar() {
   const [reassignHands,   setReassignHandsDisplay] = useState(NES.reassignHandsMode)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   // ── Icon hover hint — replaces native `title` tooltips for every icon in
-  // this panel. Hovering an icon shows its description in the row-3
-  // tooltip section instead of a browser tooltip popup; moving off it
-  // reverts to the normal tool-based context-aware text. Scoped entirely
-  // to hovering inside the panel — the piano roll's own hover hints
-  // (NES.hoverHint) are untouched. ───────────────────────────────────────
+  // this panel. Hovering an icon shows its description in the hint strip
+  // instead of a browser tooltip popup; moving off it reverts to the normal
+  // tool-based context-aware text. Scoped entirely to hovering inside the
+  // panel — the piano roll's own hover hints (NES.hoverHint) are untouched. ─
   const [iconHint, setIconHint] = useState<string | null>(null)
+  // ── The notes selected on the roll, and the hand picker that assigns them ──
+  useSyncExternalStore(noteSelection.subscribe, noteSelection.getVersion)
+  useEffect(() => () => noteSelection.clear(), [])
+  const [handMenuOpen, setHandMenuOpen] = useState(false)
+  const closeHandMenu = useCallback(() => setHandMenuOpen(false), [])
+  const handTriggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const handler = () => setActiveToolDisplay(NES.activeTool)
@@ -235,42 +250,12 @@ export default function NoteEditorToolbar() {
     NES.reset()
   }, [setNoteEditorActive, unsoloTrackForEdit])
 
-  // ── Drag state ────────────────────────────────────────────────────────────
-  const [pos, setPos]   = useState({ x: noteEditorToolbarX, y: noteEditorToolbarY })
-  const posRef          = useRef({ x: noteEditorToolbarX, y: noteEditorToolbarY })
-  const panelRef        = useRef<HTMLDivElement>(null)
-
-  // ── Default position: horizontally centered on the piano roll. Always
-  // recomputed on open, same as every other modal in the app. ──────────────
+  // ── Follows the top bar when the window (or the app's zoom) resizes it ─────
+  const [dock, setDock] = useState(dockRect)
   useEffect(() => {
-    const roll = getPianoRollAreaRect()
-    if (!roll) return
-    const w = panelRef.current?.offsetWidth ?? 400
-    const next = { x: Math.max(0, Math.round(getPianoRollCenterX() - w / 2)), y: Math.max(44, Math.round(roll.top)) }
-    posRef.current = next
-    setPos(next)
-  }, [])
-
-  // ── Clamp into the current viewport — a position saved while the window
-  // was larger (e.g. OS fullscreen) can otherwise render half off-screen
-  // once the window shrinks back down. Runs on mount and on resize/
-  // fullscreen transitions, for both the default and a user-dragged
-  // position alike. ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    const clamp = () => {
-      const panelW = panelRef.current?.offsetWidth ?? 400
-      const panelH = panelRef.current?.offsetHeight ?? 44
-      setPos(p => {
-        const next = clampModalPos(p, panelW, panelH, window.innerWidth, window.innerHeight)
-        if (next.x === p.x && next.y === p.y) return p
-        posRef.current = next
-        return next
-      })
-    }
-    clamp()
-    const raf = requestAnimationFrame(clamp) // re-clamp once the panel's real size is measured
-    window.addEventListener('resize', clamp)
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', clamp) }
+    const place = () => setDock(dockRect())
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
   }, [])
 
 
@@ -304,6 +289,7 @@ export default function NoteEditorToolbar() {
       })
       if (choice !== 0) return
     }
+    noteSelection.clear() // the reset rebuilds every note: these ones are gone
     NES.onResetRequest?.()
   }
   // Clicking the already-active tool turns it back off (returns to Select,
@@ -340,6 +326,9 @@ export default function NoteEditorToolbar() {
 
   const canUndo = NES.history.canUndo
   const canRedo = NES.history.canRedo
+  const selected = noteSelection.size
+  const hand = selectionHand()
+  const handNow = HANDS.find(h => h.hand === hand)
 
   // ── Static per-tool blurb (line 1) + live hover-driven hint (line 2) —
   // context-aware: line 2 changes with tool/hover/selection state as
@@ -387,21 +376,22 @@ export default function NoteEditorToolbar() {
 
   return (
     <div
-      ref={panelRef}
       role="toolbar"
       aria-label="Note Editor toolbar"
       data-instant
       className="orfeo-modal-glow theme-studio xp-ne"
-      style={{ left: pos.x, top: pos.y, maxHeight: MODAL_MAX_HEIGHT }}
+      style={{ left: dock.left, minHeight: dock.height }}
     >
-      {/* ── Yellow header — drag handle, the track being edited, undo/redo, save ── */}
-      <div
-        className="xp-ne-head"
-        onPointerDown={e => startModalDrag(e, panelRef.current, pos, next => { posRef.current = next; setPos(next) },
-          () => setNoteEditorToolbarPos(posRef.current.x, posRef.current.y))}
-      >
+      {/* ── Yellow header — what's selected and its hand, the track, undo/redo, save ── */}
+      <div className="xp-ne-head">
         <PenLine size={22} aria-hidden />
         <span className="xp-ne-title">Editing notes</span>
+        <button ref={handTriggerRef} className="xp-ne-pick" aria-label="Hand of the selected notes" aria-haspopup="listbox" aria-expanded={handMenuOpen} disabled={selected === 0} onClick={() => setHandMenuOpen(v => !v)} {...hintHandlers('Hand — assign the selected notes to the left or right hand')}>
+          {handNow && <span className="xp-ne-swatch" style={{ background: handNow.colour }} />}
+          <span>{handNow?.label ?? (hand === 'mixed' ? 'Mixed hands' : 'Hand')}</span>
+          <ChevronDown size={14} />
+        </button>
+        <span className="xp-ne-count" role="status">{selected} {selected === 1 ? 'note' : 'notes'} selected</span>
         <span className="xp-ne-track">
           {soloTrack && <span className="xp-ne-swatch" style={{ background: soloTrack.color }} />}
           <span>{soloTrack ? soloTrack.trackName : 'Click a track in the Tracks panel to solo it for editing'}</span>
@@ -435,17 +425,20 @@ export default function NoteEditorToolbar() {
         </div>
       </div>
 
-      {/* ── Live hint — a fixed height, so hovering never resizes the window ──── */}
+      {/* ── Live hint — a strip over the roll's edge, so the roll never moves ──── */}
       <div className="xp-ne-hint">
-        {iconHint ? (
-          <div>{renderTip(iconHint)}</div>
-        ) : (
-          <>
-            <div>{renderTip(tipLine1)}</div>
-            <div>{hintText || tipLine2}</div>
-          </>
-        )}
+        {iconHint ? renderTip(iconHint) : <>{renderTip(tipLine1)} · {hintText === NES.defaultHint && selected > 0 ? 'Right-click for options' : hintText || tipLine2}</>}
       </div>
+
+      {handMenuOpen && (
+        <ExplorerMenu trigger={handTriggerRef} width={220} onClose={closeHandMenu}>
+          {HANDS.map(h => (
+            <button key={h.hand} aria-selected={hand === h.hand} onClick={() => { assignSelectedHand(h.hand); closeHandMenu() }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="xp-ne-swatch" style={{ background: h.colour }} />{h.label}</span>
+            </button>
+          ))}
+        </ExplorerMenu>
+      )}
 
       {/* ── Unsaved-changes close confirmation ────────────────────────────────── */}
       {showCloseConfirm && (

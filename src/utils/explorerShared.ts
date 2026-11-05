@@ -5,20 +5,10 @@
 // shift, inversion stepping and how a clicked chord rings. Both explorers
 // import from here so a change to any of it lands in both at once.
 
-import type { CSSProperties } from 'react'
 import { Music2, TrendingUp, Spline } from 'lucide-react'
 import { getGenreVoicing, isTritoneSub, TRITONE_SUB_CHORD, type Genre } from './genreVoicing'
 import { ALL_CHORDS, resolveChord, type ChordInfo } from './chordVocabulary'
-import { humanizeChord, type ProgressionVoicing, type VoicingRange } from './voiceLeading'
-
-/** A remembered Explorer position, kept inside the app window: it may be smaller
- *  now than when the Explorer was last moved */
-export function explorerPosInWindow(p: { x: number; y: number }, width: number, height: number, minTop: number) {
-  return {
-    x: Math.min(Math.max(0, p.x), Math.max(0, window.innerWidth - width)),
-    y: Math.min(Math.max(minTop, p.y), Math.max(minTop, window.innerHeight - height)),
-  }
-}
+import { humanizeChord, intervalsToSemis, type ProgressionVoicing, type VoicingRange } from './voiceLeading'
 
 // ── Explorer keyboard range — both explorers play on the 61-key layout ──────
 export const EXPLORER_RANGE: VoicingRange = { min: 36, max: 96 }
@@ -29,15 +19,6 @@ export const EXPLORER_OCTAVE_MIN = -1
 export const EXPLORER_OCTAVE_MAX = 2
 export function explorerLowRoot(octave: number): number {
   return EXPLORER_BASE_MIDI + 12 * octave
-}
-
-// ── The "switch to the other Explorer" button — the same in both: dashed
-// amber border, dim text that turns amber on hover. ─────────────────────
-export const EXPLORER_SWITCH_STYLE: CSSProperties = {
-  background: 'none', border: '1px dashed var(--text-amber)', borderRadius: 4, cursor: 'pointer',
-  color: 'var(--text-inactive)', fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600,
-  letterSpacing: '0.10em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-  padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 3,
 }
 
 // ── Progression playback speeds (ms per chord) ──────────────────────────────
@@ -146,6 +127,20 @@ export function resolveProgressionStep(
   const info = ALL_CHORDS.find(c => c.key === typeKey) ?? resolveChord(typeKey)
   if (!info) return null
   return { rootPc: (((keyRoot + offset) % 12) + 12) % 12, label, info }
+}
+
+// ── A sequence: chords in order, the one thing the Explorers' play button runs.
+// A picked progression becomes one in a key and style; a chord added by hand is
+// one more step. Voicing is the shared engine's job, so a step is only a chord. ─
+export interface SeqStep { rootPc: number; suffix: string; semis: number[] }
+
+export function progressionSteps(prog: Progression, keyRoot: number, genre: Genre = 'classic'): SeqStep[] {
+  const steps: SeqStep[] = []
+  prog.labels.forEach((_, i) => {
+    const r = resolveProgressionStep(prog, i, keyRoot, genre)
+    if (r) steps.push({ rootPc: r.rootPc, suffix: r.info.suffix, semis: intervalsToSemis(r.info.intervals) })
+  })
+  return steps
 }
 
 // ── Inversion stepping — rotate the live chord up or down one voicing ──────
