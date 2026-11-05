@@ -368,11 +368,14 @@ public class MainActivity extends Activity {
             new Thread(() -> {
                 try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(safe(path))) {
                     byte[] buf = new byte[65536];
+                    // Songs are small: report often enough for them to show a percentage
+                    long length = c.getContentLengthLong();
+                    long every = length > 0 ? Math.min(1 << 20, Math.max(length / 20, 4096)) : 1 << 20;
                     long sinceReport = 0;
                     for (int n; (n = in.read(buf)) > 0; ) {
                         out.write(buf, 0, n);
                         sinceReport += n;
-                        if (sinceReport >= 1 << 20) { answer(id, "data", sinceReport); sinceReport = 0; }
+                        if (sinceReport >= every) { answer(id, "data", sinceReport); sinceReport = 0; }
                     }
                     answer(id, "done");
                 } catch (Exception e) {

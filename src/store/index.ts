@@ -6,6 +6,7 @@ import type {
   ChordNamingStyle, ChordTrackingMode, ChordFollowSubMode, ChordReadingMode, TapSession, SettingsGroupId,
 } from '../types'
 import type { DetectedKey } from '../utils/keyDetection'
+import { tracksShownByDefault } from '../utils/defaultTracks'
 import type { ForeignFormat } from '../utils/foreignFormatImport'
 import type { ScoreSource } from '../utils/scoreSource'
 import type { ProgressionVoicing } from '../utils/voiceLeading'
@@ -614,8 +615,10 @@ export const useStore = create<OrfeoStore>((set, get) => ({
     const orfeoColors = (midi as any)._orfeoTrackColors as Record<number, string> | undefined
     const orfeoVisible = (midi as any)._orfeoTrackVisible as Record<number, boolean> | undefined
     const orfeoKeyboard = (midi as any)._orfeoTrackKeyboard as Record<number, boolean> | undefined
+    const shownByDefault = tracksShownByDefault(midi.tracks)
     const newTracks = midi.tracks.map((t, i) => {
       const ts = makeTrackState(t)
+      ts.visible = shownByDefault.has(t)
       if (orfeoNames?.[i]) ts.trackName = orfeoNames[i]
       if (orfeoColors?.[i]) { ts.color = orfeoColors[i]; ts.colorSource = 'custom' }
       if (orfeoVisible?.[i] !== undefined) ts.visible = orfeoVisible[i]

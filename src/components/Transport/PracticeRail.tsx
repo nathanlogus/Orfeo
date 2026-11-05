@@ -7,7 +7,7 @@ import { isCountingIn, cancelCountIn } from '../../utils/countInRunner'
 import { ContextMenu, ContextMenuItem, useMenuDismiss } from '../ContextMenu'
 import { MetronomePopover } from './MetronomePopover'
 import { endPractice } from '../../utils/practiceSession'
-import { useUpdateState } from '../../hooks/useUpdateCheck'
+import { useNewVersionDot } from '../../hooks/useUpdateCheck'
 import { t } from '../../utils/i18n'
 import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
 import { confirmDiscardDirtyTempoKey } from '../../utils/tempoKeySave'
@@ -58,7 +58,7 @@ export default function PracticeRail() {
   const hasScore = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath))
   const settingsPanelOpen = useStore((s) => s.settingsPanelOpen)
   const { play, pause, stop, toggleLoop } = usePlayback()
-  const newVersion = useUpdateState((s) => s.status.state === 'available' || s.status.state === 'ready')
+  const newVersion = useNewVersionDot()
   const { openFile } = useMidiFile()
   const [metroMenu, setMetroMenu] = useState<{ x: number; y: number } | null>(null)
   const [exploreMenu, setExploreMenu] = useState<{ x: number; y: number } | null>(null)

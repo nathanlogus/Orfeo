@@ -1169,7 +1169,6 @@ export default function SettingsPanel() {
           <RateButton />
           <UpdateButton />
           <span className="o-spacer" />
-          <button className="o-link" onClick={() => setActiveTab(activeTab === 'settings' ? 'library' : 'settings')}>{activeTab === 'settings' ? t`Library` : t`Setup`}</button>
         </div>
       </aside>
     </>

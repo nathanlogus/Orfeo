@@ -8,6 +8,7 @@ import { deviceSongs, filterSongs, lastPlayedAt, matchesSearch, songCard, songFa
 import { genreLabel, type SongSort } from '../../utils/songCatalog'
 import { ARRANGEMENT_LABEL, Art, CARD_FILLS, Downloading, HANDS_LABEL, Card, FilterSelect, StatusTag, Toggle, masteryLabel, songSortOptions, type SongStatus } from '../SongBrowser/SongBrowser'
 import { SettingsDropdown } from '../Settings/controls'
+import { NewVersionDot } from '../Settings/NewVersionDot'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { openFolders, openSongMenu, useFoldersPage } from '../SettingsPanel/foldersPage'
 import { resumeSong, songKey } from '../../utils/practiceSession'
@@ -26,6 +27,12 @@ type Source = 'device' | 'server'
 type Section = 'learn' | 'library'
 
 // ── Where every session starts: find a song, on this device or the home server ──
+// The page closes while a song is open: going back finds it as you left it
+let remembered: Partial<{
+  section: Section; source: Source; q: string; genre: string | null; artist: string | null; arrangement: string; difficulty: string
+  songKeyFilter: string; handsFilter: string; classicOnly: boolean; sort: SongSort
+}> = {}
+
 export default function HomePage() {
   const { openFile } = useMidiFile()
   const hasSong = useStore(s => !!s.midi)
@@ -42,20 +49,23 @@ export default function HomePage() {
   const midiConnected = useStore(s => s.midiDeviceConnected)
   const midiName = useStore(s => s.midiDeviceName)
 
-  const [section, setSection] = useState<Section>('library')
-  const [source, setSource] = useState<Source>('device')
+  const [section, setSection] = useState<Section>(remembered.section ?? 'library')
+  const [source, setSource] = useState<Source>(remembered.source ?? 'device')
   const [view, setView] = useState<'cards' | 'list'>('cards')
   const [progress, setProgress] = useState<Record<string, { mastery?: number }>>({})
-  const [q, setQ] = useState('')
-  const [genre, setGenre] = useState<string | null>(null)
-  const [artist, setArtist] = useState<string | null>(null)
+  const [q, setQ] = useState(remembered.q ?? '')
+  const [genre, setGenre] = useState<string | null>(remembered.genre ?? null)
+  const [artist, setArtist] = useState<string | null>(remembered.artist ?? null)
   const [artistSearch, setArtistSearch] = useState('')
-  const [arrangement, setArrangement] = useState('')
-  const [difficulty, setDifficulty] = useState('')
-  const [songKeyFilter, setSongKeyFilter] = useState('')
-  const [handsFilter, setHandsFilter] = useState('')
-  const [classicOnly, setClassicOnly] = useState(false)
-  const [sort, setSort] = useState<SongSort>('title')
+  const [arrangement, setArrangement] = useState(remembered.arrangement ?? '')
+  const [difficulty, setDifficulty] = useState(remembered.difficulty ?? '')
+  const [songKeyFilter, setSongKeyFilter] = useState(remembered.songKeyFilter ?? '')
+  const [handsFilter, setHandsFilter] = useState(remembered.handsFilter ?? '')
+  const [classicOnly, setClassicOnly] = useState(remembered.classicOnly ?? false)
+  const [sort, setSort] = useState<SongSort>(remembered.sort ?? 'title')
+  useEffect(() => {
+    remembered = { section, source, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort }
+  }, [section, source, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort])
   const [catalog, setCatalog] = useState<unknown>(null)
   const [facets, setFacets] = useState<Pick<SongServerList, 'arrangements' | 'difficulties' | 'keys' | 'hands' | 'classics'>>({ arrangements: [], difficulties: [], keys: [], hands: [], classics: 0 })
 
@@ -94,7 +104,7 @@ export default function HomePage() {
       if (p.homeView === 'list') setView('list')
       setProgress(p.practiceProgress ?? {})
       useStore.setState({ lessonPassed: p.lessonPassed ?? [] })
-      if (p.homeSection === 'learn') setSection('learn')
+      if (p.homeSection === 'learn' && !remembered.section) setSection('learn')
       // A song that has since gone from the disk has nothing to go back to
       if (p.lastPlayed) void window.electronAPI.statFiles([p.lastPlayed.path]).then(found => { if (found.length) setLast(p.lastPlayed) })
       // Only a truly new install: anyone with a folder, a server or progress already knows the app
@@ -102,7 +112,7 @@ export default function HomePage() {
       if (!p.songServerUrl) return
       setAddress(p.songServerUrl)
       setConnected(true)
-      setSource('server')
+      if (!remembered.source) setSource('server')
     })
   }, [])
 
@@ -251,7 +261,7 @@ export default function HomePage() {
     setError('')
     useFoldersPage.setState({ failed: null })
     const path = fromServer ? await fetchSong(song) : song.path
-    if (path) useStore.getState().openSong(path)
+    if (path) useStore.getState().openSong(path, fromServer ? { art: song.art ?? null, people: song.people ?? [] } : undefined)
   }
 
   // Songs on this device get the Library's menu; one that's only on the server has less to offer
@@ -311,7 +321,7 @@ export default function HomePage() {
           <button aria-pressed={view === 'list'} aria-label={t`Show as a list`} onClick={() => changeView('list')}><List size={17} /></button>
         </div>}
         <button className="o-btn lib-open" onClick={openFile}><FolderOpen size={16} aria-hidden />{t`Open file`}</button>
-        <button className="o-icon-btn" onClick={() => useStore.getState().openSettingsWindow()} aria-label={t`Settings`}><Settings size={18} /></button>
+        <button className="o-icon-btn" style={{ position: 'relative' }} onClick={() => useStore.getState().openSettingsWindow()} aria-label={t`Settings`}><Settings size={18} /><NewVersionDot /></button>
         {hasSong && <button className="o-btn-primary" onClick={() => useStore.getState().setHomeOpen(false)}><ArrowLeft size={16} aria-hidden />{t`Back to song`}</button>}
       </header>
 

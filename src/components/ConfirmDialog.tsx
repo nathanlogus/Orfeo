@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { CircleAlert } from 'lucide-react'
 import { subscribeConfirm, type ConfirmState } from '../utils/confirmController'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useDraggableDialog, dialogFitsScreen } from '../hooks/useDraggableDialog'
@@ -34,7 +35,7 @@ export function ConfirmDialogHost() {
   if (!state) return null
 
   const safeIndex = state.buttons.length - 1
-  const Icon = state.icon
+  const Icon = state.icon ?? CircleAlert
 
   return createPortal(
     <div

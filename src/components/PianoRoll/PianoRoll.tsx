@@ -5,6 +5,7 @@ import { useStore } from '../../store'
 import { isBlackKey } from '../../utils/midiParser'
 import { buildKeyLayout, PIANO_RANGES as RANGES, type KeyLayout } from '../../utils/keyLayout'
 import { NES } from '../../utils/noteEditorState'
+import { noteSelection, assignSelectedHand } from '../NoteEditor/noteSelection'
 import {
   cmdAddNote, cmdRemoveNotes, cmdSetRangeVelocity, midiToEditableCopy, copyHandTagsOntoEditBuffer,
   type ToneNote,
@@ -564,7 +565,7 @@ export default function PianoRoll() {
 
       // ── Edit mode state — lives in closure, shared by drawFrame + pointer handlers ──
       let editFlatNotes:        EditFlatNote[]  = []
-      let editSelectedNotes:    Set<ToneNote>   = new Set()
+      const editSelectedNotes:  Set<ToneNote>   = noteSelection // the toolbar counts and assigns these
       let editNewNotes:         Set<ToneNote>   = NES.newNotes   // reference to singleton set
       let editDrag:             EditDragState | null   = null
       let editMarquee:          EditMarqueeState | null = null
@@ -998,10 +999,12 @@ export default function PianoRoll() {
 
         const flat     = flatNotesRef.current
         const startIdx = lowerBound(flat, visStart - visibleSecs)
-        for (let i = startIdx; i < flat.length; i++) {
+        // Black-key notes go on top, so a neighbouring white note never runs over them
+        for (const blackPass of [false, true]) for (let i = startIdx; i < flat.length; i++) {
           const note = flat[i]
           if (note.time > visEnd) break
           if (note.time + note.duration < visStart) continue
+          if (isBlackKey(note.midi + transpose) !== blackPass) continue
 
           const ts = trackMap.get(note.trackIndex)
           if (ts && !isShown(ts, hasSolo)) continue   // what shows: eye, mute and solo (trackShown.ts)
@@ -1046,6 +1049,10 @@ export default function PianoRoll() {
           const drawW = Math.max(key.width - 2, 1)
           notes.roundRect(key.x + 1, topY, drawW, noteH, NOTE_RADIUS)
           notes.fill({ color, alpha: 0.9 })
+          if (blackPass) {
+            notes.roundRect(key.x + 1, topY, drawW, noteH, NOTE_RADIUS)
+            notes.stroke({ width: 2, color: 0x141210, alpha: 0.9 })
+          }
           notes.rect(key.x + 1, topY, drawW, 2)
           notes.fill({ color: NOTE_HIGHLIGHT_COLOR, alpha: 0.25 })
 
@@ -1766,49 +1773,6 @@ export default function PianoRoll() {
 
       const doHistoryUndo = () => { if (NES.history.undo()) { NES.syncEditedNotes(); NES.needsFlatRebuild = true; NES.onHistoryChange?.() } }
       const doHistoryRedo = () => { if (NES.history.redo()) { NES.syncEditedNotes(); NES.needsFlatRebuild = true; NES.onHistoryChange?.() } }
-
-      // ── assignSelectedHand — sets hand + handSource:'manual' on every
-      // selected note, undoable via the normal Ctrl+Z stack (the only way
-      // back to the algorithm's guess, per plan §10 — no separate "reset to
-      // auto" affordance). 'manual' is what makes the correction stick: a
-      // later Split (Phase 4) partitions manual notes by tag instead of
-      // recomputing them, and no future assignHands() run can silently
-      // overwrite them (auto-tag-on-load only ever touches notes with
-      // hand === undefined). Only reachable when NES.reassignHandsMode is on
-      // (menu entries above are hidden otherwise). Visual only — never
-      // touches audio scheduling. ───────────────────────────────────────────
-      const assignSelectedHand = (hand: Hand) => {
-        if (editSelectedNotes.size === 0) return
-        const before = [...editSelectedNotes].map(n => ({
-          note: n,
-          hand: (n as any).hand,
-          handConfidence: (n as any).handConfidence,
-          handSource: (n as any).handSource,
-        }))
-        const count = before.length
-        const cmd = {
-          description: count === 1 ? `Assign ${hand === 'L' ? 'left' : 'right'} hand` : `Assign ${hand === 'L' ? 'left' : 'right'} hand to ${count} notes`,
-          apply() {
-            for (const b of before) {
-              ;(b.note as any).hand = hand
-              ;(b.note as any).handConfidence = 1
-              ;(b.note as any).handSource = 'manual'
-            }
-          },
-          revert() {
-            for (const b of before) {
-              ;(b.note as any).hand = b.hand
-              ;(b.note as any).handConfidence = b.handConfidence
-              ;(b.note as any).handSource = b.handSource
-            }
-          },
-        }
-        cmd.apply()
-        NES.history.push(cmd)
-        NES.dirty            = true
-        NES.needsFlatRebuild = true
-        NES.onHistoryChange?.()
-      }
 
       // ── onEditKey — Ctrl+Z/Y undo/redo, Delete to remove ─────────────────
       const onEditKey = (e: KeyboardEvent) => {
