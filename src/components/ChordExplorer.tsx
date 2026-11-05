@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react'
-import { Search, Hand, RotateCcw, Square, Play, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Search, Hand, RotateCcw, Square, Play, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Fuse from 'fuse.js'
 import { useStore } from '../store'
 import { getNoteName } from '../utils/noteNames'
@@ -10,10 +10,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap'
 import SpeedControl from './SpeedControl'
 import OrfeoMark from './OrfeoMark'
 import Tooltip from './Tooltip'
-import { getPianoRollCenterX, modalTopAboveKeyboard } from '../utils/modalAnchors'
-import { startModalDrag, type ModalPos } from '../utils/modalDrag'
-import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
-import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
+import { useHeldChord } from '../hooks/useHeldChord'
 import { buildChordMidi, formatChordSuffix, formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
 import {
   nextVoicing, intervalsToSemis, rootPositionFrom,
@@ -21,27 +18,17 @@ import {
 } from '../utils/voiceLeading'
 import {
   EXPLORER_RANGE, explorerLowRoot, SPEED_MS, VOICING_ICON, ALL_PROGRESSIONS,
-  resolveProgressionStep, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
-  explorerKeyColors, captureStruckShape, restoreStruckShape, type ProgSpeed, type StruckShape,
-  explorerPosInWindow,
+  progressionSteps, nextInversionSet, prevInversionSet, ringChord, strikeStep, inversionOf,
+  explorerKeyColors, captureStruckShape, restoreStruckShape, type ProgSpeed, type StruckShape, type SeqStep,
 } from '../utils/explorerShared'
 import ExplorerMenu from './ExplorerMenu'
+import ExplorerMiniKeyboard from './ExplorerMiniKeyboard'
 import ExplorerOctaveControl from './ExplorerOctaveControl'
 import { t } from '../utils/i18n'
 import '../styles/redesign-tools.css'
 import {
   COMMON_CHORDS, ALL_CHORDS, FULL_CHORD_TYPES, type ChordInfo,
 } from '../utils/chordVocabulary'
-
-// ── Modal dimensions for default positioning above the keyboard ───────────
-const MODAL_WIDTH = 1180
-const MODAL_HEIGHT = 520
-const modalWidth = () => Math.min(MODAL_WIDTH, window.innerWidth - 32)
-// Centred on the roll, but the window is wider than the roll can be
-const defaultPos = () => explorerPosInWindow({
-  x: Math.round(getPianoRollCenterX() - modalWidth() / 2),
-  y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
-}, modalWidth(), MODAL_HEIGHT, 44)
 
 const ROOT_MIDIS = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
 
@@ -67,7 +54,9 @@ const RITE_PULSES = 8
 const RITE_PULSE_MS = 300
 const RITE_VELOCITY = 0.9
 
-// The card fills, cycling through the tiles
+const INVERSION_LABELS = ['Root', '1st', '2nd', '3rd']
+
+// The card fills, cycling through the tiles and the sequence
 const TILE_FILLS = ['var(--paint-lime)', 'var(--paint-yellow)', 'var(--paint-blue)', 'var(--sand)', 'var(--paint-rose)', 'var(--paint-olive)']
 
 export default function ChordExplorer() {
@@ -100,15 +89,8 @@ export default function ChordExplorer() {
   const [inverted, setInverted] = useState(false)
   const lowRootRef = useRef(explorerLowRoot(explorerOctave))
   lowRootRef.current = explorerLowRoot(explorerOctave)
-  // ── Window position — where you last dragged it, else bottom edge on the
-  // keyboard header, horizontally centered on the piano roll. Read each time
-  // the modal opens, not while it's open (side-panel toggles don't move it);
-  // content changing size only moves the bottom edge. ───────────────────────
-  const [pos, setPos] = useState(defaultPos)
   const panelRef = useRef<HTMLDivElement>(null)
-  useKeepBottomOnScreen(panelRef, setPos, chordExplorerOpen && !chordExplorerMinimized, 44)
   useFocusTrap(panelRef, chordExplorerOpen && !chordExplorerMinimized)
-  useClampPositionOnZoom(pos, setPos, panelRef)
   const [selectedRoot, setSelectedRoot] = useState(0)
   const [tier, setTier] = useState<'common' | 'extended' | 'power'>('common')
   const [selectedPowerRoot, setSelectedPowerRoot] = useState<number | null>(null)
@@ -119,6 +101,9 @@ export default function ChordExplorer() {
   const [handFilter, setHandFilter] = useState<'all' | 'one' | 'two'>('all')
   const [noteFilter, setNoteFilter] = useState<'any' | '3' | '4' | '5' | '6+'>('any')
   const [selectedProg, setSelectedProg] = useState<number | null>(null)
+  // ── Chords added by hand, kept while the app runs. A picked progression is
+  // played instead while it's picked; adding to one turns it into this list. ──
+  const [sequence, setSequence] = useState<SeqStep[]>([])
   const [progDropdownOpen, setProgDropdownOpen] = useState(false)
   const [progPlaying, setProgPlaying] = useState(false)
   const [progStep, setProgStep] = useState(0)
@@ -181,8 +166,6 @@ export default function ChordExplorer() {
   // Reset transient state on open; no keyboard size change (61 is for ScaleExplorer only).
   useEffect(() => {
     if (chordExplorerOpen) {
-      const kept = useStore.getState().explorerPositions.chord
-      setPos(kept ? explorerPosInWindow(kept, modalWidth(), MODAL_HEIGHT, 44) : defaultPos())
       setSearch('')
       setSearchOpen(false)
       setHandFilter('all')
@@ -336,29 +319,29 @@ export default function ChordExplorer() {
     return result
   }, [tierChords, search, searchOpen, noteFilter, handFilter, selectedRoot, fuseInstance, fuseInstanceFallback])
 
-  // ── Recursive progression step player ───────────────────────────────────
+  // ── The sequence on the bar: a picked progression in this key and style (same
+  // step → chord rule as the Scales Explorer), else the chords added by hand. ──
+  const activeProg = selectedProg !== null ? ALL_PROGRESSIONS[selectedProg] : null
+  const steps = useMemo(
+    () => activeProg ? progressionSteps(activeProg, selectedRoot, progGenre) : sequence,
+    [activeProg, selectedRoot, progGenre, sequence],
+  )
+  const stepName = (s: SeqStep) => `${rootLabels.find(r => r.pitchClass === s.rootPc)?.label ?? ''}${formatChordSuffix(s.suffix, chordNamingStyle)}`
+
+  // ── Recursive sequence step player ──────────────────────────────────────
   // prevMidi: the voicing played at the previous step — the voice-leading
   // engine (utils/voiceLeading.ts) picks this step's voicing from it, under
   // the shared `progressionVoicing` mode (read live so a mode switch mid-run
   // takes on the next chord). Null for the first step.
-  const playProgStepAt = useCallback((
+  const playStepAt = useCallback((
     step: number,
-    progIndex: number,
-    root: number,
+    run: SeqStep[],
     speed: ProgSpeed,
-    genre: Genre,
     prevMidi: number[] | null,
   ) => {
     if (!progRunningRef.current) return
-    const prog = ALL_PROGRESSIONS[progIndex]
-    if (!prog) return
-    // ── Same step → chord rule as the Scales Explorer (explorerShared.ts):
-    // the numeral as written, re-voiced for the selected style. ────────────
-    const resolved = resolveProgressionStep(prog, step, root, genre)
-    if (!resolved) return
-    const { rootPc: actualRoot, info } = resolved
+    const { rootPc: actualRoot, suffix, semis } = run[step]
     const durationMs = SPEED_MS[speed]
-    const semis = intervalsToSemis(info.intervals)
 
     const midiNotes = nextVoicing(
       prevMidi, actualRoot, semis,
@@ -369,26 +352,26 @@ export default function ChordExplorer() {
       lightKeys(midiNotes, actualRoot)
       // ── Update chord name display above keyboard for this step ───────────
       const rootLbl = rootLabels.find(r => r.pitchClass === actualRoot)?.label ?? ''
-      const chordSuffix = formatChordSuffix(info.suffix, chordNamingStyle)
+      const chordSuffix = formatChordSuffix(suffix, chordNamingStyle)
       setExplorerChordDisplay({ name: `${rootLbl}${chordSuffix}`, invCount: inversionOf(actualRoot, semis, midiNotes), noteCount: midiNotes.length })
       strikeStep(midiNotes, Math.round(durationMs * 1.12), () => progRunningRef.current)
     }
     setProgStep(step)
 
-    const nextStep = (step + 1) % prog.offsets.length
+    const nextStep = (step + 1) % run.length
     progTimerRef.current = setTimeout(() => {
-      playProgStepAt(nextStep, progIndex, root, speed, genre, midiNotes)
+      playStepAt(nextStep, run, speed, midiNotes)
     }, durationMs)
   }, [lightKeys, setExplorerChordDisplay, rootLabels, chordNamingStyle])
 
   const startProgression = useCallback(() => {
-    if (selectedProg === null) return
+    if (steps.length === 0) return
     stopProgression()
     progRunningRef.current = true
     setProgPlaying(true)
     setProgStep(0)
-    playProgStepAt(0, selectedProg, selectedRoot, progSpeed, progGenre, null)
-  }, [selectedProg, selectedRoot, progSpeed, progGenre, stopProgression, playProgStepAt])
+    playStepAt(0, steps, progSpeed, null)
+  }, [steps, progSpeed, stopProgression, playStepAt])
 
   // ── Spacebar plays/pauses the progression while this modal is open ────────
   useEffect(() => {
@@ -396,13 +379,13 @@ export default function ChordExplorer() {
     const handler = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if (selectedProg === null) return
+      if (steps.length === 0) return
       e.preventDefault()
       if (progPlaying) stopProgression(); else startProgression()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [chordExplorerOpen, selectedProg, progPlaying, stopProgression, startProgression])
+  }, [chordExplorerOpen, steps.length, progPlaying, stopProgression, startProgression])
 
   const playChordAt = useCallback((chordKey: string, rootPitchClass: number) => {
     stopProgression()
@@ -524,26 +507,36 @@ export default function ChordExplorer() {
     if (selectedKey !== null) playChordAt(selectedKey, pitchClass)
   }
 
-  const handleInversion = useCallback((dir: 'prev' | 'next') => {
-    if (!selectedKey) return
+  // by: +1 / -1 for the arrows, or how far the Root / 1st / 2nd / 3rd pills jump
+  const handleInversion = useCallback((by: number) => {
+    if (!selectedKey || by === 0) return
     const state = useStore.getState()
     const current = state.explorerKeys
     if (current.size === 0) return
     const cd = state.explorerChordDisplay
     struckShapeRef.current = captureStruckShape(struckShapeRef.current, current, cd?.invCount ?? 0, state.explorerOctave)
     setInverted(true)
-    const newNotes = dir === 'next' ? nextInversionSet(current) : prevInversionSet(current)
+    let newNotes = current
+    for (let i = 0; i < Math.abs(by); i++) newNotes = by > 0 ? nextInversionSet(newNotes) : prevInversionSet(newNotes)
     lightKeys(Array.from(newNotes), accentRootRef.current, true)
     // ── Update inversion count in store so Keyboard.tsx label updates ─────
-    if (cd) state.setExplorerChordDisplay({ ...cd, invCount: cd.invCount + (dir === 'next' ? 1 : -1) })
+    if (cd) state.setExplorerChordDisplay({ ...cd, invCount: cd.invCount + by })
     ringChord(Array.from(newNotes).sort((a, b) => a - b))
   }, [selectedKey, lightKeys])
 
-  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    let moved: ModalPos | null = null
-    startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
-      if (moved) useStore.getState().setExplorerPosition('chord', moved)
-    })
+  // ── The chord on the tiles, as a sequence step ────────────────────────────
+  const selectedStep = useMemo<SeqStep | null>(() => {
+    if (selectedPowerRoot !== null) return { rootPc: selectedPowerRoot, suffix: '5', semis: [0, 7] }
+    const info = selectedKey ? ALL_CHORDS.find(c => c.key === selectedKey) ?? FULL_CHORD_TYPES.find(c => c.key === selectedKey) : null
+    return info ? { rootPc: selectedRoot, suffix: info.suffix, semis: intervalsToSemis(info.intervals) } : null
+  }, [selectedKey, selectedPowerRoot, selectedRoot])
+
+  const addToSequence = () => {
+    if (!selectedStep) return
+    stopProgression()
+    // Adding to a picked progression keeps its chords: the list takes over from it
+    setSequence(activeProg ? [...steps, selectedStep] : prev => [...prev, selectedStep])
+    setSelectedProg(null)
   }
 
   const rootLabel = (pc: number) => rootLabels.find(r => r.pitchClass === pc)?.label ?? ''
@@ -559,25 +552,30 @@ export default function ChordExplorer() {
     )
   }, [explorerChordDisplay, litNotes, displayNaming, accidentals])
 
+  // ── A chord held on a MIDI piano reads here while it's held: the real
+  // keyboard and its chord disc are behind this page. ───────────────────────
+  const held = useHeldChord(chordExplorerOpen && !chordExplorerMinimized, displayNaming)
+  const midiHeldKeys = useStore(s => s.midiHeldKeys)
+
   // Closed (open=false): unmount entirely. Minimized (open=true, minimized=true): render but hide.
   if (!chordExplorerOpen) return null
 
   const isPowerMode = tier === 'power'
   const canClear = selectedKey !== null || selectedPowerRoot !== null || explorerKeys.size > 0 || progPlaying
-  const activeProg = selectedProg !== null ? ALL_PROGRESSIONS[selectedProg] : null
-  const nowName = nowPlaying ? nowPlaying.chordLabel : rootLabel(selectedRoot)
+  const heldNotes = held ? Array.from(midiHeldKeys).sort((a, b) => a - b) : null
+  const shownNotes = heldNotes ?? litNotes
+  const nowName = held?.name || (nowPlaying ? nowPlaying.chordLabel : rootLabel(selectedRoot))
+  const cd = explorerChordDisplay
+  const invSpan = Math.min(cd?.noteCount ?? 0, INVERSION_LABELS.length)
+  const invNow = cd && cd.noteCount > 0 ? ((cd.invCount % cd.noteCount) + cd.noteCount) % cd.noteCount : 0
 
   return (
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="orfeo-modal-glow app-no-drag touch-explorer theme-studio xp-window xp-chords" style={{
-      left: pos.x,
-      top: pos.y,
-      zIndex: 401,
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="orfeo-modal-glow touch-explorer theme-studio xp-full xp-chords" style={{
       display: chordExplorerMinimized ? 'none' : 'flex',
-      '--_modal-shadow': 'var(--elevation-modal)',
-    } as CSSProperties}>
+    }}>
 
-      {/* Header — draggable */}
-      <div className="xp-head" onPointerDown={startDrag}>
+      <div className="xp-full-head">
+        <button className="xp-back" aria-label={t`Back to practice`} onClick={close}><ArrowLeft size={16} />{t`Practice`}</button>
         {/* Easter egg — the logo is a hidden link to the Rite of Spring chord.
             Out of the Tab order: the focus trap would otherwise land on it
             when the window opens (outline + Space/Enter opening the card). */}
@@ -629,11 +627,10 @@ export default function ChordExplorer() {
           />
           {searchOpen && <button aria-label={t`Close search`} onClick={e => { e.preventDefault(); closeSearch() }}><X size={16} /></button>}
         </label>
-        <button className="o-close" aria-label={t`Close`} onClick={close}><X size={18} /></button>
       </div>
 
-      <div className="xp-chords-body amber-scroll">
-        <section className="xp-chords-main">
+      <div className="xp-chords-body">
+        <section className="xp-chords-main amber-scroll">
           {/* ── Root — 12 pitch-class pills ──────────────────────────────────── */}
           <div className="xp-roots" role="group" aria-label={t`Root note`}>
             {rootLabels.map(({ pitchClass, label }) => (
@@ -748,25 +745,31 @@ export default function ChordExplorer() {
         {/* ── The chord sounding now, and what acts on it ───────────────────── */}
         <aside className="theme-paper xp-aside">
           <div className="xp-now">
-            <div className="xp-disc" style={{ fontSize: nowName.length <= 3 ? 34 : nowName.length <= 6 ? 24 : 16 }}>{nowName}</div>
+            <div className="xp-disc" style={{ fontSize: nowName.length <= 3 ? 40 : nowName.length <= 6 ? 28 : 18 }}>{nowName}</div>
             <div className="xp-now-text">
               <span className="xp-now-long">
-                {nowPlaying?.ordinal
+                {held ? t`On your piano`
+                  : nowPlaying?.ordinal
                   ? <>{nowPlaying.ordinal}{ordinalSuffix(Number(nowPlaying.ordinal))} {t`inversion`}</>
                   : nowPlaying ? t`Root position` : t`Tap a chord`}
               </span>
-              <span className="xp-note">{litNotes.map(m => getNoteName(m, displayNaming, accidentals)).join(' · ')}</span>
+              <span className="xp-note">{shownNotes.map(m => getNoteName(m, displayNaming, accidentals)).join(' · ')}</span>
             </div>
           </div>
 
-          <div className="xp-row" style={{ opacity: isPowerMode ? 0.45 : 1, pointerEvents: isPowerMode ? 'none' : 'auto' }}>
-            <span>{t`Inversion`}</span>
-            <div className="xp-row-ctl">
+          <div className="xp-inv" style={{ opacity: isPowerMode ? 0.45 : 1, pointerEvents: isPowerMode ? 'none' : 'auto' }}>
+            <span className="xp-note">{t`Inversion`}</span>
+            <div className="xp-inv-row">
               <Tooltip oneLine title="Previous inversion">
-                <button className="o-icon-btn" aria-label={t`Previous inversion`} onMouseDown={() => handleInversion('prev')} disabled={!selectedKey}><ChevronLeft size={18} /></button>
+                <button className="o-icon-btn" aria-label={t`Previous inversion`} onMouseDown={() => handleInversion(-1)} disabled={!selectedKey}><ChevronLeft size={18} /></button>
               </Tooltip>
+              <div className="o-seg" role="group" aria-label={t`Inversion`}>
+                {INVERSION_LABELS.slice(0, Math.max(invSpan, 1)).map((label, i) => (
+                  <button key={label} aria-pressed={!!selectedKey && invNow === i} disabled={!selectedKey} onClick={() => handleInversion(i - invNow)}>{label}</button>
+                ))}
+              </div>
               <Tooltip oneLine title="Next inversion">
-                <button className="o-icon-btn" aria-label={t`Next inversion`} onMouseDown={() => handleInversion('next')} disabled={!selectedKey}><ChevronRight size={18} /></button>
+                <button className="o-icon-btn" aria-label={t`Next inversion`} onMouseDown={() => handleInversion(1)} disabled={!selectedKey}><ChevronRight size={18} /></button>
               </Tooltip>
               <Tooltip oneLine title={t`Reset inversion`}>
                 <button className="o-icon-btn" aria-label={t`Reset inversion`} onClick={resetInversion} disabled={!inverted}><RotateCcw size={15} /></button>
@@ -774,55 +777,64 @@ export default function ChordExplorer() {
             </div>
           </div>
 
-          <div className="xp-row">
-            <span>{t`Octave`}</span>
-            <ExplorerOctaveControl showLabel={false} />
+          <ExplorerMiniKeyboard label={t`${nowName} on the keyboard`} held={heldNotes ?? undefined} />
+
+          <div className="xp-acts">
+            <button className="o-btn-primary o-btn-lg" disabled={litNotes.length === 0} onClick={() => { stopProgression(); ringChord(litNotes) }}>
+              <Play size={14} fill="currentColor" strokeWidth={0} />{t`Play`}
+            </button>
+            <button className="o-btn o-btn-lg" disabled={!selectedStep} onClick={addToSequence}>{t`Add to sequence`}</button>
           </div>
 
-          <div className="xp-row">
-            <span>{t`Show as`}</span>
-            <div className="o-seg" role="group" aria-label={t`Show as`}>
-              {(['flat', 'sharp'] as const).map(a => (
-                <button key={a} aria-pressed={accidentals === a} aria-label={a === 'flat' ? t`Flats` : t`Sharps`} onClick={() => setAccidentals(a)}>
-                  {a === 'flat' ? '♭' : '♯'}
-                </button>
-              ))}
+          <div className="xp-opts">
+            <div className="xp-opt">
+              <span>{t`Octave`}</span>
+              <ExplorerOctaveControl showLabel={false} />
+            </div>
+            <div className="xp-opt">
+              <span>{t`Show as`}</span>
+              <div className="o-seg" role="group" aria-label={t`Show as`}>
+                {(['flat', 'sharp'] as const).map(a => (
+                  <button key={a} aria-pressed={accidentals === a} aria-label={a === 'flat' ? t`Flats` : t`Sharps`} onClick={() => setAccidentals(a)}>
+                    {a === 'flat' ? '♭' : '♯'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Accent Root (same setting as the Scales Explorer's) */}
+            <div className="xp-opt">
+              <span>{t`Accent root`}</span>
+              <Tooltip title="Accent Root Note" description="Highlights the chord's true root pitch class in pink, in any octave, instead of blending it.">
+                <button role="switch" aria-checked={colorRootNoteEnabled} aria-label={t`Accent root note`} className="o-switch" onClick={() => setColorRootNoteEnabled(!colorRootNoteEnabled)}><span /></button>
+              </Tooltip>
+            </div>
+            {/* Clear — stops a progression, turns the lit chord off, deselects its tile */}
+            <div className="xp-opt">
+              <span>{t`Selection`}</span>
+              <Tooltip oneLine title={t`Clear selection`}>
+                <button className="o-btn-quiet" onClick={clearSelection} disabled={!canClear}>{t`Clear`}</button>
+              </Tooltip>
             </div>
           </div>
-
-          {/* Accent Root (same setting as the Scales Explorer's) */}
-          <div className="xp-row">
-            <span>{t`Accent root`}</span>
-            <Tooltip title="Accent Root Note" description="Highlights the chord's true root pitch class in pink, in any octave, instead of blending it.">
-              <button role="switch" aria-checked={colorRootNoteEnabled} aria-label={t`Accent root note`} className="o-switch" onClick={() => setColorRootNoteEnabled(!colorRootNoteEnabled)}><span /></button>
-            </Tooltip>
-          </div>
-
-          {/* Clear — stops a progression, turns the lit chord off, deselects its tile */}
-          <Tooltip oneLine title={t`Clear selection`} wrapperStyle={{ alignSelf: 'flex-start' }}>
-            <button className="o-btn-quiet" style={{ height: 36, paddingLeft: 0, color: 'var(--ui-text)', cursor: 'pointer' }} onClick={clearSelection} disabled={!canClear}>{t`Clear`}</button>
-          </Tooltip>
         </aside>
       </div>
 
-      {/* ── Sequence — progression, its numerals, style, voicing, speed, play ── */}
-      <section className="xp-seq" aria-label={t`Sequence`} style={{ opacity: isPowerMode ? 0.45 : 1, pointerEvents: isPowerMode ? 'none' : 'auto' }}>
+      {/* ── Sequence — progression or added chords, style, voicing, speed, play ── */}
+      <section className="xp-seq" aria-label={t`Sequence`}>
         <span className="xp-note">{t`Sequence`}</span>
         <button ref={progTriggerRef} className="xp-pick" aria-haspopup="listbox" aria-expanded={progDropdownOpen} onClick={() => setProgDropdownOpen(v => !v)}>
-          <span>{activeProg ? activeProg.name : t`Select`}</span><ChevronDown size={14} />
+          <span>{activeProg ? `${activeProg.name} · ${activeProg.labels.join(' ')}` : t`Progression`}</span><ChevronDown size={14} />
         </button>
-        {activeProg && (
-          <Tooltip title="Clear progression" description="Stops playback and clears the selected progression">
-            <button className="o-btn-quiet" style={{ color: '#fff', cursor: 'pointer' }} onClick={() => { stopProgression(); setSelectedProg(null) }}>{t`Clear`}</button>
-          </Tooltip>
-        )}
-        <div className="xp-chips">
-          {activeProg?.labels.map((label, i) => (
-            <span key={i} className="xp-chip" data-on={i === progStep && progPlaying ? '' : undefined}>{label}</span>
+        <div className="xp-chips amber-scroll">
+          {steps.map((s, i) => activeProg ? (
+            <span key={i} className="xp-chip" data-paint data-on={i === progStep && progPlaying ? '' : undefined} style={{ background: TILE_FILLS[i % TILE_FILLS.length] }}>{stepName(s)}</span>
+          ) : (
+            <button key={i} className="xp-chip" data-paint data-on={i === progStep && progPlaying ? '' : undefined} style={{ background: TILE_FILLS[i % TILE_FILLS.length] }} aria-label={t`Remove ${stepName(s)} from the sequence`} onClick={() => { stopProgression(); setSequence(prev => prev.filter((_, n) => n !== i)) }}>{stepName(s)}</button>
           ))}
+          {steps.length === 0 && <span className="xp-note">{t`Add a chord, or pick a progression`}</span>}
         </div>
-        <Tooltip oneLine title={GENRE_DESCRIPTIONS[progGenre]}>
-          <button ref={styleTriggerRef} className="xp-pick" aria-haspopup="listbox" aria-expanded={styleDropdownOpen} onClick={() => setStyleDropdownOpen(v => !v)}>
+        <Tooltip oneLine title={activeProg ? GENRE_DESCRIPTIONS[progGenre] : t`Styles re-voice a progression's numerals`}>
+          <button ref={styleTriggerRef} className="xp-pick" aria-haspopup="listbox" aria-expanded={styleDropdownOpen} disabled={!activeProg} onClick={() => setStyleDropdownOpen(v => !v)}>
             <span>{t`Style`}: {GENRE_LABELS[progGenre]}</span><ChevronDown size={14} />
           </button>
         </Tooltip>
@@ -837,11 +849,15 @@ export default function ChordExplorer() {
           })}
         </div>
         <SpeedControl value={progSpeed} onChange={setProgSpeed} size={11} />
+        {/* Clear — the progression if one is picked, else the added chords */}
+        <Tooltip oneLine title={t`Stops playback and clears the sequence`}>
+          <button className="o-btn-quiet" disabled={steps.length === 0} onClick={() => { stopProgression(); if (activeProg) setSelectedProg(null); else setSequence([]) }}>{t`Clear`}</button>
+        </Tooltip>
         <button
           className="xp-play"
           aria-label={progPlaying ? t`Stop` : t`Play sequence`}
           onClick={() => progPlaying ? stopProgression() : startProgression()}
-          disabled={selectedProg === null && !progPlaying}
+          disabled={steps.length === 0 && !progPlaying}
         >
           {progPlaying ? <Square size={16} fill="currentColor" strokeWidth={0} /> : <Play size={18} fill="currentColor" strokeWidth={0} />}
         </button>
