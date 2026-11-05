@@ -11,7 +11,7 @@ import { isHomogeneousHandTrack } from '../utils/handColors'
 import { liveHandColor } from '../audio/liveHandColor'
 import { NES } from '../utils/noteEditorState'
 import { editableCopyToBuffer } from '../utils/noteEditorCommands'
-import { useMidiSettings, latencyOffsetSec, midiPrefsReady } from '../store/midiSettings'
+import { useMidiSettings, latencyOffsetSec, midiPrefsReady, liveProgram } from '../store/midiSettings'
 import { useNativeEngine, nativeLightKey, nativeLivePiano } from '../audio/useNativeEngine'
 import { nativeCall } from '../audio/nativeClient'
 import { isShown } from '../utils/trackShown'
@@ -132,12 +132,13 @@ function ensureClickChannel() {
   }
 }
 
-// ── Hardware-input channel setup — program 0 on ch 15, same always-reassert
-// reasoning as ensureClickChannel above. ─────────────────────────────────
+// ── Hardware-input channel setup — the Keyboard sound (Settings › MIDI
+// Keyboard; piano by default) on ch 15, same always-reassert reasoning as
+// ensureClickChannel above. ──────────────────────────────────────────────
 function ensureHardwareChannel() {
   if (!_port) return
   try {
-    _port.send([0xCF, 0])
+    _port.send([0xCF, liveProgram()])
   } catch (e) {
     console.warn('[Orfeo GM] ensureHardwareChannel error:', e)
   }

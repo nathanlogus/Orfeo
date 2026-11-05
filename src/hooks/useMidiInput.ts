@@ -15,7 +15,7 @@ import { useStore } from '../store'
 import { isTapCapturing, registerTap } from '../utils/tapTempoSession'
 import { advanceIfPlayed } from '../utils/stepThrough'
 import {
-  useMidiSettings, midiPrefsReady, shapeVelocity, type ControlKind, type MidiDeviceInfo, type MidiOutputInfo,
+  useMidiSettings, midiPrefsReady, shapeVelocity, liveProgram, type ControlKind, type MidiDeviceInfo, type MidiOutputInfo,
 } from '../store/midiSettings'
 import { cleanPortName, displayName } from '../utils/midiDeviceNames'
 import { recordNote, countEvent } from '../utils/midiDiagnostics'
@@ -26,7 +26,7 @@ import {
 } from './useSamplesEngine'
 import { liveNoteOn as gmNoteOn, liveSend as gmSend, liveReset as gmReset } from './useAudioEngine'
 import { nativeCall } from '../audio/nativeClient'
-import { nativeLivePiano } from '../audio/useNativeEngine'
+import { nativeLiveProgram } from '../audio/useNativeEngine'
 
 const HARDWARE_COLOR = 'var(--text-amber)'
 
@@ -86,7 +86,7 @@ function markActivity(key: string, t: number) {
 }
 
 // ── Sound + light for one key ─────────────────────────────────────────────────
-function soundOn(note: number, vel: number) { if (isNative()) { nativeLivePiano(); nativeLive(0x90, note, vel) } else if (isSamples()) samplesNoteOn(note, vel); else gmNoteOn(note, vel) }
+function soundOn(note: number, vel: number) { if (isNative()) { nativeLiveProgram(liveProgram()); nativeLive(0x90, note, vel) } else if (isSamples()) samplesNoteOn(note, vel); else gmNoteOn(note, vel) }
 function soundOff(note: number) { if (isNative()) nativeLive(0x80, note); else if (isSamples()) samplesNoteOff(note); else gmSend([0x8F, note, 0]) }
 
 function lightOn(note: number) {
@@ -225,6 +225,14 @@ function handleMessage(e: MIDIMessageEvent, portId: string) {
   else if (type === 0xE0) pitchBend(d1, d2)
   else if (type === 0xD0) channelPressure(d1)
   else if (type === 0xA0) polyPressure(d1, d2)
+  else if (type === 0xC0) programChange(d1)
+}
+
+// ── A keyboard's own sound buttons send Program Change: play that instrument
+function programChange(program: number) {
+  const m = useMidiSettings.getState()
+  if (!m.followProgramChange || program === m.liveProgram) return
+  m.set({ liveProgram: program & 0x7f })
 }
 
 // ── Devices ──────────────────────────────────────────────────────────────────

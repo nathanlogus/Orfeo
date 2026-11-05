@@ -29,7 +29,7 @@ export type SettingId =
   | 'keyRange' | 'showOctaves' | 'showNoteNames' | 'reflectPianoRoll' | 'preciseScrubTime' | 'explorerPause'
   | 'rollZoom' | 'barNumbers' | 'playbar' | 'visualEffects'
   | 'theme' | 'handColors' | 'appZoom' | 'tooltips' | 'supportNote' | 'starmap'
-  | 'midiKeyboards' | 'midiReconnect' | 'liveResponse' | 'latencyOffset' | 'gmOutput' | 'touchResponse' | 'duplicateFilter'
+  | 'midiKeyboards' | 'midiReconnect' | 'liveResponse' | 'latencyOffset' | 'gmOutput' | 'keyboardSound' | 'touchResponse' | 'duplicateFilter'
   | 'pedalsControls' | 'delayCheck' | 'midiTools'
 
 export interface SettingInfo {
@@ -46,7 +46,7 @@ export const GROUPS: GroupInfo[] = [
   { id: 'midi', name: t`MIDI Keyboard`, intro: t`Manage your keyboards`, manualUrl: 'https://orfeo.cc/docs/settings/midi-keyboard-settings',
     tabs: [
       { name: t`Keyboards`, ids: ['midiKeyboards', 'midiTools', 'midiReconnect'], columns: 3, aside: 'noKeyboards' },
-      { name: t`Sound & Latency`, ids: ['delayCheck', 'liveResponse', 'latencyOffset', 'gmOutput'], stack: [['delayCheck'], ['liveResponse'], ['latencyOffset', 'gmOutput']], aside: 'keyToSpeaker' },
+      { name: t`Sound & Latency`, ids: ['keyboardSound', 'delayCheck', 'liveResponse', 'latencyOffset', 'gmOutput'], stack: [['keyboardSound', 'liveResponse'], ['delayCheck'], ['latencyOffset', 'gmOutput']], aside: 'keyToSpeaker' },
       { name: t`Touch & pedals`, ids: ['touchResponse', 'pedalsControls', 'duplicateFilter'] },
     ] },
   { id: 'midi-files-library', name: t`MIDI Files & Library`, intro: t`Organise your library`, manualUrl: 'https://orfeo.cc/docs/managing-midi-files' },
@@ -207,6 +207,9 @@ export const SETTINGS: SettingInfo[] = [
   { id: 'gmOutput', group: 'midi', name: t`General MIDI sound`, summary: t`Play General MIDI through Orfeo or an external instrument.`,
     description: t`General MIDI plays through Orfeo's own synth. Choose a connected instrument here to hear it through a digital piano's or sound module's own sounds instead.`,
     keywords: 'gm general midi output port device sound module digital piano external' },
+  { id: 'keyboardSound', group: 'midi', name: t`Keyboard sound`, summary: t`The instrument your MIDI keyboard plays.`,
+    description: t`Play your keyboard as any of the 128 General MIDI instruments: strings, organs, electric pianos, guitars, synths and more. Songs keep their own instruments. Studio and Native take the sound from the set chosen under Sound Fonts; General MIDI uses its own synth.`,
+    keywords: 'instrument program patch voice tone timbre strings organ synth electric piano guitar live keyboard change sound buttons' },
   { id: 'touchResponse', group: 'midi', name: t`Touch response`, summary: t`How your playing strength turns into loudness.`,
     description: t`Soft makes gentle playing louder, Hard needs a firmer touch for the same loudness, Fixed plays every note at one level. You can also ignore very light touches and cap the loudest.`,
     keywords: 'velocity curve sensitivity touch soft hard fixed minimum maximum dynamics' },
@@ -239,6 +242,5 @@ export const QUICK_LAYOUT: Record<SettingsGroupId, QuickItem[]> = {
   'keyboard': ['keyRange', 'showOctaves', 'showNoteNames'],
   'piano-roll': ['rollZoom', 'barNumbers', 'playbar'],
   'appearance': ['appZoom', 'tooltips'],
-  // Settings window only for now
-  'midi': [],
+  'midi': ['keyboardSound'],
 }
