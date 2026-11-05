@@ -11,7 +11,8 @@ import { useFocusTrap } from '../hooks/useFocusTrap'
 import SpeedControl from './SpeedControl'
 import OrfeoMark from './OrfeoMark'
 import Tooltip from './Tooltip'
-import { getPianoRollCenterX, getKeyboardHeaderTop } from '../utils/modalAnchors'
+import { getPianoRollCenterX, modalTopAboveKeyboard } from '../utils/modalAnchors'
+import { startModalDrag, type ModalPos } from '../utils/modalDrag'
 import { useKeepBottomOnScreen } from '../hooks/useKeepBottomOnScreen'
 import { useClampPositionOnZoom } from '../hooks/useClampPositionOnZoom'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
@@ -29,6 +30,7 @@ import {
 import ChevronPlayIcon from './ChevronPlayIcon'
 import ExplorerOctaveControl from './ExplorerOctaveControl'
 import { t } from '../utils/i18n'
+import { touchScreen } from '../utils/touchScreen'
 import {
   COMMON_CHORDS, ALL_CHORDS, FULL_CHORD_TYPES, type ChordInfo,
 } from '../utils/chordVocabulary'
@@ -114,8 +116,8 @@ export default function ChordExplorer() {
   // the modal opens, not while it's open (side-panel toggles don't move it);
   // content changing size only moves the bottom edge. ───────────────────────
   const [pos, setPos] = useState(() => ({
-    x: Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2),
-    y: Math.round(getKeyboardHeaderTop() - MODAL_HEIGHT) - 78,
+    x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
+    y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
   }))
   const panelRef = useRef<HTMLDivElement>(null)
   useKeepBottomOnScreen(panelRef, setPos, chordExplorerOpen && !chordExplorerMinimized, 44)
@@ -199,8 +201,8 @@ export default function ChordExplorer() {
     if (chordExplorerOpen) {
       const kept = useStore.getState().explorerPositions.chord
       setPos(kept ? explorerPosInWindow(kept, MODAL_WIDTH, MODAL_HEIGHT, 44) : {
-        x: Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2),
-        y: Math.round(getKeyboardHeaderTop() - MODAL_HEIGHT) - 78,
+        x: Math.max(0, Math.round(getPianoRollCenterX() - MODAL_WIDTH / 2)),
+        y: modalTopAboveKeyboard(MODAL_HEIGHT, 78),
       })
       setSearch('')
       setSearchOpen(false)
@@ -605,26 +607,13 @@ export default function ChordExplorer() {
     }
   }
 
-  const startDrag = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault()
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     setProgDropdownOpen(false)
     setDropdownRect(null)
-    const sx = e.clientX, sy = e.clientY, spx = pos.x, spy = pos.y
-    let moved: { x: number; y: number } | null = null
-    const onMove = (ev: MouseEvent) => {
-      // 44, not 0 — keeps the top edge clear of the 40px titleBarOverlay
-      // (electron/main.ts) where Windows draws its own window controls on
-      // top of everything in the DOM.
-      moved = { x: Math.max(0, spx + ev.clientX - sx), y: Math.max(44, spy + ev.clientY - sy) }
-      setPos(moved)
-    }
-    const onUp = () => {
+    let moved: ModalPos | null = null
+    startModalDrag(e, panelRef.current, pos, next => setPos(moved = next), () => {
       if (moved) useStore.getState().setExplorerPosition('chord', moved)
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    })
   }
 
   const rootLabel = (pc: number) => rootLabels.find(r => r.pitchClass === pc)?.label ?? ''
@@ -657,7 +646,7 @@ export default function ChordExplorer() {
   const activeProg = selectedProg !== null ? ALL_PROGRESSIONS[selectedProg] : null
 
   return (
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" className="orfeo-modal-glow app-no-drag" style={{
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="orfeo-modal-glow app-no-drag touch-explorer" style={{
       position: 'fixed',
       left: pos.x,
       top: pos.y,
@@ -674,9 +663,10 @@ export default function ChordExplorer() {
 
       {/* Header — draggable */}
       <div
-        onMouseDown={startDrag}
+        onPointerDown={startDrag}
         style={{
-          height: 36, flexShrink: 0,
+          touchAction: 'none',
+          height: touchScreen ? 44 : 36, flexShrink: 0,
           background: 'var(--bg-modal-header)',
           borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',

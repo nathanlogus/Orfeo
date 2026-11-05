@@ -15,6 +15,7 @@ import { TempoWarningDot } from '../Transport/TempoWarning'
 import { useTempoTrustScan } from '../../hooks/useTempoTrustScan'
 import type { NoteNaming, Accidentals, TranscriptEntry, LibraryFile } from '../../types'
 import { MarqueeText } from '../MarqueeText'
+import { touchScreen } from '../../utils/touchScreen'
 import { detectForeignFormat, resolveAndTrackImport, base64ToBytes, confirmPendingImportBeforeSwitch } from '../../utils/foreignFormatImport'
 import { parseMidiBuffer } from '../../utils/midiParser'
 import { detectKeyFromTracks, parseKeySignature } from '../../utils/keyDetection'
@@ -250,6 +251,7 @@ function RowIconButton({ tooltip, onClick, onHoverChange, style, children }: {
           color: 'var(--text-inactive)', display: 'flex', alignItems: 'center',
           flexShrink: 0, transition: 'color 0.12s',
           ...style,
+          ...(touchScreen ? { minWidth: 36, minHeight: 36, justifyContent: 'center' } : {}),
         }}
         onMouseEnter={e => { tt.onMouseEnter(); onHoverChange(true); e.currentTarget.style.color = 'var(--text-amber)' }}
         onMouseLeave={e => { tt.onMouseLeave(); onHoverChange(false); e.currentTarget.style.color = 'var(--text-inactive)' }}
@@ -273,7 +275,7 @@ const FILENAME_SPAN_HIDDEN:  React.CSSProperties = { fontSize: 'var(--text-sm)',
 // folder header (top:FOLDER_HEADER_HEIGHT) → loaded file's row, if visible,
 // pins directly beneath whichever headers are above it in its group (0, 1,
 // or 2 header-heights) — or the very top, for a loaded root-group file. ─────
-const FOLDER_HEADER_HEIGHT = 30
+const FOLDER_HEADER_HEIGHT = touchScreen ? 48 : 30
 
 // ── Where the file list was scrolled to — module-level so it survives the
 // drawer closing (which unmounts the panel), not just a switch to Setup ────
@@ -726,6 +728,13 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
       console.error('Failed to load file:', err)
     }
   }, [])
+
+  const songToOpen = useStore(s => s.songToOpen)
+  useEffect(() => {
+    if (!songToOpen) return
+    useStore.setState({ songToOpen: null })
+    void handleLoadFile(songToOpen)
+  }, [songToOpen, handleLoadFile])
 
   // File Info's tempo tools work on the open song: close File Info and open
   // that one first. False if a save prompt was declined or it wouldn't open.
@@ -1205,7 +1214,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
             <ContextMenuItem
               onClick={() => { const folder = folderContextMenu.folder; setFolderContextMenu(null); if (libraryFolder) window.electronAPI.openFolderInExplorer(`${libraryFolder}/${folder}`) }}
             >
-              Show in explorer
+              Show in folder
             </ContextMenuItem>
             {!isProtectedFolder(folderContextMenu.folder) && (<>
               <ContextMenuItem
@@ -1324,6 +1333,7 @@ function LibraryPanel({ hidden = false }: { hidden?: boolean }) {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '8px 10px 8px 26px', borderBottom: '1px solid var(--border-row)',
+                    minHeight: touchScreen ? 48 : undefined,
                     cursor: 'pointer', transition: 'background 0.08s',
                     background: isLoaded ? 'var(--accent-amber-medium)' : 'transparent',
                   }}
@@ -1656,9 +1666,9 @@ export default function SettingsPanel() {
 
 
   return (
-    <div style={{
-      // Match TrackPanel width exactly: 260px open, 32px collapsed
-      width: settingsPanelOpen ? 260 : 32,
+    <div className="touch-hit" style={{
+      // Match TrackPanel width exactly: 260px open, 32px collapsed (44 on a touch screen)
+      width: settingsPanelOpen ? 260 : (touchScreen ? 44 : 32),
       background: 'var(--bg-modal)',
       borderRight: '1px solid var(--border2)',
       transition: 'width 0.2s ease',
@@ -1670,7 +1680,7 @@ export default function SettingsPanel() {
     }}>
       {/* ── Closed state: 3-icon column ────────────────────────────────────── */}
       {!settingsPanelOpen && (
-        <div style={{
+        <div className="touch-big" style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           height: '100%', paddingTop: 10, paddingBottom: 10,
         }}>
@@ -1727,8 +1737,9 @@ export default function SettingsPanel() {
           <button
             onClick={() => setSettingsPanelOpen(false)}
             style={{
-              position: 'absolute', top: 10, right: 0, zIndex: 10,
+              position: 'absolute', top: touchScreen ? 2 : 10, right: 0, zIndex: 10,
               padding: '4px 5px', borderRadius: '4px 0 0 4px',
+              ...(touchScreen ? { width: 44, height: 44 } : {}),
               background: 'var(--bg-tile)', border: '1px solid var(--border2)', borderRight: 'none',
               color: 'var(--text-dimmest)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1751,7 +1762,7 @@ export default function SettingsPanel() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  flex: 1, height: 40,
+                  flex: 1, height: touchScreen ? 48 : 40,
                   display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
                   paddingLeft: 'var(--space-3)', gap: 5,
                   background: 'none', border: 'none', cursor: 'pointer',
@@ -1772,7 +1783,7 @@ export default function SettingsPanel() {
           {activeTab === 'settings' && (
             <div style={{ flexShrink: 0, padding: '8px 14px', borderBottom: '1px solid var(--bg-tile)' }}>
               <button onClick={() => useStore.getState().openSettingsWindow()}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '7px 10px', borderRadius: 4, cursor: 'pointer',
+                style={{ width: '100%', minHeight: touchScreen ? 44 : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '7px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
                   border: '1px solid var(--accent-amber-strong)', background: 'var(--accent-amber-medium)', color: 'var(--text-amber)',
                   fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-ui)' }}>
                 <Settings size={13} strokeWidth={1.5} /> {t`Open settings`}
@@ -1786,7 +1797,7 @@ export default function SettingsPanel() {
                 folder state are still there when you switch back */}
             <LibraryPanel hidden={activeTab !== 'library'} />
             {activeTab === 'settings' && (
-              <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+              <div className="touch-settings" style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
 
                 <QuickSettings />
               </div>
@@ -1797,16 +1808,16 @@ export default function SettingsPanel() {
           <div style={{
             flexShrink: 0,
             borderTop: '1px solid var(--bg-tile)',
-            padding: '8px 14px',
+            padding: touchScreen ? '0 14px' : '8px 14px',
             display: 'flex', alignItems: 'center', gap: 6,
-          }}>
+          }} className="touch-big">
             <Tooltip title="Open user manual" oneLine wrapperStyle={{ flex: 1, minWidth: 0 }}>
             <button
               onClick={() => window.electronAPI.openExternal('https://orfeo.cc/docs')}
               style={{
                 flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 7,
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', padding: '4px 0',
+                color: 'var(--text-muted)', padding: '4px 0', justifyContent: 'flex-start',
                 transition: 'color 0.15s',
               }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-amber)'}

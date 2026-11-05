@@ -17,26 +17,34 @@ import {
 
 const PAGE = 120 // cards added each time the grid scrolls near its end
 
-const HANDS_LABEL: Record<string, () => string> = {
+export const HANDS_LABEL: Record<string, () => string> = {
   named: () => t`Named hand tracks`,
   split: () => t`Two hand tracks`,
   'one-stream': () => t`One piano part`,
   none: () => t`No piano part`,
 }
 
-const ARRANGEMENT_LABEL: Record<string, () => string> = {
+export const ARRANGEMENT_LABEL: Record<string, () => string> = {
   'solo-piano': () => t`Solo piano`,
   'piano-led': () => t`Piano-led`,
   band: () => t`Full band`,
   'solo-line': () => t`Single-line solo`,
 }
 
+export const songSortOptions = (): { value: SongSort; label: string }[] => [
+  { value: 'title', label: t`Sort: Title` },
+  { value: 'person', label: t`Sort: Composer` },
+  { value: 'easiest', label: t`Sort: Easiest first` },
+  { value: 'tempo', label: t`Sort: Tempo` },
+  { value: 'length', label: t`Sort: Length` },
+]
+
 function Art({ card }: { card: SongCard }) {
   const [broken, setBroken] = useState(false)
   useEffect(() => setBroken(false), [card.art])
   const box: CSSProperties = { aspectRatio: '1', width: '100%', display: 'block', objectFit: 'cover', background: 'var(--bg-tile)' }
   if (card.art && !broken) {
-    return <img src={card.art} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} style={box} />
+    return <img src={card.art} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} style={{ ...box, outline: '1px solid rgba(255, 255, 255, 0.1)', outlineOffset: -1 }} />
   }
   const hue = placeholderHue(card.genres[0]?.name ?? card.folder ?? card.title)
   return (
@@ -50,7 +58,7 @@ function Art({ card }: { card: SongCard }) {
   )
 }
 
-const Card = memo(function Card({ card, loaded, onOpen }: { card: SongCard; loaded: boolean; onOpen: (path: string) => void }) {
+export const Card = memo(function Card({ card, loaded, onOpen }: { card: SongCard; loaded: boolean; onOpen: (path: string) => void }) {
   const facts = [card.key, card.bpm ? `${card.bpm} BPM` : null, formatDuration(card.duration)].filter(Boolean).join(' · ')
   return (
     <button
@@ -97,7 +105,7 @@ const Card = memo(function Card({ card, loaded, onOpen }: { card: SongCard; load
   )
 })
 
-function FilterSelect({ title, all, value, options, onChange, label }: {
+export function FilterSelect({ title, all, value, options, onChange, label }: {
   title: string
   all: string
   value: string
@@ -183,13 +191,7 @@ export function SongBrowser({ onOpen, onClose }: { onOpen: (path: string) => voi
     return () => io.disconnect()
   }, [matches.length, shown])
 
-  const sortOptions: { value: SongSort; label: string }[] = [
-    { value: 'title', label: t`Sort: Title` },
-    { value: 'person', label: t`Sort: Composer` },
-    { value: 'easiest', label: t`Sort: Easiest first` },
-    { value: 'tempo', label: t`Sort: Tempo` },
-    { value: 'length', label: t`Sort: Length` },
-  ]
+  const sortOptions = songSortOptions()
 
   return createPortal(
     <div
@@ -261,7 +263,7 @@ export function SongBrowser({ onOpen, onClose }: { onOpen: (path: string) => voi
   )
 }
 
-function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-inactive)', flexShrink: 0 }}>
       <Switch value={value} onChange={onChange} label={label} />

@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect, useState } from 'react'
 import {
   Play, Pause, SkipBack, SkipForward, Repeat,
   FolderOpen, RotateCcw, ChevronUp, ChevronDown,
-  Rewind, FastForward,
+  Rewind, FastForward, Music2, Hourglass, Home,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
@@ -26,12 +26,15 @@ import { useMidiSettings } from '../../store/midiSettings'
 import { shortName } from '../../utils/midiDeviceNames'
 import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
 import { confirmDiscardDirtyTempoKey } from '../../utils/tempoKeySave'
+import { isScoreFor } from '../../utils/scoreSource'
+import { touchScreen } from '../../utils/touchScreen'
 
 // NOTE: no more `C` shorthand object — every color below is a literal
 // `var(--token-name)` string written directly at its point of use, so the
 // token being referenced is visible right here in the JSX without having to
 // cross-reference a lookup table elsewhere in the file.
 const SKIP_SECS = 5
+const GROUP_PAD = touchScreen ? '0 8px' : '0 14px'
 
 // ── Windows caption-button overlay inset — the real reserved width for the
 // native –/□/× buttons, read live from the Window Controls Overlay API
@@ -44,7 +47,8 @@ const SKIP_SECS = 5
 // `geometrychange`, so this tracks the real safe zone live. Falls back to a
 // conservative constant if the API isn't present yet (first paint, or a
 // non-Windows build).
-const OVERLAY_INSET_FALLBACK = 174
+// Android has no window buttons to clear, and the bar needs every pixel
+const OVERLAY_INSET_FALLBACK = /Android/.test(navigator.userAgent) ? 0 : 174
 
 function useTitlebarOverlayInset(): number {
   const [inset, setInset] = useState(OVERLAY_INSET_FALLBACK)
@@ -103,6 +107,11 @@ export default function TopBar() {
 
 
   const { play, pause, stop, seek, seekAndPlay } = usePlayback()
+  const scoreViewMode = useStore((s) => s.scoreViewMode)
+  const waitForNotes = useStore((s) => s.waitForNotes)
+  const practiceLevel = useStore((s) => s.practiceLevel)
+  const phraseResult = useStore((s) => s.phraseResult)
+  const hasScore = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath))
   const { openFile } = useMidiFile()
   const wasPlayingRef = useRef(false)
 
@@ -127,10 +136,17 @@ export default function TopBar() {
     useStore.setState({ currentTime: parseFloat(e.target.value) })
   }, [])
 
-  const handleScrubEnd = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+  const handleScrubEnd = useCallback((e: { currentTarget: HTMLInputElement }) => {
     const t = parseFloat(e.currentTarget.value)
     if (wasPlayingRef.current) seekAndPlay(t); else seek(t)
   }, [seek, seekAndPlay])
+
+  // A finger on a native slider sends no mouse events during a drag, and after
+  // a tap the late ones would pause and seek a second time
+  const handleScrubTouchEnd = useCallback((e: React.TouchEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    handleScrubEnd(e)
+  }, [handleScrubEnd])
 
   // ── Right-click the scrub bar → "Copy timestamp" for chord-detection bug
   // reports. Ships in every build, including packaged ones — the user tests
@@ -229,7 +245,7 @@ export default function TopBar() {
         // strip adds when present, same as before. ───────────────────────
         height: loopRegionEnabled ? 152 : 128,
         background: 'var(--bg-deep)',
-        borderBottom: 'none',
+        borderBottom: '1px solid var(--border)',
         // ── CSS Grid, three real minmax(0,1fr) columns (not 1fr auto 1fr —
         // see CLAUDE.md's warning: an auto-sized center column combined with
         // content-driven side columns can still end up unequal width and
@@ -239,8 +255,11 @@ export default function TopBar() {
         // against the bar's full (asymmetrically-padded) width, which is
         // exactly what let the ~400px-wide center block overlap the side
         // groups near the 900px documented minimum window width. ──────────
+        // On a touch screen the sides take what they need and the transport the
+        // rest: bigger buttons don't fit thirds at 1280 wide, and the side groups
+        // only scroll when there's truly no room (a 1100 wide phone).
         display: 'grid',
-        gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)',
+        gridTemplateColumns: touchScreen ? 'minmax(0,max-content) minmax(304px,1fr) minmax(0,max-content)' : 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)',
         // ── Back to center — left (~39px) and right (~40px) vertically
         // center in the row like they always did. Only the center column
         // opts out (see its own `alignSelf:'flex-start'` below): its content
@@ -256,7 +275,7 @@ export default function TopBar() {
         // unpadded height to center against (an asymmetric top-only pad
         // would skew their center off the row's true middle). Center's own
         // top clearance comes from its own margin instead (see below).
-        padding: '0 20px',
+        padding: touchScreen ? '0 12px' : '0 20px',
         gap: 0,
         flexShrink: 0,
       }}
@@ -275,16 +294,18 @@ export default function TopBar() {
           row's genuine many-tracks affordance. No effect at normal window
           widths/zoom, where the column is wide enough that no overflow occurs
           at all. ── */}
-      <div className="topbar-scroll" style={{
-        display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0,
+      <div className="topbar-scroll touch-hit" style={{
+        display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
         justifySelf: 'stretch', minWidth: 0, overflowX: 'auto', overflowY: 'hidden',
         // room below the row for the tempo-warning dot under the TAP pad —
         // added inside and taken back outside, so nothing moves
         paddingBottom: 14, marginBottom: -14,
+        // the whole bar's height, so the scroller doesn't clip tap areas
+        ...(touchScreen ? { alignSelf: 'stretch' } : {}),
       }}>
       {/* ── LOGO ── */}
-      <div className="app-no-drag" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, paddingRight: 'var(--space-3)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+      <div className="app-no-drag touch-big" style={{ display: 'flex', alignItems: 'center', gap: touchScreen ? 0 : 10, flexShrink: 0, paddingRight: touchScreen ? 0 : 'var(--space-1)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, marginRight: touchScreen ? 4 : 0 }}>
           <Tooltip title="Reset" description={"Closes the file and resets tempo,\ntranspose, and playback to defaults."} placement="bottom">
             <span onClick={handleReset} className="app-no-drag" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
               <OrfeoLogo />
@@ -292,6 +313,16 @@ export default function TopBar() {
             </span>
           </Tooltip>
         </div>
+        {midi && <Tooltip title="Home" description={"Find another song.\nYour open song stays as it is."} placement="bottom">
+          <button
+            onClick={() => useStore.getState().setHomeOpen(true)}
+            aria-label="Home"
+            className="app-no-drag"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--text-amber)' }}
+          >
+            <Home size={18} strokeWidth={1.5} />
+          </button>
+        </Tooltip>}
         <Tooltip title="Open a file (Ctrl+O)" description={"Loads a supported file from\ndisk to start a new session."} placement="bottom">
           <button
             onClick={openFile}
@@ -305,16 +336,14 @@ export default function TopBar() {
         </Tooltip>
       </div>
 
-      <VSep />
-
       {/* ── BPM ── (tighter gap/padding than the other groups: with the TAP pad
           the left column must still fit at a 1366 px window) */}
-      <div className="app-no-drag" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 var(--space-2)', flexShrink: 0 }}>
+      <div className="app-no-drag topbar-readout" data-instant style={{ gap: 4, paddingLeft: 8, flexShrink: 0 }}>
         <Tooltip title={`Tempo: ${liveBpm || '—'} BPM`} description={t`The song's current playback tempo,\nscaled by your speed setting.\nDouble-click to type a tempo.`} placement="bottom">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>BPM</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>TEMPO</span>
+              {!touchScreen && <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>TEMPO</span>}
             </div>
             <BpmValue
               shown={midi ? String(liveBpm) : '—'}
@@ -330,7 +359,7 @@ export default function TopBar() {
         </Tooltip>
         {/* ±1 steps the DISPLAYED tempo (file tempo at the playhead, incl. any
             tap-tempo correction), not the file's first tempo — see liveBpm. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="topbar-stepper">
           <LongPressArrow onStep={() => { const s = useStore.getState(); setBpm(stepDisplayedBpm(s.bpm, s.originalBpm, currentFileBpm, 1)) }} disabled={!midi} title="BPM +1" description={"Nudges playback tempo up\nby one beat per minute."}><ChevronUp size={10} /></LongPressArrow>
           <LongPressArrow onStep={() => { const s = useStore.getState(); setBpm(stepDisplayedBpm(s.bpm, s.originalBpm, currentFileBpm, -1)) }} disabled={!midi} title="BPM -1" description={"Nudges playback tempo down\nby one beat per minute."}><ChevronDown size={10} /></LongPressArrow>
         </div>
@@ -346,22 +375,22 @@ export default function TopBar() {
           <button
             onClick={resetBpm}
             disabled={!isTempoChanged}
+            aria-label={t`Reset tempo`}
             style={{
               background: 'none', border: 'none', padding: 0, color: 'var(--text-amber)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', ...(touchScreen ? { width: 24, height: 44 } : {}),
               cursor: isTempoChanged ? 'pointer' : 'default',
             }}
           >
-            <RotateCcw size={9} />
+            <RotateCcw size={touchScreen ? 14 : 9} />
           </button>
         </Tooltip>
         <TapTempoPad />
       </div>
 
-      <VSep />
-
       {/* ── KEY ── (position: relative anchors the tempo-warning badge, which
           takes no width of its own — this group has no spare room at 1366 px) */}
-      <div className="app-no-drag" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, padding: '0 var(--space-2)', flexShrink: 0 }}>
+      <div className="app-no-drag topbar-readout" data-instant style={{ position: 'relative', paddingLeft: 8, flexShrink: 0 }}>
         <Tooltip
           title="Key: "
           titleValue={`${displayKey}${transpose !== 0 ? ` (${transpose > 0 ? '+' : ''}${transpose} semitones)` : ''}`}
@@ -371,14 +400,14 @@ export default function TopBar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>KEY</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>TRANSPOSE</span>
+              {!touchScreen && <span style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>TRANSPOSE</span>}
             </div>
             <span style={{ color: transpose !== 0 ? 'var(--text-amber)' : 'var(--text-active)', fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, minWidth: 32, textAlign: 'right', lineHeight: 1 }}>
               {displayKey}
             </span>
           </div>
         </Tooltip>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="topbar-stepper">
           <ArrowBtn onClick={() => handleTranspose(1)} disabled={!midi || transpose >= 12} title="Transpose up" description={"Shifts the detected key up\nby a semitone (max +12)."}><ChevronUp size={10} /></ArrowBtn>
           <ArrowBtn onClick={() => handleTranspose(-1)} disabled={!midi || transpose <= -12} title="Transpose down" description={"Shifts the detected key down\nby a semitone (max −12)."}><ChevronDown size={10} /></ArrowBtn>
         </div>
@@ -389,13 +418,14 @@ export default function TopBar() {
           <button
             onClick={() => useStore.setState({ detectedKey: detectedKey ? { ...detectedKey, transpose: 0 } : null })}
             disabled={transpose === 0}
+            aria-label={t`Reset key`}
             style={{
-              display: 'flex', alignItems: 'center', color: 'var(--text-amber)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-amber)',
               background: 'var(--accent-amber-subtle)', border: '1px solid var(--accent-amber-medium)',
-              borderRadius: 4, padding: '1px 5px', fontSize: 9,
+              borderRadius: 4, padding: '1px 5px', fontSize: 9, ...(touchScreen ? { width: 24, height: 44, padding: 0 } : {}),
               cursor: transpose !== 0 ? 'pointer' : 'default',
             }}>
-            <RotateCcw size={8} />
+            <RotateCcw size={touchScreen ? 14 : 8} />
           </button>
         </Tooltip>
         <TempoWarning anchor="key" />
@@ -414,16 +444,16 @@ export default function TopBar() {
           above the transport row; anchoring it to the top with an explicit
           20px margin instead gives it the same breathing room without
           moving left/right off their normal centered spot. ── */}
-      <div className="app-no-drag" style={{
-        justifySelf: 'stretch', minWidth: 0, alignSelf: 'flex-start', marginTop: 20,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+      <div className="app-no-drag" data-instant style={{
+        justifySelf: 'stretch', minWidth: 0, alignSelf: 'flex-start', marginTop: touchScreen ? 12 : 20,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: touchScreen ? 2 : 5,
       }}>
         {/* Filename — moved above the transport row so the center column's
             topmost line is comparably light (small text) to the left/right
             groups' top lines, now that all three groups share the same
             top-aligned start (see the grid's alignItems comment above). */}
         {midi?.fileName ? (
-          <span style={{ color: 'var(--text-default)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', lineHeight: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 340 }}>
+          <span style={{ color: 'var(--text-default)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', lineHeight: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 'min(100%, 340px)' }}>
             {midi.fileName.replace(/\.(mid|midi)$/i, '')}
           </span>
         ) : (
@@ -437,8 +467,9 @@ export default function TopBar() {
           <TBtn onClick={() => handleSkip(-1)} disabled={!midi} title={`Rewind ${SKIP_SECS}s`} oneLine><Rewind size={15} strokeWidth={1.5} /></TBtn>
           <TBtn onClick={handlePlayPause} disabled={!midi || (chordExplorerOpen && explorerPausesPlayback)} accent title="Play / Pause (Space)" large oneLine>
             {playbackState === 'playing'
-              ? <Pause size={24} fill="currentColor" strokeWidth={0} />
-              : <Play size={24} fill="currentColor" strokeWidth={0} />}
+              ? <Pause size={22} fill="currentColor" strokeWidth={0} />
+              // nudged right: a triangle's visual centre is left of its box's
+              : <Play size={22} fill="currentColor" strokeWidth={0} style={{ marginLeft: 3 }} />}
           </TBtn>
           <TBtn onClick={() => handleSkip(1)} disabled={!midi} title={`Forward ${SKIP_SECS}s`} oneLine><FastForward size={15} strokeWidth={1.5} /></TBtn>
           <TBtn onClick={() => midi && seek(midi.duration)} disabled={!midi} title="Go to end" oneLine><SkipForward size={16} strokeWidth={1.5} /></TBtn>
@@ -510,7 +541,9 @@ export default function TopBar() {
               <input
                 type="range" min={0} max={duration || 1} step={0.01} value={currentTime}
                 onMouseDown={handleScrubStart} onChange={handleScrubChange} onMouseUp={handleScrubEnd}
-                className="scrub-slider" style={{ flex: 1, maxWidth: 320 }} disabled={!midi}
+                onTouchStart={handleScrubStart} onTouchEnd={handleScrubTouchEnd}
+                className="scrub-slider" disabled={!midi}
+                style={{ flex: 1, maxWidth: 320, '--fill': `${duration ? Math.min(100, currentTime / duration * 100) : 0}%` } as React.CSSProperties}
               />
             </Tooltip>
             <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10, minWidth: 34, flexShrink: 0 }}>
@@ -552,8 +585,10 @@ export default function TopBar() {
           shows the group's right-anchored end (unchanged from before at
           normal widths), and the overflow that used to spill into the
           center column is now reachable by scrolling left instead. ── */}
-      <div className="app-no-drag topbar-scroll" style={{
+      <div className="app-no-drag topbar-scroll touch-hit" style={{
         justifySelf: 'stretch', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', direction: 'rtl',
+        // the whole bar's height, so the scroller doesn't clip tap areas
+        ...(touchScreen ? { alignSelf: 'stretch', display: 'flex', alignItems: 'center' } : {}),
         // ── Top-aligned like its siblings (inherits the grid's own
         // alignItems:'flex-start') — stays flush-right against the real Win
         // overlay button boundary via paddingRight (overlayInset is measured
@@ -562,19 +597,19 @@ export default function TopBar() {
         // ducking below the buttons' 40px zone. Content's right edge lands
         // exactly where the buttons start, so there's no horizontal overlap
         // into their hit-region at any vertical position.
-        paddingRight: Math.max(overlayInset - 20, 0),
+        paddingRight: Math.max(overlayInset - (touchScreen ? 12 : 20), 0),
       }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 0, flexShrink: 0, direction: 'ltr', width: 'max-content' }}>
+      <div className="topbar-right" style={{ display: 'flex', alignItems: 'flex-end', gap: 0, flexShrink: 0, direction: 'ltr', width: 'max-content' }}>
 
         {/* VOLUME */}
         <VolumeKnob />
-        <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
+        {!touchScreen && <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />}
 
         {/* BAR COUNTER — only when a file is loaded */}
         {midi && (
           <>
             <Tooltip title={`Bar ${currentBar} of ${totalBars}`} description={"Position in the song,\ncounted in bars."} placement="bottom">
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 var(--space-3)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: touchScreen ? GROUP_PAD : '0 var(--space-3)' }}>
                 <div style={{
                   background: 'var(--bg-tile)', borderRadius: 4, padding: '2px 6px',
                   display: 'flex', alignItems: 'baseline', gap: 0,
@@ -601,7 +636,7 @@ export default function TopBar() {
           description={"Number of beats in each bar,\nand which note value counts as one beat."}
           placement="bottom"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: GROUP_PAD }}>
             {midi ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
                 <span style={{ color: 'var(--text-active)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-base)', fontWeight: 700 }}>
@@ -636,7 +671,7 @@ export default function TopBar() {
             style={{
               position: 'relative',
               flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              padding: '0 14px', border: 'none', cursor: 'pointer',
+              padding: GROUP_PAD, border: 'none', cursor: 'pointer',
               background: 'transparent', color: metronomeEnabled ? 'var(--topbar-metronome-on)' : 'var(--topbar-metronome-off)', transition: 'color 0.15s',
             }}
           >
@@ -664,6 +699,53 @@ export default function TopBar() {
 
         <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
 
+        {/* SCORE — notation files only, MIDI has no score to draw */}
+        <Tooltip
+          title={!hasScore ? t`No score for this song` : scoreViewMode === 'roll' ? t`Showing: piano roll` : scoreViewMode === 'both' ? t`Showing: score and piano roll` : t`Showing: score`}
+          description={hasScore ? t`Click to switch between the piano roll, the score, or both.` : t`Scores show for MusicXML, Guitar Pro and Capella files, not MIDI or saved edits.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!hasScore} aria-label={t`Score view`}
+            onClick={() => useStore.getState().setScoreViewMode(NEXT_SCORE_MODE[scoreViewMode])}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: GROUP_PAD, background: 'none', border: 'none', cursor: hasScore ? 'pointer' : 'default', opacity: hasScore ? 1 : 0.4, color: hasScore && scoreViewMode !== 'roll' ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <Music2 size={24} />
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>SCORE</span>
+          </button>
+        </Tooltip>
+
+        {/* WAIT — the song moves only as the MIDI keyboard plays it */}
+        <Tooltip
+          title={waitForNotes ? t`Waiting for your notes` : t`Wait for notes`}
+          description={t`The song plays and holds at each note until you play it on your MIDI keyboard. Hide or mute a track to leave its notes out.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!midi} aria-label={t`Wait for notes`} aria-pressed={waitForNotes}
+            onClick={() => useStore.getState().setWaitForNotes(!waitForNotes)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: GROUP_PAD, background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: waitForNotes ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <Hourglass size={24} />
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>WAIT</span>
+          </button>
+        </Tooltip>
+
+        {/* LEVEL — how much of the song you're asked to play; a tap moves to the next */}
+        <Tooltip
+          title={practiceLevel === 0 ? t`Auto level` : practiceLevel === 5 ? t`Level 5 of 5: every note` : t`Level ${practiceLevel} of 5`}
+          description={t`1 is the melody on the beats, 2 the whole melody, 3 adds the bass, 4 both hands with simpler chords, 5 everything. A sets each four bars by how you play them: two clean passes go up, a rough one goes down. Tap for the next level.`}
+          placement="bottom"
+          wrapperStyle={{ flexShrink: 0 }}
+        >
+          <button className="app-no-drag" disabled={!midi} aria-label={practiceLevel === 0 ? t`Practice level automatic` : t`Practice level ${practiceLevel} of 5`}
+            onClick={() => useStore.getState().setPracticeLevel((practiceLevel + 1) % 6)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 14px', background: 'none', border: 'none', cursor: midi ? 'pointer' : 'default', opacity: midi ? 1 : 0.4, color: practiceLevel < 5 ? 'var(--text-amber)' : 'var(--text-muted)' }}>
+            <span style={{ fontSize: 20, lineHeight: '24px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{practiceLevel === 0 ? 'A' : practiceLevel}</span>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', lineHeight: 1, marginTop: 6 }}>{phraseResult ? `${phraseResult.percent}%` : 'LEVEL'}</span>
+          </button>
+        </Tooltip>
+
+        <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', alignSelf: 'flex-end', marginBottom: 12 }} />
+
         {/* MIDI — the keyboard being played; click opens its settings */}
         <Tooltip
           title={midiDeviceConnected ? midiDeviceName : t`No connected keyboards`}
@@ -674,7 +756,7 @@ export default function TopBar() {
           wrapperStyle={{ flexShrink: 0 }}
         >
           <button className="app-no-drag" onClick={() => useStore.getState().openSettingsWindow('midi')} aria-label={t`MIDI keyboard settings`}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0 14px', background: 'none', border: 'none', cursor: 'pointer', color: midiDeviceConnected ? 'var(--topbar-midi-on)' : 'var(--topbar-midi-off)' }}>
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: GROUP_PAD, background: 'none', border: 'none', cursor: 'pointer', color: midiDeviceConnected ? 'var(--topbar-midi-on)' : 'var(--topbar-midi-off)' }}>
             <MidiIcon size={24} color={midiDeviceConnected ? 'var(--topbar-midi-on)' : 'var(--topbar-midi-off)'} />
             <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: midiDeviceConnected ? '0.08em' : '0.05em', color: midiDeviceConnected ? 'var(--topbar-midi-on)' : 'var(--topbar-midi-off)', lineHeight: 1, marginTop: 6, whiteSpace: 'nowrap' }}>
               {midiDeviceConnected ? shortName(midiActiveKey || midiDeviceName) : 'NO KEYBOARD'}
@@ -688,6 +770,8 @@ export default function TopBar() {
     </div>
   )
 }
+
+const NEXT_SCORE_MODE = { roll: 'both', both: 'score', score: 'roll' } as const
 
 const METRO_MENU_WIDTH = 150
 
@@ -746,10 +830,6 @@ function MetronomeMenu({ x, y, onClose }: { x: number; y: number; onClose: () =>
       </div>
     </ContextMenu>
   )
-}
-
-function VSep() {
-  return <div style={{ width: 1, height: 'var(--button-height)', background: 'var(--border)', flexShrink: 0 }} />
 }
 
 // ── Scrub-bar right-click menu (see handleScrubContextMenu). Copies a
@@ -895,6 +975,8 @@ function BpmValue({ shown, changed, disabled, onType }: {
   )
 }
 
+const STEPPER_SIZE = touchScreen ? { width: 32, height: 24 } : { width: 16, height: 13 }
+
 // Long-press button: single click = +1, hold = accelerating repeat
 function LongPressArrow({ children, onStep, disabled, title, description }: {
   children: React.ReactNode; onStep: () => void; disabled?: boolean; title?: string; description?: string
@@ -932,7 +1014,7 @@ function LongPressArrow({ children, onStep, disabled, title, description }: {
       onMouseUp={stop}
       onMouseLeave={stop}
       style={{
-        width: 16, height: 13, background: 'var(--bg-tile)',
+        ...STEPPER_SIZE, background: 'var(--bg-tile)',
         color: disabled ? 'var(--text-dim-control)' : 'var(--text-amber)',
         border: 'none', borderRadius: 'var(--radius-sm)',
         cursor: disabled ? 'default' : 'pointer',
@@ -953,7 +1035,7 @@ function ArrowBtn({ children, onClick, disabled, title, description }: {
   const button = (
     <button onClick={onClick} disabled={disabled}
       style={{
-        width: 16, height: 13, background: 'var(--bg-tile)',
+        ...STEPPER_SIZE, background: 'var(--bg-tile)',
         color: disabled ? 'var(--text-dim-control)' : 'var(--text-amber)',
         border: 'none', borderRadius: 'var(--radius-sm)',
         cursor: disabled ? 'default' : 'pointer',
@@ -971,22 +1053,22 @@ function TBtn({ children, onClick, disabled, accent, active, blink, title, descr
   children: React.ReactNode; onClick?: () => void; disabled?: boolean
   accent?: boolean; active?: boolean; blink?: boolean; title?: string; description?: string; large?: boolean; oneLine?: boolean
 }) {
-  const sz = large ? 46 : 32
+  const sz = touchScreen ? (large ? 52 : 48) : (large ? 44 : 32)
   const isAmber = active || accent || blink
   const button = (
     <button onClick={onClick} disabled={disabled}
-      className={blink ? 'loop-nudge-blink' : undefined}
+      className={[blink && 'loop-nudge-blink', accent && 'tbtn-play', active && 'tbtn-loop-on'].filter(Boolean).join(' ') || undefined}
       style={{
         width: sz, height: sz,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 6, border: 'none', background: 'transparent',
+        borderRadius: 'var(--radius-md)', border: 'none', background: 'transparent',
         color: isAmber ? 'var(--text-amber)' : 'var(--text-default)',
         opacity: disabled ? 0.2 : 1,
         cursor: disabled ? 'default' : 'pointer',
         transition: blink ? undefined : 'color 0.1s',
       }}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.color = 'var(--text-amber)' }}
-      onMouseLeave={e => { e.currentTarget.style.color = isAmber ? 'var(--text-amber)' : 'var(--text-default)' }}
+      onMouseEnter={accent ? undefined : e => { if (!disabled) e.currentTarget.style.color = 'var(--text-amber)' }}
+      onMouseLeave={accent ? undefined : e => { e.currentTarget.style.color = isAmber ? 'var(--text-amber)' : 'var(--text-default)' }}
     >
       {children}
     </button>

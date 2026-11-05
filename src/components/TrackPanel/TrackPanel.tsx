@@ -9,6 +9,9 @@ import { usePlayback } from '../../hooks/usePlayback'
 import { NES } from '../../utils/noteEditorState'
 import Tooltip from '../Tooltip'
 import PianoKeysIcon from '../PianoKeysIcon'
+import { touchScreen } from '../../utils/touchScreen'
+
+const RAIL_W = touchScreen ? 44 : 32
 
 const GROUP_ORDER = [
   'piano', 'chromatic', 'organ', 'guitar', 'bass',
@@ -201,7 +204,7 @@ export default function TrackPanel() {
   return (
     <div
       style={{
-        width: trackPanelOpen ? 260 : 32,
+        width: trackPanelOpen ? (touchScreen ? 310 : 260) : RAIL_W, // the touch rail is wider, and the panel keeps its room
         background: 'var(--bg-modal)',
         borderLeft: '1px solid var(--border2)',
         transition: 'width 0.2s ease',
@@ -211,6 +214,7 @@ export default function TrackPanel() {
         flexShrink: 0,
         position: 'relative',
       }}
+      className="touch-hit touch-big"
     >
       {/* ── Closed state: 3-icon column ────────────────────────────────────── */}
       {!trackPanelOpen && (
@@ -318,9 +322,9 @@ export default function TrackPanel() {
 
           {/* ── Left icon strip: chevron + coming soon + MIDI editor ──────── */}
           <div style={{
-            width: 32, flexShrink: 0,
+            width: RAIL_W, flexShrink: 0,
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            paddingTop: 10,
+            paddingTop: touchScreen ? 2 : 10,
             borderRight: '1px solid var(--bg-tile)',
           }}>
             <Tooltip title="Close panel" oneLine placement="left">
@@ -421,10 +425,10 @@ export default function TrackPanel() {
 
           {/* Header */}
           <div style={{
-            height: 40, display: 'flex', alignItems: 'center',
-            padding: '0 10px 0 14px',
+            height: touchScreen ? 48 : 40, display: 'flex', alignItems: 'center',
+            padding: touchScreen ? '0 6px 0 8px' : '0 10px 0 14px',
             borderBottom: '1px solid var(--border)', flexShrink: 0,
-            gap: 'var(--space-2)',
+            gap: touchScreen ? 2 : 'var(--space-2)',
           }}>
             <ListTree size={14} style={{ color: 'var(--text-inactive)', flexShrink: 0 }} />
             <span style={{ color: 'var(--text-dimmest)', fontSize: 'var(--text-sm)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -458,6 +462,7 @@ export default function TrackPanel() {
                     wrapperStyle={{ marginLeft: 'auto' }}
                   >
                   <button
+                    className="touch-pill"
                     onClick={() => setTrackMuteFilter(!isCurrentlyFiltered)}
                     style={{
                       padding: '2px 8px',
@@ -705,6 +710,7 @@ function TrackRow({
 
   return (
     <div
+      data-instant
       onClick={onSoloForEdit}
       onDragOver={onDragOverRow}
       onDrop={onDropRow}
@@ -756,9 +762,10 @@ function TrackRow({
       </div>
 
       {/* ── Row 2: track number (left) + M/S/V/K controls (right) ─────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, paddingLeft: 26 }}>
-        <span style={{ fontSize: 10, color: 'var(--text-inactive)', fontFamily: 'var(--font-mono)' }}>track {track.index + 1}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, paddingLeft: touchScreen ? 0 : 26 }}>
+        {/* the four 44px buttons take the whole row on a touch screen */}
+        {!touchScreen && <span style={{ fontSize: 10, color: 'var(--text-inactive)', fontFamily: 'var(--font-mono)' }}>track {track.index + 1}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: touchScreen ? 0 : 'var(--space-1)', marginLeft: 'auto' }}>
           <IBtn onClick={onMute} active={track.muted}
             title={track.muted ? 'Unmute' : 'Mute'}
             description={track.muted ? t`Unmute audio` : t`Mute audio`}
@@ -787,8 +794,8 @@ function TrackRow({
       </div>
 
       {/* ── Row 3: MIDI channel + program + note count ────────────────────── */}
-      <div style={{ display: 'flex', gap: 6, marginTop: 2, paddingLeft: 26 }}>
-        <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>ch {ch}</span>
+      <div style={{ display: 'flex', gap: touchScreen ? 3 : 6, marginTop: 2, paddingLeft: touchScreen ? 0 : 26, whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>{touchScreen && `#${track.index + 1} · `}ch {ch}</span>
         <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>·</span>
         <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>{prog}</span>
         <span style={{ fontSize: 10, lineHeight: '11px', color: 'var(--text-track-meta)', fontFamily: 'var(--font-mono)' }}>·</span>

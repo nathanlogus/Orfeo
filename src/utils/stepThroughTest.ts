@@ -1,4 +1,4 @@
-import { buildSteps } from './stepThrough'
+import { buildSteps, nextWaitTime, stepToHoldAt } from './stepThrough'
 import { notesSoundingAt } from './midiParser'
 
 // Steps follow what's on the roll: eye on, not muted, and the soloed track
@@ -17,6 +17,27 @@ export function runStepThroughTest(): number {
   check(steps.map(s => s.time).join() === '1', `steps only on tracks shown on the roll (eye on, not muted), got ${steps.map(s => s.time)}`)
   const solo = buildSteps(midi, [ts(0, { solo: true }), ts(1), ts(2, { visible: false }), ts(3)])
   check(solo.map(s => s.time).join() === '1', 'solo: only the soloed track is heard and shown, so only it makes steps')
+
+  const chord = (time: number, ...notes: number[]) => ({ time, notes: notes.map(midi => ({ midi })) }) as any
+  const wait = [chord(1, 60, 64), chord(2, 67)]
+  check(nextWaitTime(wait, 0, new Set([60]), 0, 9) === null, 'half a chord does not move the song')
+  check(nextWaitTime(wait, 0, new Set([60, 64, 72]), 0, 9) === 2, 'the whole chord moves to the next step, a stray key does not block it')
+  check(nextWaitTime(wait, 2, new Set([67]), 0, 9) === 9, 'the last step ends the song')
+  check(nextWaitTime(wait, 2, new Set([69]), 2, 9) === 9, 'keys are compared transposed')
+  check(nextWaitTime(wait, 3, new Set([67]), 0, 9) === null, 'nothing left to wait for')
+
+  const at = (from: number, now: number, held: number[], transpose = 0) => stepToHoldAt(wait, from, now, new Set(held), transpose)?.time ?? null
+  check(at(0, 0.9, []) === null, 'no step reached yet: keep playing')
+  check(at(0, 1.2, []) === 1, 'reaching a step unplayed holds on it, not past it')
+  check(at(0, 1.2, [60]) === 1, 'half a chord still holds')
+  check(at(0, 1.2, [60, 64]) === null, 'keys already down let the song through')
+  check(at(1.001, 1.5, []) === null, 'a step already played does not hold again')
+  check(at(0, 2.5, [60, 64]) === 2, 'a big clock step still stops at the first unplayed step')
+  check(at(0, 1.2, [62, 66], 2) === null && at(0, 1.2, [60, 64], 2) === 1, 'transposed keys are compared as shown')
+  check(at(2, 2.5, [69], 2) === null, 'transposed keys let the song through')
+
+  const inLevel = (track: number) => track === 0
+  check(buildSteps(midi, [ts(0), ts(1)], inLevel).map(s => s.time).join() === '1', 'steps hold only notes in the practice level')
 
   console.log(`stepThrough: ${pass} passed, ${fail} failed`)
   console.groupEnd()

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useStore } from '../store'
 import { startCountIn } from '../utils/countInRunner'
+import { holdForNotes, waitPlaybackStarted } from '../utils/stepThrough'
 
 export function usePlayback() {
   const rafRef = useRef<number | null>(null)
@@ -61,6 +62,7 @@ export function usePlayback() {
               useStore.setState({ currentTime: duration, playbackState: 'stopped' })
               stopRaf(); return
             }
+            if (holdForNotes(secs)) { stopRaf(); return }
             useStore.setState({ currentTime: secs })
             rafRef.current = requestAnimationFrame(tick)
             return
@@ -93,6 +95,7 @@ export function usePlayback() {
         useStore.setState({ currentTime: duration, playbackState: 'stopped' })
         stopRaf(); return
       }
+      if (holdForNotes(newTime)) { stopRaf(); return }
       useStore.setState({ currentTime: newTime })
       rafRef.current = requestAnimationFrame(tick)
     }
@@ -154,6 +157,7 @@ export function usePlayback() {
   useEffect(() => {
     const unsub = useStore.subscribe((state, prev) => {
       if (state.playbackState === 'playing' && prev.playbackState !== 'playing') {
+        waitPlaybackStarted(state.currentTime)
         fallbackStartPerfRef.current = performance.now()
         fallbackStartTimeRef.current = state.currentTime
         startRaf()

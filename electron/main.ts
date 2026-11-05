@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell, Menu, utilityProcess, Messa
 import { autoUpdater } from 'electron-updater'
 import { join, basename, dirname, extname } from 'path'
 import { execFile } from 'child_process'
-import { readFileSync, writeFileSync, existsSync, readdirSync, createWriteStream, statSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, readdirSync, createWriteStream, statSync, renameSync, unlinkSync } from 'fs'
 import { mkdir, access, copyFile, readdir, rename, rmdir, writeFile } from 'fs/promises'
 import { Midi } from '@tonejs/midi'
 import { Chord, Note } from 'tonal'
@@ -11,6 +11,7 @@ import { assignHands } from '../src/utils/handAssignment'
 import { buildHandExportHint, withHandSuffix, nameHandFromSuffix, parseHandMapMeta, RESTORED_CONFIDENCE } from '../src/utils/handMetadata'
 import { getGMGroup } from '../src/utils/gmInstruments'
 import { exportsDir, nextFreeName, safeExportBaseName } from './exportName'
+import { DISCOVERY_PORT, DISCOVERY_PROBE, discoveredAddress, safeSongPath, serverUrl, songServerDest } from './songServer'
 import { KEYBOARD_GROUPS } from '../src/utils/keyboardGroups'
 import { nextOrfeoVersion, stripOrfeoSuffix } from '../src/utils/orfeoVersioning'
 import { downloadEnding, newerRelease } from '../src/utils/newRelease'
@@ -577,6 +578,76 @@ ipcMain.handle('soundfont:download', (e, id: string) => {
   activeSoundfontDownloads.set(id, download)
   return download
 })
+// ── Home song server ───────────────────────────────────────────────────────
+// A plain file save, not fetch: on Android the page may not call an http address
+const SONG_SERVER_TIMEOUT_MS = 10_000
+function saveUrl(url: string, dest: string): Promise<void> {
+  const part = `${dest}.part`
+  return new Promise<void>((resolve, reject) => {
+    const http = require(url.startsWith('https:') ? 'https' : 'http')
+    http.get(url, (res: import('http').IncomingMessage) => {
+      if (res.statusCode !== 200) { res.resume(); reject(new Error(`server answered ${res.statusCode}`)); return }
+      const file = createWriteStream(part)
+      file.on('finish', () => file.close(() => resolve()))
+      file.on('error', reject)
+      res.pipe(file)
+    }).on('error', reject).setTimeout(SONG_SERVER_TIMEOUT_MS, function (this: import('http').ClientRequest) { this.destroy(new Error('server timed out')) })
+  }).then(() => renameSync(part, dest), (e) => {
+    if (existsSync(part)) unlinkSync(part)
+    throw e
+  })
+}
+
+const songServerRoot = () => loadPrefs().libraryFolder || app.getPath('userData')
+const haveSong = (dest: string, size: number) => existsSync(dest) && statSync(dest).size === size
+
+// shortcut: one broadcast on the default network; a server on another subnet needs its address typed
+const DISCOVERY_WAIT_MS = 1500
+ipcMain.handle('songServer:discover', () => new Promise<string | null>((resolve) => {
+  const socket = require('dgram').createSocket('udp4')
+  const finish = (address: string | null) => { clearTimeout(timer); socket.close(); resolve(address) }
+  const timer = setTimeout(() => finish(null), DISCOVERY_WAIT_MS)
+  socket.on('error', () => finish(null))
+  socket.on('message', (msg: Buffer, from: { address: string }) => {
+    const address = discoveredAddress(msg.toString(), from.address)
+    if (address) finish(address)
+  })
+  socket.bind(() => {
+    socket.setBroadcast(true)
+    socket.send(DISCOVERY_PROBE, DISCOVERY_PORT, '127.0.0.1')
+    socket.send(DISCOVERY_PROBE, DISCOVERY_PORT, '255.255.255.255')
+  })
+}))
+
+let songListCount = 0
+ipcMain.handle('songServer:query', async (_e, address: string, query: Record<string, string | number>) => {
+  const params = new URLSearchParams(Object.entries(query).map(([k, v]) => [k, String(v)]))
+  const listPath = join(app.getPath('userData'), `song-list-${++songListCount}.json`)
+  await saveUrl(`${serverUrl(address)}/api/songs?${params}`, listPath)
+  const result = JSON.parse(readFileSync(listPath, 'utf-8'))
+  unlinkSync(listPath)
+  const root = songServerRoot()
+  const songs = result.songs.filter((s: any) => safeSongPath(s?.path))
+    .map((s: any) => ({
+      ...s,
+      local: haveSong(songServerDest(root, s.path), s.size),
+      art: typeof s.art === 'string' && s.art.startsWith('/api/art?') ? serverUrl(address) + s.art : null,
+    }))
+  return { ...result, songs }
+})
+
+// A song that changed on the server comes down again; edits are never lost that
+// way, since the app saves those as new files in Orfeo/
+ipcMain.handle('songServer:download', async (_e, address: string, path: string, size: number) => {
+  if (!safeSongPath(path)) throw new Error('not a song path')
+  const dest = songServerDest(songServerRoot(), path)
+  if (!haveSong(dest, size)) {
+    await mkdir(dirname(dest), { recursive: true })
+    await saveUrl(`${serverUrl(address)}/api/file?path=${encodeURIComponent(path)}`, dest)
+  }
+  return dest
+})
+
 ipcMain.handle('dialog:openMidi', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Open MIDI File',
@@ -1089,7 +1160,7 @@ ipcMain.handle('editor:save', async (_e, payload: {
     const existingMeta = (midi.header as any).meta ?? []
     ;(midi.header as any).meta = existingMeta.filter((m: any) =>
       !(typeof m.text === 'string' && (
-        m.text.startsWith('ORFEO_TRACK_NAME:') || m.text.startsWith('ORFEO_TRACK_COLOR:') ||
+        m.text.startsWith('ORFEO_TRACK_NAME:') || m.text.startsWith('ORFEO_TRACK_COLOR:') || m.text.startsWith('ORFEO_TRACK_HAND:') ||
         m.text.startsWith('ORFEO_TRACK_VISIBLE:') || m.text.startsWith('ORFEO_TRACK_KEYBOARD:')
       ))
     )

@@ -114,6 +114,7 @@ src/               Renderer process — everything the user sees
 public/            Bundled at build time — worklet, demo files, fonts, app icon
 scripts/           Build helpers (license generation, hand-engine version check)
 docs/              This documentation
+src/lessons/       The Learn course: course.md is the lessons, session.ts runs one
 build/             NSIS installer assets and script
 ```
 
@@ -336,6 +337,7 @@ each key press.
 | Read a `.mid` / `.midi` file into a note model | `@tonejs/midi` | Handles all format types; wrapped by `src/utils/midiParser.ts` |
 | Write edited files, inject custom meta events | `midi-file` | Byte-level control the high-level parser does not give |
 | Import MusicXML / Guitar Pro / Capella / KAR | `@coderline/alphatab` | `src/utils/foreignFormatImport.ts` converts to MIDI, cached next to the source as `<name>_ORFEO_IMPORTED.mid` |
+| Score view | `@coderline/alphatab` | `src/components/ScoreView.tsx` engraves the notation file; its player is `EnabledExternalMedia`, so the cursor follows Orfeo's clock. `src/utils/scoreSource.ts` ties the file to the song, including its `_ORFEO_IMPORTED.mid` copy. Transpose rewrites the loaded score's pitch and key signature, and parts are matched to Orfeo's tracks by MIDI channel. A keyboard part on two staves imports as two tracks: `leftHandChannels` gives the left hand its own channels and `ORFEO_TRACK_HAND` text events name each hand for the parser. `src/utils/fingering.ts` suggests the fingers shown on the score |
 
 `midiParser.ts` also reads Orfeo's own meta events (see next section) so a file
 re-opened in Orfeo restores its key, track names, colours, and edit history.

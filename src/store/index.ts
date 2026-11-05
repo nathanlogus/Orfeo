@@ -1,3 +1,4 @@
+import type { LessonStep } from '../lessons/session'
 import { create } from 'zustand'
 import type {
   ParsedMidi, ParsedTrack, PlaybackState, TrackState,
@@ -6,6 +7,7 @@ import type {
 } from '../types'
 import type { DetectedKey } from '../utils/keyDetection'
 import type { ForeignFormat } from '../utils/foreignFormatImport'
+import type { ScoreSource } from '../utils/scoreSource'
 import type { ProgressionVoicing } from '../utils/voiceLeading'
 import { detectKeyFromTracks, parseKeySignature } from '../utils/keyDetection'
 import { isKeyboardInstrument } from '../utils/gmInstruments'
@@ -160,6 +162,19 @@ interface OrfeoStore {
   mixerBaseline: Record<number, { volume: number; pan: number; chorus: number; reverb: number }>
   midiEditorOpen: boolean
   setMidiEditorOpen: (open: boolean) => void
+  // Session-only: the notation file behind the loaded song, if it has one
+  scoreSource: ScoreSource | null
+  setScoreSource: (source: ScoreSource | null) => void
+  scoreViewMode: 'roll' | 'both' | 'score'
+  // Wait for notes: the song is held still and moves as the player plays it, stepThrough.ts
+  waitForNotes: boolean
+  // 1-5 is a level you chose, 0 is Auto: each phrase's level follows your playing
+  practiceLevel: number
+  setPracticeLevel: (level: number) => void
+  phraseLevels: number[]
+  phraseResult: { percent: number; level: number; mastery: number } | null
+  setWaitForNotes: (on: boolean) => void
+  setScoreViewMode: (mode: 'roll' | 'both' | 'score') => void
   pendingImportedFile: {
     sourcePath: string;
     format: ForeignFormat;
@@ -213,6 +228,16 @@ interface OrfeoStore {
   setCountInEnabled: (v: boolean) => void
   // ── Settings window (session only) — which group it shows; opened from
   // Quick Settings' gear icons / Open settings button / Ctrl + , ──────────
+  // Home page: shown over the app while no song is open, or when asked for
+  homeOpen: boolean
+  // The lesson being taken, and the lessons passed (lessons/session.ts)
+  lessonRun: { id: string; step: LessonStep; percent: number | null; clean: number } | null
+  lessonPassed: string[]
+  setHomeOpen: (open: boolean) => void
+  // A song to open the way a Library click does (SettingsPanel owns that path)
+  songToOpen: string | null
+  openSong: (path: string) => void
+
   settingsWindowOpen: boolean
   settingsWindowGroup: SettingsGroupId
   openSettingsWindow: (group?: SettingsGroupId) => void
@@ -754,6 +779,16 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   setMixerOpen: (mixerOpen) => set({ mixerOpen }),
   midiEditorOpen: false,
   setMidiEditorOpen: (midiEditorOpen) => set({ midiEditorOpen }),
+  scoreSource: null,
+  setScoreSource: (scoreSource) => set({ scoreSource }),
+  scoreViewMode: 'roll',
+  setScoreViewMode: (scoreViewMode) => set({ scoreViewMode }),
+  waitForNotes: false,
+  setWaitForNotes: (waitForNotes) => set({ waitForNotes }),
+  practiceLevel: 5,
+  setPracticeLevel: (practiceLevel) => set({ practiceLevel }),
+  phraseLevels: [],
+  phraseResult: null,
   // ── Pending imported file — session-only, not persisted ──────────────────
   // Set when a foreign format (MusicXML, GP) is converted in-memory but not
   // yet saved to disk as a .mid cache file. Cleared on save or discard.
@@ -859,6 +894,13 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   setSkipEmptyBars: (skipEmptyBars) => set(skipEmptyBars ? { skipEmptyBars, chordTranscriptionEnabled: false } : { skipEmptyBars }),
   keepDrumCountIn: true,
   setKeepDrumCountIn: (keepDrumCountIn) => set({ keepDrumCountIn }),
+  homeOpen: false,
+  lessonRun: null,
+  lessonPassed: [],
+  setHomeOpen: (homeOpen) => set({ homeOpen }),
+  songToOpen: null,
+  openSong: (songToOpen) => set({ songToOpen, presentationMode: false }),
+
   settingsWindowOpen: false,
   settingsWindowGroup: 'audio',
   openSettingsWindow: (group) => set((s) => ({ settingsWindowOpen: true, settingsWindowGroup: group ?? s.settingsWindowGroup })),
@@ -1246,6 +1288,7 @@ async function restoreLibraryPrefs() {
     if (prefs.audioEngine === 'native') store.setAudioEngine(navigator.userAgent.includes('Windows') ? 'native' : 'samples')
     applySamplesIntroducedPref(prefs, store)
     if (typeof prefs.showBarNumbers === 'boolean') store.setShowBarNumbers(prefs.showBarNumbers)
+    if (prefs.scoreViewMode === 'roll' || prefs.scoreViewMode === 'both' || prefs.scoreViewMode === 'score') store.setScoreViewMode(prefs.scoreViewMode)
     if (typeof prefs.noteEditorEnabled === 'boolean') store.setNoteEditorEnabled(prefs.noteEditorEnabled)
     if (typeof prefs.saveTempoKeyChangesEnabled === 'boolean') store.setSaveTempoKeyChangesEnabled(prefs.saveTempoKeyChangesEnabled)
     if (typeof prefs.tapTempoPadEnabled === 'boolean') store.setTapTempoPadEnabled(prefs.tapTempoPadEnabled)
@@ -1359,6 +1402,7 @@ let _prevAccidentals: string | null = null
 let _prevMasterVolume: number | null = null
 let _prevAudioEngine: string | null = null
 let _prevShowBarNumbers: boolean | null = null
+let _prevScoreViewMode: string | null = null
 let _prevNoteEditorEnabled:    boolean | null = null
 let _prevSaveTempoKeyChangesEnabled: boolean | null = null
 let _prevTapTempoPadEnabled: boolean | null = null
@@ -1431,6 +1475,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevMasterVolume = state.masterVolume
     _prevAudioEngine = state.audioEngine
     _prevShowBarNumbers = state.showBarNumbers
+    _prevScoreViewMode = state.scoreViewMode
     _prevNoteEditorEnabled = state.noteEditorEnabled
     _prevSaveTempoKeyChangesEnabled = state.saveTempoKeyChangesEnabled
     _prevTapTempoPadEnabled = state.tapTempoPadEnabled
@@ -1506,6 +1551,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     state.autoLevelOnLoad !== _prevAutoLevelOnLoad ||
     state.audioEngine !== _prevAudioEngine ||
     state.showBarNumbers !== _prevShowBarNumbers ||
+    state.scoreViewMode !== _prevScoreViewMode ||
     state.noteEditorEnabled !== _prevNoteEditorEnabled ||
     state.saveTempoKeyChangesEnabled !== _prevSaveTempoKeyChangesEnabled ||
     state.tapTempoPadEnabled !== _prevTapTempoPadEnabled ||
@@ -1573,6 +1619,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevMasterVolume = state.masterVolume
     _prevAudioEngine = state.audioEngine
     _prevShowBarNumbers = state.showBarNumbers
+    _prevScoreViewMode = state.scoreViewMode
     _prevNoteEditorEnabled = state.noteEditorEnabled
     _prevSaveTempoKeyChangesEnabled = state.saveTempoKeyChangesEnabled
     _prevTapTempoPadEnabled = state.tapTempoPadEnabled
@@ -1646,6 +1693,7 @@ const _unsubPrefs = useStore.subscribe((state) => {
       autoLevelOnLoad: state.autoLevelOnLoad,
       audioEngine: state.audioEngine,
       showBarNumbers: state.showBarNumbers,
+      scoreViewMode: state.scoreViewMode,
       noteEditorEnabled: state.noteEditorEnabled,
       saveTempoKeyChangesEnabled: state.saveTempoKeyChangesEnabled,
       tapTempoPadEnabled: state.tapTempoPadEnabled,

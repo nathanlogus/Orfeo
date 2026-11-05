@@ -1,4 +1,5 @@
 import { useEffect, type RefObject } from 'react'
+import { touchScreen } from '../utils/touchScreen'
 
 // ── Shared focus trap for floating modals ───────────────────────────────────
 // Keeps Tab/Shift+Tab cycling inside `ref`'s subtree while `active` is true,
@@ -19,7 +20,8 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
       Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
         .filter(el => el.offsetParent !== null)
 
-    if (!container.contains(document.activeElement)) {
+    // A finger opened it: the first control doesn't need a focus ring around it
+    if (!touchScreen && !container.contains(document.activeElement)) {
       const first = getFocusable()[0]
       ;(first ?? container).focus()
     }

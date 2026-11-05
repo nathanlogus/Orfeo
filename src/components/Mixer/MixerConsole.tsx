@@ -2,10 +2,10 @@ import { useRef, useState, useEffect, useMemo, useCallback, type CSSProperties }
 import { X } from 'lucide-react'
 import { useStore } from '../../store'
 import { bringToFront, MODAL_BASE_Z } from '../../utils/modalFocus'
-import ChannelStrip from './ChannelStrip'
-import MasterStrip from './MasterStrip'
+import ChannelStrip, { CHANNEL_STRIP_W } from './ChannelStrip'
+import MasterStrip, { MASTER_STRIP_W } from './MasterStrip'
 import OrfeoMark from '../OrfeoMark'
-import { getPianoRollCenterX, getKeyboardHeaderTop } from '../../utils/modalAnchors'
+import { getPianoRollCenterX, modalTopAboveKeyboard } from '../../utils/modalAnchors'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../../utils/modalCloseButtonStyle'
 import { confirmDialog } from '../../utils/confirmController'
 import { parseMidiBuffer } from '../../utils/midiParser'
@@ -15,6 +15,8 @@ import { detectKeyFromTracks, parseKeySignature } from '../../utils/keyDetection
 import { KEYBOARD_GROUPS } from '../../utils/keyboardGroups'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
+import { startModalDrag, MODAL_MAX_HEIGHT } from '../../utils/modalDrag'
+import { touchScreen } from '../../utils/touchScreen'
 
 // ── MixerConsole — floating draggable modal ───────────────────────────────────
 // Opened via Ctrl+Shift+M or the Console (SlidersVertical) icon in the TrackPanel.
@@ -22,9 +24,9 @@ import { useClampPositionOnZoom } from '../../hooks/useClampPositionOnZoom'
 
 // ── Modal dimensions — derived from strip geometry ────────────────────────────
 // n strips × 120px + (n−1) inter-strip gaps × 8px + body-gap 8px + master 160px + padding 2×16px
-const STRIP_W   = 120
+const STRIP_W   = CHANNEL_STRIP_W
 const STRIP_GAP = 8
-const MASTER_W  = 184
+const MASTER_W  = MASTER_STRIP_W
 const BODY_PAD  = 16
 const MAX_STRIPS = 8
 
@@ -79,8 +81,8 @@ export default function MixerConsole() {
     const n = Math.min(Math.max(useStore.getState().tracks.length, 1), MAX_STRIPS)
     const w = BODY_PAD * 2 + n * STRIP_W + (n - 1) * STRIP_GAP + STRIP_GAP + MASTER_W + 2
     setPos({
-      x: Math.round(getPianoRollCenterX() - w / 2),
-      y: Math.round(getKeyboardHeaderTop() - MODAL_H_APPROX) - 11,
+      x: Math.max(0, Math.round(getPianoRollCenterX() - w / 2)),
+      y: modalTopAboveKeyboard(MODAL_H_APPROX, 11),
     })
   }, [mixerOpen])
 
@@ -218,7 +220,7 @@ export default function MixerConsole() {
     const w = BODY_PAD * 2 + n * STRIP_W + (n - 1) * STRIP_GAP + STRIP_GAP + MASTER_W + 2
     return {
       x: Math.max(0, Math.round(getPianoRollCenterX() - w / 2)),
-      y: Math.max(0, Math.round(getKeyboardHeaderTop() - MODAL_H_APPROX) - 11),
+      y: modalTopAboveKeyboard(MODAL_H_APPROX, 11),
     }
   })
 
@@ -298,22 +300,7 @@ export default function MixerConsole() {
   }, [])
 
   // ── Header drag — moves the whole modal ──────────────────────────────────
-  const startDrag = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const sx = e.clientX, sy = e.clientY
-    const spx = pos.x, spy = pos.y
-    const onMove = (ev: MouseEvent) =>
-      // 44, not 0 — keeps the top edge clear of the 40px titleBarOverlay
-      // (electron/main.ts) where Windows draws its own window controls on
-      // top of everything in the DOM.
-      setPos({ x: Math.max(0, spx + ev.clientX - sx), y: Math.max(44, spy + ev.clientY - sy) })
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup',   onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup',   onUp)
-  }
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => startModalDrag(e, modalRef.current, pos, setPos)
 
   // ── Close on Escape ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -332,7 +319,8 @@ export default function MixerConsole() {
       role="dialog"
       aria-modal="true"
       aria-label="Console Mixer"
-      className="orfeo-modal-glow app-no-drag"
+      className="orfeo-modal-glow app-no-drag touch-hit"
+      data-instant
       onMouseDown={() => setZIndex(bringToFront())}
       style={{
         position: 'fixed',
@@ -346,6 +334,8 @@ export default function MixerConsole() {
         // (internal horizontal scroll) instead of the whole modal. calc()
         // tracks live window resizes with no JS listener needed. ───────────
         maxWidth: 'calc(100vw - 24px)',
+        // A phone is shorter than the strips: they scroll, the header stays
+        maxHeight: MODAL_MAX_HEIGHT,
         background: 'var(--bg-modal-header)',
         border: '1px solid var(--border2)',
         borderRadius: 10,
@@ -360,9 +350,9 @@ export default function MixerConsole() {
 
       {/* ── Header — drag handle ─────────────────────────────────────────── */}
       <div
-        onMouseDown={startDrag}
+        onPointerDown={startDrag}
         style={{
-          height: 36, flexShrink: 0,
+          height: touchScreen ? 48 : 36, flexShrink: 0, touchAction: 'none',
           background: 'var(--bg-modal-header)',
           borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center',
@@ -398,7 +388,8 @@ export default function MixerConsole() {
             padding: '0 var(--space-3)',
           }}
         >
-          <span
+          {/* No hover on a touch screen, so a clipped sentence could never scroll */}
+          {!touchScreen && <span
             ref={headerDescRef}
             className={headerDescOverflow > 0 ? 'orfeo-marquee-text is-overflowing' : 'orfeo-marquee-text'}
             style={{
@@ -408,13 +399,12 @@ export default function MixerConsole() {
             }}
           >
             Adjust track levels, apply effects and compress overall loudness
-          </span>
+          </span>}
         </div>
 
         {/* ── Close button — bottom-aligned so the dash sits at X level ─────── */}
         <div
-          style={{ display: 'flex', alignItems: 'flex-end', gap: 2, paddingBottom: 2 }}
-          onMouseDown={e => e.stopPropagation()}
+          style={{ display: 'flex', alignItems: touchScreen ? 'center' : 'flex-end', gap: 2, paddingBottom: touchScreen ? 0 : 2 }}
         >
           <button
             onClick={requestClose}
@@ -432,6 +422,7 @@ export default function MixerConsole() {
         display: 'flex', gap: STRIP_GAP,
         padding: BODY_PAD,
         alignItems: 'flex-start',
+        minHeight: 0, overflowY: 'auto',
       }}>
 
         {/* ── Scrollable channel strip row ────────────────────────────────── */}

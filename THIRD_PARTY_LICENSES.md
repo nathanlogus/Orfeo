@@ -447,6 +447,8 @@ link against or import the MPL-licensed component.
 |---|---|---|
 | `@coderline/alphatab@1.8.4` | coderline/alphaTab | Copyright © 2025, Daniel Kuschny and Contributors, All rights reserved. |
 
+The score view also ships the Bravura music font, included in alphaTab: Copyright © 2015, Steinberg Media Technologies GmbH, licensed under the SIL Open Font License 1.1 (`node_modules/@coderline/alphatab/dist/font/Bravura-OFL.txt`).
+
 ---
 
 ## BlueOak-1.0.0 — [full text](https://blueoakcouncil.org/license/1.0.0) (1 package)

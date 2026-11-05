@@ -16,6 +16,7 @@ import { HAND_LH_CSS, HAND_RH_CSS } from '../../utils/handColors'
 import { HitEffectsRenderer } from './HitEffects'
 import { drainHitEffects } from '../../utils/hitEffectQueue'
 import { isShown } from '../../utils/trackShown'
+import { inPracticeLevel } from '../../utils/practiceLevels'
 
 const VISIBLE_SECONDS  = 6
 const NOTE_RADIUS      = 3
@@ -1004,6 +1005,7 @@ export default function PianoRoll() {
 
           const ts = trackMap.get(note.trackIndex)
           if (ts && !isShown(ts, hasSolo)) continue   // what shows: eye, mute and solo (trackShown.ts)
+          if (!noteEditorActive && !inPracticeLevel(note.trackIndex, note.midi, note.time)) continue
 
           const idx = (note.midi + transpose) - midiMin
           if (idx < 0 || idx >= totalKeys) continue

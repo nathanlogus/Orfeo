@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+
+def pkg = new groovy.json.JsonSlurper().parse(file('../../package.json'))
+def (major, minor, patch) = pkg.version.tokenize('.').collect { it.toInteger() }
+
+android {
+    namespace 'com.squarebow.orfeo'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.squarebow.orfeo'
+        minSdk 26
+        targetSdk 36
+        versionCode major * 10000 + minor * 100 + patch
+        versionName pkg.version
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    // The sound set is read as it plays in: stored, not deflated
+    androidResources { noCompress 'sf2' }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+}

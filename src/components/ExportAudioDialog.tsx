@@ -10,6 +10,7 @@ import { useStore } from '../store'
 import { t } from '../utils/i18n'
 import OrfeoMark from './OrfeoMark'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import { useDraggableDialog, dialogFitsScreen } from '../hooks/useDraggableDialog'
 import { modalCloseButtonStyle, modalCloseButtonHoverColor, modalCloseButtonIdleColor } from '../utils/modalCloseButtonStyle'
 import { SettingsDropdown } from './Settings/controls'
 import { useSoundfontState, allSoundfonts } from '../hooks/useSoundfonts'
@@ -63,29 +64,7 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
   const panelRef = useRef<HTMLDivElement>(null)
   useFocusTrap(panelRef, true)
 
-  // ── Draggable by the title row — starts centred; once dragged, a fixed position
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
-  const drag = useRef<{ startX: number; startY: number; posX: number; posY: number } | null>(null)
-  const startDrag = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return
-    e.preventDefault()
-    const r = panelRef.current?.getBoundingClientRect()
-    const from = pos ?? { x: r?.left ?? 0, y: r?.top ?? 0 }
-    if (!pos) setPos(from)
-    drag.current = { startX: e.clientX, startY: e.clientY, posX: from.x, posY: from.y }
-  }
-  const onDragMove = useCallback((e: MouseEvent) => {
-    const d = drag.current
-    if (!d) return
-    // the top stays below the window's own title bar (40 px of Windows controls)
-    setPos({ x: d.posX + (e.clientX - d.startX), y: Math.max(44, d.posY + (e.clientY - d.startY)) })
-  }, [])
-  const onDragEnd = useCallback(() => { drag.current = null }, [])
-  useEffect(() => {
-    window.addEventListener('mousemove', onDragMove)
-    window.addEventListener('mouseup', onDragEnd)
-    return () => { window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', onDragEnd) }
-  }, [onDragMove, onDragEnd])
+  const { onDragStart, placed } = useDraggableDialog(panelRef)
 
   // What the chosen version holds: no keys part (Focus), or no notes at all
   useEffect(() => {
@@ -142,9 +121,9 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
       onMouseDown={e => { if (e.target === e.currentTarget && !working) close() }}>
       <div ref={panelRef} role="dialog" aria-modal="true" aria-label={t`Export to audio`} className="orfeo-modal-glow app-no-drag"
         style={{ background: 'var(--bg-modal)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', width: 380,
-          '--_modal-shadow': 'var(--elevation-modal)', ...(pos ? { position: 'fixed', left: pos.x, top: pos.y } : {}) } as CSSProperties}
+          '--_modal-shadow': 'var(--elevation-modal)', ...dialogFitsScreen, ...placed } as CSSProperties}
         onMouseDown={e => e.stopPropagation()}>
-        <div onMouseDown={startDrag} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', alignItems: 'center', gap: 6, cursor: 'grab' }}>
+        <div onPointerDown={onDragStart} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', alignItems: 'center', gap: 6, cursor: 'grab', touchAction: 'none' }}>
           <OrfeoMark height={22} />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--text-amber)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t`Export to audio`}</span>
           <button type="button" onClick={close} aria-label={t`Close`} style={modalCloseButtonStyle}

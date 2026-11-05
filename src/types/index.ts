@@ -146,6 +146,40 @@ export interface MidiFileResult {
   base64: string
 }
 
+export interface SongServerSong {
+  path: string
+  title: string
+  artist: string
+  genre: string
+  size: number
+  local: boolean
+  // From catalog.json on the server, where it has them
+  people?: string[]
+  genres?: { name: string; guessed: boolean }[]
+  key?: string
+  bpm?: number
+  meter?: string
+  duration?: number
+  arrangement?: string
+  difficulty?: number
+  busyness?: number
+  classic?: boolean
+  hands?: string
+  art?: string | null
+}
+
+export interface SongServerList {
+  total: number
+  songs: SongServerSong[]
+  genres: { name: string; count: number }[]
+  artists: { name: string; count: number }[]
+  arrangements: { name: string; count: number }[]
+  difficulties: { name: string; count: number }[]
+  keys: { name: string; count: number }[]
+  hands: { name: string; count: number }[]
+  classics: number
+}
+
 export interface LibraryFile {
   name: string
   path: string
@@ -195,6 +229,9 @@ declare global {
       scanMidiFolder:      (path: string) => Promise<LibraryFile[]>
       getDemoFolder:       () => Promise<string | null>
       loadMidiFromPath:    (path: string) => Promise<MidiFileResult | null>
+      songServerQuery:     (address: string, query: Record<string, string | number>) => Promise<SongServerList>
+      songServerDownload:  (address: string, path: string, size: number) => Promise<string>
+      songServerDiscover:  () => Promise<string | null>
       // Export to audio: writes to <library>/Orfeo/Exports, returns the saved path
       saveExport:          (songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => Promise<string>
       statFiles:           (paths: string[]) => Promise<{ path: string; size: number; mtime: number }[]>

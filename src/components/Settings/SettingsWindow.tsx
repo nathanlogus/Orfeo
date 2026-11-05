@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { useDraggableDialog } from '../../hooks/useDraggableDialog'
 import { BookOpen, Search, X } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
@@ -74,29 +75,10 @@ export default function SettingsWindow() {
   useEffect(() => { setTab(0) }, [group, open])
   const contentRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
-  // ── Drag by the header, like the other floating windows — an offset from
-  // the centred spot, reset each time the window opens. ──────────────────
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
-  useEffect(() => { if (open) setOffset({ x: 0, y: 0 }) }, [open])
-  const startDrag = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('input, button, label')) return
-    e.preventDefault()
-    const sx = e.clientX, sy = e.clientY, start = offset
-    const r = dialogRef.current?.getBoundingClientRect()
-    const onMove = (ev: MouseEvent) => {
-      let x = start.x + ev.clientX - sx, y = start.y + ev.clientY - sy
-      if (r) {
-        // keep the whole window on screen, and its top clear of the 40px
-        // title-bar strip where Windows draws its own controls
-        x = Math.min(Math.max(x, start.x - r.left), start.x + (window.innerWidth - r.right))
-        y = Math.min(Math.max(y, start.y + (44 - r.top)), start.y + (window.innerHeight - r.bottom))
-      }
-      setOffset({ x, y })
-    }
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }
+  // ── Drag by the header, like the other floating windows; centred again each
+  // time the window opens. ────────────────────────────────────────────────
+  const { onDragStart, placed, reset } = useDraggableDialog(dialogRef)
+  useEffect(() => { if (open) reset() }, [open, reset])
 
   useLayoutEffect(() => {
     const el = contentRef.current
@@ -128,14 +110,14 @@ export default function SettingsWindow() {
   return createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) close() }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t`Settings`} className="orfeo-modal-glow"
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t`Settings`} className="orfeo-modal-glow orfeo-settle-in touch-settings"
         style={{ width: 'min(1000px, calc(100vw - 48px))', height: 'min(640px, calc(100vh - 48px))',
           background: 'var(--bg-modal)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)',
           display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)', overflow: 'hidden',
-          transform: `translate(${offset.x}px, ${offset.y}px)`,
+          ...placed,
           '--_modal-shadow': 'var(--elevation-modal)' } as CSSProperties}>
         {/* ── Header (drag handle): mark + title | search | close ── */}
-        <div onMouseDown={startDrag} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 320px) minmax(0, 1fr)', alignItems: 'center',
+        <div onPointerDown={onDragStart} style={{ touchAction: 'none', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 320px) minmax(0, 1fr)', alignItems: 'center',
           gap: 12, padding: '10px 14px', borderBottom: '1px solid var(--border2)', background: 'var(--bg-modal-header)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <OrfeoMark height={18} />
@@ -143,7 +125,7 @@ export default function SettingsWindow() {
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', border: '1px solid var(--border2)', borderRadius: 999, background: 'var(--bg-modal)', minWidth: 0 }}>
             <Search size={12} strokeWidth={1.5} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder={t`Search settings…`}
+            <input autoFocus={matchMedia('(pointer: fine)').matches} value={query} onChange={e => setQuery(e.target.value)} placeholder={t`Search settings…`}
               style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: 'var(--text-default)', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-ui)' }} />
             {query && <button onClick={() => setQuery('')} aria-label={t`Clear search`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}><X size={12} /></button>}
           </label>
