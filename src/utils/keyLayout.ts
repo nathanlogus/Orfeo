@@ -10,6 +10,20 @@ export const PIANO_RANGES: Record<number, { min: number; max: number }> = {
   88: { min: 21, max: 108 },
 }
 
+// ── fitKeyRange ───────────────────────────────────────────────────────────────
+// The keys a song's lowest and highest notes need, C to C so the keyboard reads
+// like one, and never under two octaves so a thin melody doesn't get giant keys.
+const FIT_MIN_KEYS = 25
+export function fitKeyRange(low: number, high: number): { min: number; max: number } {
+  let min = Math.max(21, low - low % 12)
+  let max = Math.min(108, high + (12 - high % 12) % 12)
+  while (max - min + 1 < FIT_MIN_KEYS) {
+    if (min - 12 >= 21 && (max + 12 > 108 || low - min <= max - high)) min -= 12
+    else max += 12
+  }
+  return { min, max }
+}
+
 // ── buildKeyLayoutRatios ──────────────────────────────────────────────────────
 // THE canonical key-layout formula — extracted verbatim from Keyboard.tsx.
 // Returns { x, width } as fractions of total container width (0–1 range).

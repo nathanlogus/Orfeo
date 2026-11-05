@@ -7,6 +7,8 @@ import type {
 } from '../types'
 import type { DetectedKey } from '../utils/keyDetection'
 import { tracksShownByDefault } from '../utils/defaultTracks'
+import { fitKeyRange, PIANO_RANGES } from '../utils/keyLayout'
+import { isShown } from '../utils/trackShown'
 import type { ForeignFormat } from '../utils/foreignFormatImport'
 import type { ScoreSource } from '../utils/scoreSource'
 import type { ProgressionVoicing } from '../utils/voiceLeading'
@@ -70,6 +72,8 @@ interface OrfeoStore {
   activeKeyColors: Map<number, string>
 
   setKeyboardSize: (size: KeyboardSize) => void
+  fitKeys: boolean
+  setFitKeys: (fitKeys: boolean) => void
   setKeyboardMode: (mode: KeyboardMode) => void
   setActiveKeys: (keys: Set<number>) => void
   setActiveKeyColors: (colors: Map<number, string>) => void
@@ -456,15 +460,8 @@ interface OrfeoStore {
   showPreciseScrubTime: boolean
   setShowPreciseScrubTime: (v: boolean) => void
 
-  // ── Hidable playbar (Phase 1) — off (hidden) means the piano roll's hit
-  // line tracks the live keyboard position instead of a fixed line; default
-  // true keeps today's behavior byte-for-byte unchanged.
-  playbarVisible: boolean
-  setPlaybarVisible: (v: boolean) => void
-  // Viewport-space Y of the keyboard's top edge, kept live by whichever
-  // Keyboard instance is mounted (docked or floating) while playbarVisible
-  // is false. Null until measured, or whenever playbarVisible is true (no
-  // measurement loop runs — zero overhead when the feature is off).
+  // Viewport-space Y of the keyboard's top edge, where notes land, kept live by
+  // whichever Keyboard instance is mounted (docked or floating). Null until measured.
   keyboardTopY: number | null
   setKeyboardTopY: (y: number | null) => void
 
@@ -706,7 +703,9 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   midiHeldKeys: new Set(),
   activeKeyColors: new Map(),
 
-  setKeyboardSize: (keyboardSize) => set({ keyboardSize }),
+  setKeyboardSize: (keyboardSize) => set({ keyboardSize, fitKeys: false }),
+  fitKeys: true,
+  setFitKeys: (fitKeys) => set({ fitKeys }),
   setKeyboardMode: (keyboardMode) => set({ keyboardMode }),
   setActiveKeys: (activeKeys) => set({ activeKeys }),
   setActiveKeyColors: (activeKeyColors) => set({ activeKeyColors }),
@@ -1102,8 +1101,6 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   showPreciseScrubTime: false,
   setShowPreciseScrubTime: (showPreciseScrubTime) => set({ showPreciseScrubTime }),
 
-  playbarVisible: false,
-  setPlaybarVisible: (playbarVisible) => set({ playbarVisible }),
   keyboardTopY: null,
   setKeyboardTopY: (keyboardTopY) => set({ keyboardTopY }),
 
@@ -1364,7 +1361,6 @@ async function restoreLibraryPrefs() {
     if (Array.isArray(prefs.transcriptHistory)) useStore.setState({ transcriptHistory: prefs.transcriptHistory })
     if (typeof prefs.noteEditorWalkthroughSeen === 'boolean') store.setNoteEditorWalkthroughSeen(prefs.noteEditorWalkthroughSeen)
     // A new name: every install saved the old default, and the line now sits on the keys
-    if (typeof prefs.rollPlaybar === 'boolean') store.setPlaybarVisible(prefs.rollPlaybar)
     if (typeof prefs.hitEffectsEnabled === 'boolean') store.setHitEffectsEnabled(prefs.hitEffectsEnabled)
     const validPatterns: HitEffectPattern[] = ['glowBloom', 'rippleRing', 'particleBurst', 'smokePlume', 'colorAura', 'starburstNova', 'cometTrail']
     if (validPatterns.includes(prefs.hitEffectPattern)) store.setHitEffectPattern(prefs.hitEffectPattern)
@@ -1465,7 +1461,6 @@ let _prevTrackVuColorEnabled: boolean | null = null
 let _prevAutoMuteNonKeyboard: boolean | null = null
 let _prevSettingsGroupsCollapsed: string | null = null
 let _prevNoteEditorWalkthroughSeen: boolean | null = null
-let _prevPlaybarVisible: boolean | null = null
 let _prevHitEffectsEnabled: boolean | null = null
 let _prevHitEffectPattern: string | null = null
 let _prevHitEffectBloomThreshold: number | null = null
@@ -1538,7 +1533,6 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevAutoMuteNonKeyboard = state.autoMuteNonKeyboard
     _prevSettingsGroupsCollapsed = JSON.stringify(state.settingsGroupsCollapsed)
     _prevNoteEditorWalkthroughSeen = state.noteEditorWalkthroughSeen
-    _prevPlaybarVisible = state.playbarVisible
     _prevHitEffectsEnabled = state.hitEffectsEnabled
     _prevHitEffectPattern = state.hitEffectPattern
     _prevHitEffectBloomThreshold = state.hitEffectBloomThreshold
@@ -1614,7 +1608,6 @@ const _unsubPrefs = useStore.subscribe((state) => {
     state.autoMuteNonKeyboard !== _prevAutoMuteNonKeyboard ||
     JSON.stringify(state.settingsGroupsCollapsed) !== _prevSettingsGroupsCollapsed ||
     state.noteEditorWalkthroughSeen !== _prevNoteEditorWalkthroughSeen ||
-    state.playbarVisible !== _prevPlaybarVisible ||
     state.hitEffectsEnabled !== _prevHitEffectsEnabled ||
     state.hitEffectPattern !== _prevHitEffectPattern ||
     state.hitEffectBloomThreshold !== _prevHitEffectBloomThreshold ||
@@ -1682,7 +1675,6 @@ const _unsubPrefs = useStore.subscribe((state) => {
     _prevAutoMuteNonKeyboard = state.autoMuteNonKeyboard
     _prevSettingsGroupsCollapsed = JSON.stringify(state.settingsGroupsCollapsed)
     _prevNoteEditorWalkthroughSeen = state.noteEditorWalkthroughSeen
-    _prevPlaybarVisible = state.playbarVisible
     _prevHitEffectsEnabled = state.hitEffectsEnabled
     _prevHitEffectPattern = state.hitEffectPattern
     _prevHitEffectBloomThreshold = state.hitEffectBloomThreshold
@@ -1757,7 +1749,6 @@ const _unsubPrefs = useStore.subscribe((state) => {
       autoMuteNonKeyboard: state.autoMuteNonKeyboard,
       settingsGroupsCollapsed: state.settingsGroupsCollapsed,
       noteEditorWalkthroughSeen: state.noteEditorWalkthroughSeen,
-      rollPlaybar: state.playbarVisible,
       hitEffectsEnabled: state.hitEffectsEnabled,
       hitEffectPattern: state.hitEffectPattern,
       hitEffectBloomThreshold: state.hitEffectBloomThreshold,
@@ -1864,4 +1855,26 @@ export function currentCorrection(s: Pick<OrfeoStore, 'songKey' | 'tempoCorrecti
   if (!c) return null
   const lead = s.midi?._leadSec ?? 0
   return lead ? correctionToSong(c, lead) : c
+}
+
+// ── The keys on screen: the size picked, or just the ones the song's shown notes
+// need. The Note Editor and the Explorers can reach keys the song doesn't use.
+let fitted: { midi: unknown; tracks: unknown; transpose: number; range: { min: number; max: number } | null } | null = null
+export function activeKeyRange(s: OrfeoStore): { min: number; max: number } {
+  const full = PIANO_RANGES[s.keyboardSize] ?? PIANO_RANGES[88]
+  if (!s.fitKeys || !s.midi || s.noteEditorActive || s.chordExplorerOpen || s.scaleExplorerOpen) return full
+  const transpose = s.detectedKey?.transpose ?? 0
+  if (fitted?.midi !== s.midi || fitted.tracks !== s.tracks || fitted.transpose !== transpose) {
+    const hasSolo = s.tracks.some(t => t.solo)
+    const shown = new Set(s.tracks.filter(t => isShown(t, hasSolo) && !t.isDrum).map(t => t.index))
+    let low = Infinity, high = -Infinity
+    for (const t of s.midi.tracks) if (shown.has(t.index)) for (const n of t.notes) {
+      low = Math.min(low, n.midi + transpose); high = Math.max(high, n.midi + transpose)
+    }
+    const range = low <= high ? fitKeyRange(low, high) : null
+    // Same keys, same object: moving a fader mustn't redraw the keyboard
+    const same = range && fitted?.range?.min === range.min && fitted.range.max === range.max
+    fitted = { midi: s.midi, tracks: s.tracks, transpose, range: same ? fitted!.range : range }
+  }
+  return fitted.range ?? full
 }

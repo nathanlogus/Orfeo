@@ -1,11 +1,11 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { useStore } from '../../store'
+import { useStore, activeKeyRange } from '../../store'
 import { isScoreOnly } from '../../utils/scoreSource'
 import { isBlackKey } from '../../utils/midiParser'
 import { getNoteLabel, getNoteName } from '../../utils/noteNames'
 import { detectChord, detectChordWithInversion, inversionForKnownChord, formatInversionDisplay, localizeChord, ordinalSuffix, buildCompactVoicing } from '../../utils/chordDetection'
-import { buildKeyLayoutRatios, PIANO_RANGES as RANGES } from '../../utils/keyLayout'
+import { buildKeyLayoutRatios } from '../../utils/keyLayout'
 import { notesSoundingAt } from '../../utils/midiParser'
 import type { SoundingNote } from '../../utils/midiParser'
 import { buildPitchHandIndex, lookupNoteHandAtTime, detectPerformanceBoundary } from '../../utils/handBoundaries'
@@ -47,6 +47,7 @@ function resolveCurrentIndex(seq: { displayTime: number }[], currentTime: number
 
 export default function Keyboard() {
   const keyboardSize = useStore((s) => s.keyboardSize)
+  const { min, max } = useStore(activeKeyRange)
   const activeKeys = useStore((s) => isScoreOnly(s) ? s.midiHeldKeys : s.activeKeys)
   const activeKeyColors = useStore((s) => s.activeKeyColors)
   const noteNaming              = useStore((s) => s.noteNaming)
@@ -144,7 +145,6 @@ export default function Keyboard() {
   const handLabelMode = useStore((s) => s.handLabelMode)
   const performanceSplitSensitivity = useStore((s) => s.performanceSplitSensitivity)
   const presentationMode = useStore((s) => s.presentationMode)
-  const playbarVisible = useStore((s) => s.playbarVisible)
   const shiftHeldRef = useRef(false)
   // ── Tracks whether the primary mouse button is held, enabling glissando drag ──
   const isMouseDown = useRef(false)
@@ -348,7 +348,6 @@ export default function Keyboard() {
     const { realMidi, displayName, inversionCount } = chordCtxMenu
     // ── The real voicing from the file (built in handleChordContextMenu).
     // Clamp to the current keyboard's playable range as a safety net. ──────
-    const { min, max } = RANGES[keyboardSize] ?? RANGES[73]
     const midiNotes = realMidi.filter(m => m >= min && m <= max)
     if (midiNotes.length > 0) {
       // ── Lock-a-chord is a single detached chord being studied while
@@ -368,7 +367,7 @@ export default function Keyboard() {
       useStore.getState().setLockedChordNoteCount(new Set(midiNotes.map(m => m % 12)).size)
     }
     setChordCtxMenu(null)
-  }, [chordCtxMenu, keyboardSize, setLockedKeysStore, chordExplorerOpen, scaleExplorerOpen])
+  }, [chordCtxMenu, min, max, setLockedKeysStore, chordExplorerOpen, scaleExplorerOpen])
 
   const handleOpenChordInExplorer = useCallback(() => {
     if (!chordCtxMenu) return
@@ -435,7 +434,6 @@ export default function Keyboard() {
     return () => window.removeEventListener('mouseup', up)
   }, [])
 
-  const { min, max } = RANGES[keyboardSize]
   const keys = useMemo(() => {
     const list: { midi: number; isBlack: boolean }[] = []
     for (let m = min; m <= max; m++) list.push({ midi: m, isBlack: isBlackKey(m) })
@@ -640,19 +638,11 @@ export default function Keyboard() {
     return () => { ro.disconnect(); window.removeEventListener('resize', update) }
   }, [whiteKeys.length, floating, presentationMode])
 
-  // ── Live keyboard top-edge tracking (Phase 1: hidable playbar) ─────────────
-  // Only runs while the playbar is actually hidden — zero overhead (no rAF
-  // loop at all) when playbarVisible is true, which is the default. A plain
-  // rAF poll covers both docked layout changes and floating-panel drag in one
+  // ── Live keyboard top-edge tracking, where notes land ──────────────────────
+  // A plain rAF poll covers both docked layout changes and floating-panel drag in one
   // code path, since dragging FloatingKeyboard only moves this same element
   // via CSS position — no separate drag-event wiring needed here.
   useEffect(() => {
-    if (!playbarVisible) return
-    useStore.getState().setKeyboardTopY(null)
-  }, [playbarVisible])
-
-  useEffect(() => {
-    if (playbarVisible) return
     let rafId: number
     let lastY: number | null = null
     const tick = () => {
@@ -668,7 +658,7 @@ export default function Keyboard() {
     }
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [playbarVisible])
+  }, [])
 
   // ── The chord disc on the roll, in place of a strip over the keys. It sits in
   // the roll area whether the keyboard is docked or floating. ─────────────────

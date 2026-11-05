@@ -216,7 +216,7 @@ button.xp-chip { cursor: pointer; }
 .xp-pe-cols, .xp-pe-row { display: grid; grid-template-columns: 52px 48px minmax(0, 1.3fr) minmax(0, 1.2fr) 72px 68px 68px 60px 60px; align-items: center; column-gap: 6px; padding: 0 12px; }
 .xp-pe-cols { flex-shrink: 0; min-height: 38px; padding-right: 17px; border-bottom: 1px solid var(--ui-line); font-size: var(--text-sm); color: var(--ui-text-soft); }
 .xp-pe-list { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
-.xp-pe-row { min-height: 58px; border-bottom: 1px solid var(--ui-line-soft); transition: opacity 0.15s; }
+.xp-pe-row { min-height: 58px; border-bottom: 1px solid var(--ui-line-soft); transition: opacity var(--motion-fast) var(--ease-out); }
 .xp-pe-row[data-off] { opacity: 0.5; }
 .xp-pe-row[data-picked] { background: var(--ui-sunken); }
 .xp-pe-keep { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; }

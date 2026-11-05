@@ -5,13 +5,13 @@
 // any library: without a catalog a card is just its file name.
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, CloudDownload, Loader2, Search, X } from 'lucide-react'
+import { Check, CloudDownload, Loader2, Play, Search, Square, X } from 'lucide-react'
 import { useStore } from '../../store'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { t } from '../../utils/i18n'
 import { SettingsDropdown, Switch } from '../Settings/controls'
 import {
-  NO_FILTERS, buildCards, facets, filterCards, formatDuration, genreLabel, sortCards,
+  NO_FILTERS, buildCards, facets, filterCards, formatDuration, genreFill, genreLabel, sortCards,
   type Facet, type SongCard, type SongFilters, type SongSort,
 } from '../../utils/songCatalog'
 
@@ -53,6 +53,45 @@ export function Art({ card, tilt = 0 }: { card: Pick<SongCard, 'art' | 'title'>;
   return <span className="lib-art" aria-hidden style={style}>{card.title.trim().charAt(0).toUpperCase()}</span>
 }
 
+// The album: pressing it plays a preview, and the record slides out and spins
+export function PreviewCover({ card, tilt, preview, onToggle }: {
+  card: Pick<SongCard, 'art' | 'title'>
+  tilt?: number
+  preview?: 'loading' | 'playing'
+  onToggle: () => void
+}) {
+  return (
+    <button className="lib-cover" data-preview={preview} aria-pressed={!!preview} aria-label={preview ? t`Stop the preview of ${card.title}` : t`Play a preview of ${card.title}`} onClick={onToggle}>
+      <span className="lib-vinyl" aria-hidden><span className="lib-vinyl-disc"><Art card={card} /></span></span>
+      <Art card={card} tilt={tilt} />
+      <span className="lib-cover-state" aria-hidden>
+        {preview === 'loading' ? <Loader2 size={16} className="home-spin" /> : preview === 'playing' ? <Square size={14} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+      </span>
+    </button>
+  )
+}
+
+// The turntable a preview plays on: the arm drops in and tracks across the record
+export function PreviewDeck({ card, playing, onStop }: {
+  card: Pick<SongCard, 'art' | 'title' | 'people'>
+  playing: boolean
+  onStop: () => void
+}) {
+  return (
+    <aside className="lib-deck" aria-label={t`Song preview`} data-playing={playing || undefined}>
+      <span className="lib-deck-plinth" aria-hidden>
+        <span className="lib-deck-platter"><span className="lib-vinyl-disc"><Art card={card} /></span></span>
+        <span className="lib-deck-arm"><i /></span>
+      </span>
+      <span className="lib-deck-text">
+        <span className="lib-deck-title" title={card.title}>{card.title}</span>
+        <span className="lib-deck-sub">{playing ? card.people.join(', ') : t`Loading the preview`}</span>
+      </span>
+      <button className="o-icon-btn" aria-label={t`Stop the preview`} onClick={onStop}><Square size={15} fill="currentColor" /></button>
+    </aside>
+  )
+}
+
 export type SongStatus = 'opening' | 'local' | 'remote' | 'failed'
 
 export function StatusTag({ status }: { status: SongStatus }) {
@@ -75,7 +114,7 @@ export function Downloading({ percent }: { percent: number | null }) {
   </>
 }
 
-export const Card = memo(function Card({ card, index, loaded, mastery, status, percent = null, failure, onOpen }: {
+export const Card = memo(function Card({ card, index, loaded, mastery, status, percent = null, failure, preview, onPreview, onOpen }: {
   card: SongCard
   index: number
   loaded: boolean
@@ -83,8 +122,12 @@ export const Card = memo(function Card({ card, index, loaded, mastery, status, p
   status?: SongStatus
   percent?: number | null
   failure?: string
+  preview?: 'loading' | 'playing'
+  onPreview?: () => void
   onOpen: (path: string) => void
 }) {
+  const fill = card.genres[0] ? genreFill(card.genres[0].name) : CARD_FILLS[index % CARD_FILLS.length]
+  const tilt = index % 2 ? -2 : 2
   const facts = [card.key, card.bpm ? `${card.bpm} BPM` : null, formatDuration(card.duration)].filter(Boolean).join(' · ')
   // Try again is its own button, and a button can't hold one
   if (status === 'failed') return (
@@ -96,9 +139,10 @@ export const Card = memo(function Card({ card, index, loaded, mastery, status, p
     </div>
   )
   return (
-    <button className="lib-card" data-opening={status === 'opening' || undefined} onClick={() => onOpen(card.path)} aria-current={loaded || undefined} style={{ background: CARD_FILLS[index % CARD_FILLS.length] }}>
+    <div className="lib-card-wrap">
+    <button className="lib-card" data-opening={status === 'opening' || undefined} onClick={() => onOpen(card.path)} aria-current={loaded || undefined} style={{ background: fill }}>
       <span className="lib-card-top">
-        <Art card={card} tilt={index % 2 ? -2 : 2} />
+        {onPreview ? <span className="lib-cover-slot" /> : <Art card={card} tilt={tilt} />}
         <span className="lib-card-tags">
           {card.genres.slice(0, 2).map(g => (
             <span key={g.name} className="lib-tag" data-guessed={g.guessed || undefined} title={g.guessed ? t`Genre guessed from the title or composer` : undefined}>{genreLabel(g.name)}</span>
@@ -121,6 +165,8 @@ export const Card = memo(function Card({ card, index, loaded, mastery, status, p
         <span className="lib-card-artist">{masteryLabel(mastery)}</span>
       </>}
     </button>
+    {onPreview && <PreviewCover card={card} tilt={tilt} preview={preview} onToggle={onPreview} />}
+    </div>
   )
 })
 

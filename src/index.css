@@ -320,6 +320,15 @@ button, input, select, textarea {
   --font-code: 'IBM Plex Mono', monospace;
   --font-logo: 'Inter', 'Georgia', serif;
 
+  /* ── Motion. Fast is a press, a hover or a state flip; base is a menu or window
+     opening; slow is a page coming in. Nothing pressed repeatedly goes past base. */
+  --motion-fast: 100ms;
+  --motion-base: 160ms;
+  --motion-slow: 240ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);    /* arrives and settles */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* moves between two resting places */
+  --control-transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), scale var(--motion-fast) var(--ease-out);
+
   /* ── Palette — the design's raw colours. Components use the semantic tokens
      below; reach for these only for the coloured fills on cards and tiles.
      Text on a --paint-* fill is always --ink: white fails 4.5:1 on most. */
@@ -339,6 +348,9 @@ button, input, select, textarea {
   --paint-pink: #ff4dd5;    /* alerts, the new-version dot, decorative triangle */
   --paint-rose: #ee84d5;    /* level tag, a card fill */
   --paint-olive: #c6dc3c;   /* a card fill */
+  --paint-coral: #ff9f73;   /* genre colour: samba and carnival */
+  --paint-sky: #86dcf2;     /* genre colour: bossa nova */
+  --paint-lilac: #bcaaff;   /* genre colour: ragtime */
   --accent: var(--paint-yellow);
   --on-accent: var(--ink);
   --scrim: rgba(36, 33, 31, 0.72);
@@ -619,7 +631,7 @@ button, input, select, textarea {
    through --_modal-shadow in inline style for a different lift. */
 .orfeo-modal-glow {
   box-shadow: var(--_modal-shadow, var(--elevation-modal));
-  animation: orfeo-fade-in 0.12s ease-out backwards;
+  animation: orfeo-rise-in var(--motion-base) var(--ease-out) backwards;
 }
 
 /* ── Amber range slider — transparent-amber fill over a gray track, solid
@@ -683,7 +695,7 @@ button, input, select, textarea {
   background: transparent;
   color: var(--text-standard);
   cursor: pointer;
-  transition: color 0.15s;
+  transition: var(--control-transition);
 }
 @media (hover: hover) {
   .orfeo-button:hover {
@@ -973,18 +985,37 @@ body {
 /* Numbers that change while you watch them don't jitter sideways */
 .orfeo-value { font-variant-numeric: tabular-nums; }
 
-/* ── Press feedback: a pressed button gives way a little. Only the press
-   itself is timed here, !important because many buttons carry their own
-   inline colour transition; the release uses whatever the button already has.
+/* ── Press feedback. A pressed button gives way a little, through the scale
+   property so it adds to a button's own transform instead of replacing it.
+   :where keeps these defaults below any class that sets its own transition.
    [data-instant] marks what's used while playing (transport, steppers, keys,
-   mixer, explorers), which stays instant and never shifts. */
+   mixer, explorers): it never shifts, and it dims on the press itself, with the
+   ease only on the way back. Its colours snap, because a lit tile there can be
+   following the music; the list below is what only a press can change. */
+:where(button) { transition: var(--control-transition); }
+:where([data-instant] button, button[data-instant]) { transition: opacity var(--motion-fast) var(--ease-out); }
+.pr-tile, .pr-rail-play, button.pr-tbtn, button.pr-step, button.pr-level, button.pr-focus, button.pr-track-btn, button.pr-mix-btn, button.pr-comp, .pr-present-toggle, .pr-step-pill button, .xp-seg button, .xp-ne-show, .xp-ne-round, .xp-tap-btn, .xp-back, .xp-pick { transition: var(--control-transition); }
+.o-select-item, .o-group-head { transition: var(--control-transition); }
+button:active:not(:disabled):is([data-instant], [data-instant] *) { opacity: 0.7; transition-duration: 0ms !important; }
 @media (prefers-reduced-motion: no-preference) {
-  button { transition: transform 150ms ease-out; }
-  button:active:not(:disabled):not([data-instant] *) {
-    transform: scale(0.96);
-    transition: transform 150ms ease-out !important;
-  }
+  button:active:not(:disabled, [data-instant], [data-instant] *) { scale: 0.97; }
+  /* A card and its cover are siblings, so they press and lift as one */
+  .lib-card-wrap { transition: scale var(--motion-fast) var(--ease-out), translate var(--motion-fast) var(--ease-out); }
+  .lib-card-wrap:active { scale: 0.985; }
+  .lib-card-wrap > button:active { scale: none; }
+  input[type='range']::-webkit-slider-thumb { transition: transform var(--motion-fast) var(--ease-out); }
+  input[type='range']:active:not(:disabled)::-webkit-slider-thumb { transform: scale(1.12); }
+  .pr-fader-cap { transition: scale var(--motion-fast) var(--ease-out); }
+  .pr-fader-cap:active { scale: 1.06; }
 }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .lib-card-wrap:hover { translate: 0 -2px; }
+}
+/* A wide row would move too many pixels at that scale: it dims instead */
+:is(.lib-row-open, .lib-file-name, .lib-nav-item, .lib-folder, .lib-move-item, .learn-row, .lesson-row, .o-menu-item, .o-select-item, .xp-menu button, .xp-inst-list button, .set-nav-list button):active:not(:disabled) { scale: none; opacity: 0.7; }
+
+/* Whatever a muted strip dims follows the press, not the music */
+.pr-strip > * { transition: opacity var(--motion-fast) var(--ease-out); }
 
 /* ── Mixer Console — scrollable channel strip row ────────────────────────────
    Thin dark scrollbar; auto-shows only when content overflows.               */
@@ -1076,17 +1107,44 @@ textarea:focus-visible,
 ::-webkit-scrollbar-button { display: none; }
 .titlebar-button { background: transparent !important; }
 
-/* ── Entrances — one short sequence, once. What's measured as it opens
-   (the mixer, the explorers) only fades, so its position reads true. */
+/* ── Entrances — one short sequence, once. What's used while playing and the
+   floating keyboard the hit line measures only fade, so their position reads
+   true. Keyframes use translate and scale, not transform: those add to the
+   translateX(-50%) a toast or a warning is centred with. Whatever opens is
+   measured by its size at most, so windows rise, and only menus scale. */
 @keyframes orfeo-fade-in { from { opacity: 0; } }
-@keyframes orfeo-rise-in { from { opacity: 0; transform: translateY(6px); } }
-@keyframes orfeo-settle-in { from { opacity: 0; transform: scale(0.98); } }
-:root .orfeo-settle-in { animation: orfeo-settle-in 0.18s ease-out backwards; }
-.orfeo-rise-in { animation: orfeo-rise-in 0.24s ease-out backwards; }
-.orfeo-rise-in-2 { animation-delay: 0.1s; }
-.orfeo-rise-in-3 { animation-delay: 0.2s; }
+@keyframes orfeo-rise-in { from { opacity: 0; translate: 0 6px; } }
+@keyframes orfeo-settle-in { from { opacity: 0; scale: 0.98; } }
+@keyframes orfeo-slide-in { from { opacity: 0; translate: var(--slide-from, -12px) 0; } }
+@keyframes orfeo-tick { from { opacity: 0.55; } }
+:root .orfeo-settle-in { animation: orfeo-settle-in var(--motion-base) var(--ease-out) backwards; }
+.orfeo-rise-in { animation: orfeo-rise-in var(--motion-slow) var(--ease-out) backwards; }
+.orfeo-rise-in-2 { animation-delay: 40ms; }
+.orfeo-rise-in-3 { animation-delay: 80ms; }
+.orfeo-modal-glow[data-instant], .orfeo-modal-glow.pr-float { animation-name: orfeo-fade-in; }
+.o-tip { animation: orfeo-fade-in var(--motion-fast) var(--ease-out) backwards; }
+.o-tick { animation: orfeo-tick var(--motion-base) var(--ease-out); }
+.o-scrim, .pr-setup-scrim, .pr-result-floor, .lib-browser, .lib-folders, .lesson-page, .lesson-work, .drop-overlay, .set-page, .lib-alert, .lesson-alert, .lib-connect-alert, .set-alert, .pr-update-card, .set-update { animation: orfeo-fade-in var(--motion-base) var(--ease-out) backwards; }
+.o-select-list, .xp-menu, .xp-pop, .pr-metro, .xp-rite, [role='menu'], .lesson-result, .lesson-answer[data-answer] { animation: orfeo-settle-in var(--motion-base) var(--ease-out) backwards; }
+.o-select-list { transform-origin: top; }
+.o-toast, .lesson-passed-text { animation: orfeo-rise-in var(--motion-base) var(--ease-out) backwards; }
+.pr-result { animation: orfeo-rise-in var(--motion-slow) var(--ease-out) backwards; }
+.pr-result-disc { animation: orfeo-settle-in var(--motion-slow) var(--ease-out) backwards; }
+.pr-setup { animation: orfeo-slide-in var(--motion-base) var(--ease-out) backwards; }
+/* The panel's width stays instant: animating it would resize the roll every frame */
+.pr-tracks[data-open='true'] .pr-tracks-inner { --slide-from: 12px; animation: orfeo-slide-in var(--motion-base) var(--ease-out) backwards; }
+
+/* Short, steady lists arrive in a small wave. Not the Library's cards: a search
+   crossing this limit would replay it over every card still on screen */
+:is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > * { animation: orfeo-rise-in var(--motion-base) var(--ease-out) backwards; }
+:is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > :nth-child(n + 3) { animation-delay: 30ms; }
+:is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > :nth-child(n + 6) { animation-delay: 60ms; }
+:is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > :nth-child(n + 9) { animation-delay: 90ms; }
+
+/* The one rule that stills everything. Near zero rather than none, so anything
+   waiting on an animation or transition end still hears it */
 @media (prefers-reduced-motion: reduce) {
-  :root .orfeo-settle-in, .orfeo-rise-in { animation-name: orfeo-fade-in; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; transition-delay: 0ms !important; }
 }
 
 /* Loop nudge blink — pulses via filter so inline color styles are unaffected */
@@ -1095,9 +1153,6 @@ textarea:focus-visible,
   50%       { filter: brightness(0.3); }
 }
 .loop-nudge-blink { animation: orfeo-loop-blink 1.4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-  .loop-nudge-blink { animation: none; }
-}
 
 /* Console Mixer header description marquee — only engages on hover, and only
    for text wider than its available space (--marquee-distance is set by JS
@@ -1111,9 +1166,6 @@ textarea:focus-visible,
     animation: orfeo-marquee 6s ease-in-out infinite;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .orfeo-marquee-track:hover .orfeo-marquee-text.is-overflowing { animation: none; }
-}
 
 /* Tap Tempo pad — brief pop on each tap (re-triggered via React key) */
 @keyframes orfeo-tap-pulse { from { transform: scale(1.18) } to { transform: scale(1) } }
@@ -1122,12 +1174,10 @@ textarea:focus-visible,
 /* Tempo warning — slow amber pulse (Settings → Tempo warnings) */
 @keyframes orfeo-warn-pulse { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: 0.35; transform: scale(0.75) } }
 .orfeo-warn-pulse { animation: orfeo-warn-pulse 1.6s ease-in-out infinite }
-@media (prefers-reduced-motion: reduce) { .orfeo-warn-pulse { animation: none } }
 
 /* Count-in — each beat number pops in (see CountInOverlay) */
 @keyframes orfeo-countin-pop { from { transform: scale(1.25); opacity: 0.2 } to { transform: scale(1); opacity: 0.85 } }
 .orfeo-countin-pop { animation: orfeo-countin-pop 0.15s ease-out }
-@media (prefers-reduced-motion: reduce) { .orfeo-countin-pop { animation: none } }
 
 /* ── Top bar ──────────────────────────────────────────────────────────────
    A readout is a small inset tile. Its corners wrap the --radius-sm steppers
@@ -1154,23 +1204,23 @@ textarea:focus-visible,
 
 /* ── Home page ─────────────────────────────────────────────────────────────
    Rows and filters stay at least 44px tall on touch screens (Android). */
-.home-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border: 1px solid var(--border2); border-radius: 999px; background: var(--bg-tile); color: var(--text-muted); transition: border-color 0.12s; }
+.home-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border: 1px solid var(--border2); border-radius: 999px; background: var(--bg-tile); color: var(--text-muted); transition: var(--control-transition); }
 .home-search:focus-within { border-color: var(--text-amber); }
 .home-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text-active); font: inherit; font-size: var(--text-md); }
 .home-search button { display: flex; padding: 4px; margin-right: -6px; background: none; border: none; color: inherit; cursor: pointer; }
 .home-tabs { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border2); border-radius: var(--radius-lg); background: var(--bg-modal); }
 .home-tab, .home-action, .home-link, .home-icon, .home-filter, .home-song { font-family: inherit; cursor: pointer; border: none; }
-.home-tab { height: 30px; padding: 0 12px; border-radius: var(--radius-md); background: none; color: var(--text-muted); font-size: var(--text-base); white-space: nowrap; transition: background-color 0.12s, color 0.12s, transform 150ms ease-out; }
+.home-tab { height: 30px; padding: 0 12px; border-radius: var(--radius-md); background: none; color: var(--text-muted); font-size: var(--text-base); white-space: nowrap; transition: var(--control-transition); }
 .home-tab[aria-selected='true'] { background: var(--bg-tile); color: var(--text-amber); }
-.home-action { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border2); border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); white-space: nowrap; transition: background-color 0.12s, transform 150ms ease-out; }
+.home-action { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border2); border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); white-space: nowrap; transition: var(--control-transition); }
 .home-primary { background: var(--text-amber); border-color: var(--text-amber); color: var(--text-near-black); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
-.home-icon { display: flex; padding: 8px; border-radius: var(--radius-md); background: none; color: var(--text-muted); transition: background-color 0.12s, transform 150ms ease-out; }
+.home-icon { display: flex; padding: 8px; border-radius: var(--radius-md); background: none; color: var(--text-muted); transition: var(--control-transition); }
 .home-link { padding: 4px; background: none; color: var(--text-amber); font-size: var(--text-sm); }
 .home-heading { margin: 0 0 6px; padding: 0 8px; color: var(--text-muted); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
-.home-filter { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 0 8px; border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); text-align: left; transition: background-color 0.12s, transform 150ms ease-out; }
+.home-filter { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 0 8px; border-radius: var(--radius-md); background: none; color: var(--text-default); font-size: var(--text-base); text-align: left; transition: var(--control-transition); }
 .home-filter[aria-pressed='true'] { background: var(--accent-amber-tint-bg); color: var(--text-amber); }
 .home-filter-search { width: 100%; height: 30px; margin-bottom: 6px; padding: 0 8px; box-sizing: border-box; border: 1px solid var(--border2); border-radius: var(--radius-sm); outline: none; background: var(--bg-tile); color: var(--text-active); font: inherit; font-size: var(--text-sm); }
-.home-song { width: 100%; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1fr) 14px; align-items: center; gap: 12px; min-height: 44px; padding: 0 8px; border-bottom: 1px solid var(--border); background: none; color: var(--text-muted); font-size: var(--text-sm); text-align: left; transition: background-color 0.1s; }
+.home-song { width: 100%; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1fr) 14px; align-items: center; gap: 12px; min-height: 44px; padding: 0 8px; border-bottom: 1px solid var(--border); background: none; color: var(--text-muted); font-size: var(--text-sm); text-align: left; transition: var(--control-transition); }
 /* A long list only darkens under the finger: its rows don't shrink */
 .home-song:active:not(:disabled) { background-color: var(--bg-tile); transform: none !important; }
 .home-song > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1188,10 +1238,9 @@ textarea:focus-visible,
 .home-connect code { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-amber); }
 .home-connect input { width: 100%; height: 38px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--border2); border-radius: var(--radius-md); outline: none; background: var(--bg-tile); color: var(--text-active); font-family: var(--font-mono); font-size: var(--text-md); }
 .home-connect input:focus { border-color: var(--text-amber); }
-.home-connect input { transition: border-color 0.12s; }
+.home-connect input { transition: var(--control-transition); }
 .home-spin { animation: home-spin 0.9s linear infinite; }
 @keyframes home-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .home-spin { animation: none; } }
 .home-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 4px 8px; }
 .home-card { position: relative; display: flex; min-width: 0; }
 .home-card > button { flex: 1; }
@@ -1266,7 +1315,7 @@ textarea:focus-visible,
 .lesson-options { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .lesson-right { color: var(--text-amber); }
 .lesson-wrong { color: var(--text-default); }
-.lesson-row { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 8px; border: none; border-bottom: 1px solid var(--border); background: none; color: var(--text-muted); font-family: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; transition: background-color 0.1s; }
+.lesson-row { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 8px; border: none; border-bottom: 1px solid var(--border); background: none; color: var(--text-muted); font-family: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; transition: var(--control-transition); }
 .lesson-row:disabled { cursor: default; opacity: 0.55; }
 .lesson-row:focus-visible { outline: 2px solid var(--text-amber); outline-offset: -2px; }
 .lesson-row-id { width: 46px; flex-shrink: 0; font-family: var(--font-mono); font-size: var(--text-xs); }
@@ -1281,7 +1330,7 @@ textarea:focus-visible,
    on touch through --control-h. Hover lives behind (hover: hover); nothing here
    animates a press beyond the global button rule, and [data-instant] opts out
    of that, so these are safe on anything used while playing. */
-.o-btn, .o-btn-primary, .o-btn-quiet, .o-icon-btn, .o-close { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; font: inherit; color: var(--ui-text); cursor: pointer; white-space: nowrap; text-decoration: none; transition: background-color 0.12s, color 0.12s, transform 150ms ease-out; }
+.o-btn, .o-btn-primary, .o-btn-quiet, .o-icon-btn, .o-close { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; font: inherit; color: var(--ui-text); cursor: pointer; white-space: nowrap; text-decoration: none; transition: var(--control-transition); }
 .o-btn { height: var(--control-h); padding: 0 20px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); font-size: var(--text-md); }
 .o-btn-primary { height: var(--control-h); padding: 0 24px; border: 0; border-radius: var(--radius-pill); background: var(--accent); color: var(--on-accent); font-size: var(--text-md); }
 .o-btn-quiet { height: var(--control-h); padding: 0 8px; border: 0; background: none; font-size: var(--text-md); text-decoration: underline; }
@@ -1298,11 +1347,11 @@ textarea:focus-visible,
 /* Segmented pill: wraps OptionBtn or plain buttons with aria-pressed */
 .o-seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); }
 .o-seg > * { flex: 1; min-width: 0; }
-.o-seg button { width: 100%; height: calc(var(--control-h) - 8px); padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--ui-text); font: inherit; font-size: var(--text-base); white-space: nowrap; cursor: pointer; transition: background-color 0.12s, color 0.12s; }
+.o-seg button { width: 100%; height: calc(var(--control-h) - 8px); padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--ui-text); font: inherit; font-size: var(--text-base); white-space: nowrap; cursor: pointer; transition: var(--control-transition); }
 .o-seg button[aria-pressed='true'] { background: var(--ui-selected); color: var(--ui-on-selected); }
 
 /* Options outside a .o-seg stand alone as pills */
-.o-option { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); color: var(--ui-text); font: inherit; font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: background-color 0.12s, color 0.12s; }
+.o-option { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); color: var(--ui-text); font: inherit; font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: var(--control-transition); }
 .o-option[aria-pressed='true'] { border-color: var(--ui-selected); background: var(--ui-selected); color: var(--ui-on-selected); }
 .o-option[data-tone='error'][aria-pressed='true'] { border-color: var(--status-error); background: var(--status-error); color: var(--ink); }
 .theme-paper .o-option[data-tone='error'][aria-pressed='true'] { color: #ffffff; }
@@ -1310,10 +1359,10 @@ textarea:focus-visible,
 @media (hover: hover) { .o-option[aria-pressed='false']:hover:not(:disabled), .o-seg button[aria-pressed='false']:hover:not(:disabled) { background: var(--state-hover-bg); } }
 
 /* Switch: black pill with a yellow knob when on (yellow pill in the studio) */
-.o-switch { flex-shrink: 0; display: flex; justify-content: flex-start; width: 46px; height: 26px; padding: 2px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); cursor: pointer; transition: background-color 0.12s; }
-.o-switch > span { width: 20px; height: 20px; border: 1px solid var(--ui-line); border-radius: 50%; background: var(--sand); }
-.o-switch[aria-checked='true'] { justify-content: flex-end; border-color: var(--ui-selected); background: var(--ui-selected); }
-.o-switch[aria-checked='true'] > span { border-color: var(--ink); background: var(--ui-knob); }
+.o-switch { flex-shrink: 0; display: flex; justify-content: flex-start; width: 46px; height: 26px; padding: 2px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); cursor: pointer; }
+.o-switch > span { width: 20px; height: 20px; border: 1px solid var(--ui-line); border-radius: 50%; background: var(--sand); transition: translate var(--motion-base) var(--ease-in-out), background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out); }
+.o-switch[aria-checked='true'] { border-color: var(--ui-selected); background: var(--ui-selected); }
+.o-switch[aria-checked='true'] > span { translate: 100% 0; border-color: var(--ink); background: var(--ui-knob); }
 
 /* Field, select trigger, and the list a select opens */
 .o-field { display: flex; align-items: center; gap: 10px; height: var(--control-h); padding: 0 14px; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--bg-field); color: var(--ui-text); font-size: var(--text-md); }
@@ -1321,6 +1370,8 @@ textarea:focus-visible,
 .o-field:focus-within { outline: 2px solid var(--text-amber); outline-offset: 1px; }
 .o-select { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); color: var(--ui-text); font: inherit; font-size: var(--text-sm); cursor: pointer; }
 .o-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-select svg { transition: rotate var(--motion-base) var(--ease-in-out); }
+.o-select[aria-expanded='true'] svg { rotate: 180deg; }
 .o-select-list { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 50001; overflow: hidden auto; max-height: 240px; padding: 4px; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-surface); box-shadow: var(--elevation-popover); }
 .o-select-item { padding: 8px 10px; border-radius: var(--radius-sm); color: var(--ui-text); font-size: var(--text-sm); cursor: pointer; }
 .o-select-item[aria-selected='true'] { background: var(--ui-selected); color: var(--ui-on-selected); }
@@ -1380,7 +1431,7 @@ textarea:focus-visible,
 .o-icon-quiet:disabled { opacity: 0.4; cursor: default; }
 @media (hover: hover) { .o-icon-quiet:hover:not(:disabled) { color: var(--ui-text); } }
 /* The menu's and tooltip's own parts */
-.o-menu-item { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--ui-text); font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; transition: background-color 0.1s; }
+.o-menu-item { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--ui-text); font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; transition: var(--control-transition); }
 .o-menu-item:disabled { opacity: 0.4; cursor: default; }
 @media (hover: hover) { .o-menu-item:hover:not(:disabled) { background: var(--state-hover-bg); } .o-menu-item[data-danger]:hover:not(:disabled) { color: var(--status-protected); } }
 

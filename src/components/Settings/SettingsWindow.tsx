@@ -172,7 +172,7 @@ export default function SettingsWindow() {
           </nav>
           <div ref={contentRef} className="set-content">
             {results === null ? (
-              <>
+              <div key={g.id} className="set-page">
                 <div className="set-page-head">
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h1 className="o-display set-page-title">{g.name}</h1>
@@ -199,7 +199,7 @@ export default function SettingsWindow() {
                   <CardGrid ids={SETTINGS.filter(s => s.group === g.id).map(s => s.id)} width={width} />
                 )}
                 {g.id === 'appearance' && <div style={{ display: 'grid', marginTop: CARD_GAP }}><UpdatesCard /></div>}
-              </>
+              </div>
             ) : results.length === 0 ? (
               <p className="o-note" style={{ fontSize: 'var(--text-md)' }}>{t`No settings match “${query.trim()}”.`}</p>
             ) : results.map(r => (

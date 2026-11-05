@@ -93,7 +93,6 @@ export default function App() {
   // Home covers the whole window: the practice rail and bars step aside for it
   const homeVisible = !midi || homeOpen
   // With the roll's own playbar hidden, notes land on the keys: this line marks it
-  const playbarVisible = useStore((s) => s.playbarVisible)
   const midiError = useMidiSettings((s) => s.accessError)
   const [midiErrorSeen, setMidiErrorSeen] = useState(false)
   const { openFile } = useMidiFile()
@@ -606,7 +605,7 @@ export default function App() {
             <LockHint />
             <CountInOverlay />
           </div>
-          {!playbarVisible && keyboardMode === 'docked' && <div className="pr-playbar" aria-hidden="true" />}
+          {keyboardMode === 'docked' && <div className="pr-playbar" aria-hidden="true" />}
           {keyboardMode === 'docked' && <Keyboard />}
           {keyboardMode === 'docked' && <KeyboardControls />}
         </div>

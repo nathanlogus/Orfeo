@@ -267,7 +267,7 @@ export default function TopBar() {
                 placement="bottom"
               >
                 <div className="pr-value" data-changed={transpose !== 0}>
-                  <span>{displayKey}</span>
+                  <span key={displayKey} className="o-tick">{displayKey}</span>
                   <small>{transpose === 0 ? '± 0' : `${transpose > 0 ? '+' : '−'} ${Math.abs(transpose)}`}</small>
                 </div>
               </Tooltip>

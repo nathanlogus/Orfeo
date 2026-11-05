@@ -1,5 +1,6 @@
 /* Practice screen: the black rail, song header, transport row and everything
-   that sits on the roll. Nothing here animates: all of it is used while playing. */
+   that sits on the roll. All of it is used while playing, so nothing here has
+   an entrance or shifts; presses are handled by [data-instant] in index.css. */
 
 :root {
   --pr-rail-w: 88px;

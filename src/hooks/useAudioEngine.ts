@@ -1,3 +1,4 @@
+import { Midi } from '@tonejs/midi'
 // ── Combined audio engine dispatcher ─────────────────────────────────────────
 // Routes to the active backend (gm | samples). Each backend self-gates on its
 // own audioEngine value. The click handler (window.__orfeoPlayNote) forwards to
@@ -603,4 +604,31 @@ export function useAudioEngine() {
     })
     return () => unsub()
   }, [])
+}
+
+// ── Library preview: half a minute of a song that isn't open, from its first note,
+// on the same synth whichever engine is chosen, so it never loads a sound set ──
+const PREVIEW_MS = 30_000
+export async function playPreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
+  await initJZZ()
+  if (!_port || !_JZZ) throw new Error('No synth for the preview')
+  const port = _port
+  const firstNote = Math.min(...new Midi(bytes).tracks.map(t => t.notes[0]?.time ?? Infinity))
+  const player = new _JZZ.MIDI.SMF(bytes).player()
+  let stopped = false
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    clearTimeout(timer)
+    try { player.stop() } catch {}
+    for (let ch = 0; ch < 16; ch++) try { port.send([0xB0 | ch, 123, 0]) } catch {}
+  }
+  const finish = () => { stop(); onEnd() }
+  const timer = setTimeout(finish, PREVIEW_MS)
+  player.connect(port)
+  player.onEnd = finish
+  player.play()
+  if (firstNote > 0.1 && firstNote < Infinity) player.jumpMS(Math.floor(firstNote * 1000))
+  applyMasterVolume(useStore.getState().masterVolume)
+  return stop
 }

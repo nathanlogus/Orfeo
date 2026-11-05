@@ -5,8 +5,10 @@ import { useStore } from '../../store'
 import { useMidiFile } from '../../hooks/useMidiFile'
 import { t } from '../../utils/i18n'
 import { deviceSongs, filterSongs, lastPlayedAt, matchesSearch, songCard, songFacets, sortSongs, type FilterOption, type LastPlayed } from '../../utils/homeSongs'
-import { genreLabel, type SongSort } from '../../utils/songCatalog'
-import { ARRANGEMENT_LABEL, Art, CARD_FILLS, Downloading, HANDS_LABEL, Card, FilterSelect, StatusTag, Toggle, masteryLabel, songSortOptions, type SongStatus } from '../SongBrowser/SongBrowser'
+import { genreFill, genreLabel, type SongSort } from '../../utils/songCatalog'
+import { base64ToBytes } from '../../utils/foreignFormatImport'
+import { playPreview } from '../../hooks/useAudioEngine'
+import { ARRANGEMENT_LABEL, Art, CARD_FILLS, Downloading, HANDS_LABEL, Card, FilterSelect, PreviewCover, PreviewDeck, StatusTag, Toggle, masteryLabel, songSortOptions, type SongStatus } from '../SongBrowser/SongBrowser'
 import { SettingsDropdown } from '../Settings/controls'
 import { NewVersionDot } from '../Settings/NewVersionDot'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
@@ -255,8 +257,43 @@ export default function HomePage() {
     }
   }
 
+  const [preview, setPreview] = useState<{ song: SongServerSong; state: 'loading' | 'playing' } | null>(null)
+  const previewRun = useRef(0)
+  const stopPreviewSound = useRef<(() => void) | null>(null)
+  const stopPreview = () => {
+    previewRun.current++
+    stopPreviewSound.current?.()
+    stopPreviewSound.current = null
+    setPreview(null)
+  }
+  useEffect(() => () => { previewRun.current++; stopPreviewSound.current?.() }, [])
+
+  const togglePreview = async (song: SongServerSong) => {
+    const same = preview?.song.path === song.path
+    stopPreview()
+    if (same) return
+    const run = previewRun.current
+    setPreview({ song, state: 'loading' })
+    try {
+      const store = useStore.getState()
+      if (store.playbackState === 'playing') store.setPlaybackState('paused')
+      const path = isServer ? await window.electronAPI.songServerDownload(address, song.path, song.size) : song.path
+      const file = await window.electronAPI.loadMidiFromPath(path)
+      if (!file) throw new Error('unreadable')
+      if (run !== previewRun.current) return
+      const stop = await playPreview(base64ToBytes(file.base64), () => { if (run === previewRun.current) stopPreview() })
+      if (run !== previewRun.current) { stop(); return }
+      stopPreviewSound.current = stop
+      setPreview({ song, state: 'playing' })
+    } catch {
+      if (run === previewRun.current) { setPreview(null); setError(t`Couldn't play a preview of ${song.title}.`) }
+    }
+  }
+  const previewOf = (s: SongServerSong) => (preview?.song.path === s.path ? preview.state : undefined)
+
   const open = async (song: SongServerSong, fromServer = isServer) => {
     if (opening) return
+    stopPreview()
     setFailed(null)
     setError('')
     useFoldersPage.setState({ failed: null })
@@ -339,7 +376,7 @@ export default function HomePage() {
               {sourceSwitch}
               {genreOptions.length > 0 && <div className="lib-chips">
                 <button aria-pressed={!genre} onClick={() => pickGenre(null)}>{t`All`}{!genre && ` ${total.toLocaleString()}`}</button>
-                {chips.map(g => <button key={g.name} aria-pressed={genre === g.name} onClick={() => pickGenre(genre === g.name ? null : g.name)}>{`${genreLabel(g.name)} ${g.count.toLocaleString()}`}</button>)}
+                {chips.map(g => <button key={g.name} aria-pressed={genre === g.name} style={{ '--fill': genreFill(g.name) } as React.CSSProperties} onClick={() => pickGenre(genre === g.name ? null : g.name)}>{`${genreLabel(g.name)} ${g.count.toLocaleString()}`}</button>)}
               </div>}
             </div>
           </section>}
@@ -406,16 +443,16 @@ export default function HomePage() {
 
             <main className="lib-main">
               {view === 'cards' && songs.length > 0 && <div className="lib-grid">
-                {songs.map((s, i) => <Card key={s.path} card={songCard(s)} index={i} loaded={false} mastery={masteryOf(s.path)} status={statusOf(s)} percent={percent} failure={failure} onOpen={() => void open(s)} />)}
+                {songs.map((s, i) => <Card key={s.path} card={songCard(s)} index={i} loaded={false} mastery={masteryOf(s.path)} status={statusOf(s)} percent={percent} failure={failure} preview={previewOf(s)} onPreview={() => void togglePreview(s)} onOpen={() => void open(s)} />)}
               </div>}
               {view === 'list' && songs.length > 0 && <div className="lib-list">
                 {songs.map((s, i) => {
                   const learned = masteryOf(s.path)
                   const status = statusOf(s)
                   return (
-                    <div key={s.path} className="lib-row" style={{ '--fill': CARD_FILLS[i % CARD_FILLS.length] } as React.CSSProperties}>
+                    <div key={s.path} className="lib-row" data-preview={previewOf(s)} style={{ '--fill': s.genre ? genreFill(s.genre) : CARD_FILLS[i % CARD_FILLS.length] } as React.CSSProperties}>
+                      <PreviewCover card={songCard(s)} preview={previewOf(s)} onToggle={() => void togglePreview(s)} />
                       <button className="lib-row-open" onClick={() => void open(s)} disabled={!!opening}>
-                        <Art card={songCard(s)} />
                         <span className="lib-row-text">
                           <span className="lib-row-title">{s.title}</span>
                           <span className="lib-row-sub">{status === 'failed' ? failure : [s.artist, s.genre && genreLabel(s.genre)].filter(Boolean).join(' · ')}</span>
@@ -451,6 +488,7 @@ export default function HomePage() {
           </div>
         </div>
       )}
+      {preview && <PreviewDeck card={songCard(preview.song)} playing={preview.state === 'playing'} onStop={stopPreview} />}
       {serverMenu && (
         <ContextMenu ref={serverMenuRef} x={serverMenu.x} y={serverMenu.y} ariaLabel={t`Song actions`}>
           <ContextMenuItem onClick={() => { setServerMenu(null); void open(serverMenu.song) }}>{t`Open`}</ContextMenuItem>

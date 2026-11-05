@@ -122,7 +122,7 @@ export default function LessonPanel() {
           </>}
         </aside>
         <main className="lesson-main">
-          <div className="lesson-work">
+          <div className="lesson-work" key={run.step}>
             {run.step === 'learn' && <>
               <p className="lesson-learn-text">{plain(lesson.learn ?? '')}</p>
               <div className="lesson-stage"><LearnPicture lesson={lesson} /></div>

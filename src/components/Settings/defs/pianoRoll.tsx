@@ -108,10 +108,6 @@ export const PIANO_ROLL_DEFS: SettingDef[] = [
     Control: () => { const v = useStore(s => s.showBarNumbers); return <Switch value={v} onChange={useStore.getState().setShowBarNumbers} label="Bar numbers & grid lines" /> },
   },
   {
-    id: 'playbar', icon: Minus, kind: 'switch',
-    Control: () => { const v = useStore(s => s.playbarVisible); return <Switch value={v} onChange={useStore.getState().setPlaybarVisible} label="Show Playbar" /> },
-  },
-  {
     id: 'visualEffects', icon: Sparkles, kind: 'switch', wide: true, Extra: VisualEffectsExtra,
     Control: () => { const v = useStore(s => s.hitEffectsEnabled); return <Switch value={v} onChange={useStore.getState().setHitEffectsEnabled} label="Visual Effects" /> },
   },

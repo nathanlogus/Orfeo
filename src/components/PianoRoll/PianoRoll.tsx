@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Application, Graphics } from 'pixi.js'
 import type { Track } from '@tonejs/midi'
-import { useStore } from '../../store'
+import { useStore, activeKeyRange } from '../../store'
 import { isBlackKey } from '../../utils/midiParser'
-import { buildKeyLayout, PIANO_RANGES as RANGES, type KeyLayout } from '../../utils/keyLayout'
+import { buildKeyLayout, type KeyLayout } from '../../utils/keyLayout'
 import { NES } from '../../utils/noteEditorState'
 import { noteSelection, assignSelectedHand } from '../NoteEditor/noteSelection'
 import {
@@ -56,7 +56,6 @@ let SEL_MARQUEE_COLOR    = 0x7788aa   // --note-marquee-blue — drag-select rec
 let KEY_ROW_COLOR        = 0x171720   // --pianoroll-key-row — white-key row shading
 let KEY_ROW_DARK_COLOR   = 0x0d0d10   // --bg-modal-header (near-match snap) — black-key row shading
 let OCTAVE_DIVIDER_COLOR = 0x2e2e48   // --pianoroll-octave-divider
-let PLAYHEAD_COLOR       = 0xc6c8c8   // --text-default
 let NOTE_HIGHLIGHT_COLOR = 0xffffff   // --text-white (near-match snap) — note top-edge highlight strip
 let CANVAS_BG_COLOR      = 0x0f0f12   // --bg-modal-header (near-match snap) — non-warm PixiJS floor
 let CANVAS_BG_WARM_COLOR = 0x12100e   // --bg-warm — warm-theme PixiJS floor
@@ -93,7 +92,6 @@ function resolvePianoRollColorsFromCSS() {
   KEY_ROW_COLOR        = readNum('--pianoroll-key-row', KEY_ROW_COLOR)
   KEY_ROW_DARK_COLOR   = readNum('--bg-modal-header', KEY_ROW_DARK_COLOR)
   OCTAVE_DIVIDER_COLOR = readNum('--pianoroll-octave-divider', OCTAVE_DIVIDER_COLOR)
-  PLAYHEAD_COLOR       = readNum('--paint-yellow', PLAYHEAD_COLOR)
   NOTE_HIGHLIGHT_COLOR = readNum('--text-white', NOTE_HIGHLIGHT_COLOR)
   CANVAS_BG_COLOR      = readNum('--bg-modal-header', CANVAS_BG_COLOR)
   CANVAS_BG_WARM_COLOR = readNum('--bg-warm', CANVAS_BG_WARM_COLOR)
@@ -193,6 +191,13 @@ function lowerBound(notes: FlatNote[], target: number): number {
 }
 
 // ── xToMidi — screen X → MIDI pitch via key layout ───────────────────────────
+// Where notes land, as a share of the roll's height: the top of the keys. Time
+// still scrolls at PLAYHEAD_RATIO's pace, so only the line moves.
+function hitLineRatio(rollTop: number, rollHeight: number, keyboardTopY: number | null): number {
+  if (keyboardTopY === null || rollHeight <= 0) return PLAYHEAD_RATIO
+  return Math.max(20, Math.min(rollHeight - 4, keyboardTopY - rollTop)) / rollHeight
+}
+
 function xToMidi(x: number, layout: KeyLayout[], midiMin: number, midiMax: number): number {
   for (let m = midiMax; m >= midiMin; m--) {
     if (!isBlackKey(m)) continue
@@ -231,7 +236,8 @@ function LoopOverlay() {
       const pct  = Math.max(0, Math.min(100, (clientY - rect.top) / rect.height * 100))
       const s    = useStore.getState()
       const vs   = VISIBLE_SECONDS / (s.zoomLevel ?? 1)
-      return s.currentTime + vs * (1 - pct / (PLAYHEAD_RATIO * 100))
+      const hit  = hitLineRatio(rect.top, rect.height, s.keyboardTopY)
+      return s.currentTime + vs * (hit - pct / 100) / PLAYHEAD_RATIO
     }
     const onMove = (e: MouseEvent) => {
       const st  = useStore.getState()
@@ -296,7 +302,8 @@ function LoopOverlay() {
     const pct  = Math.max(0, Math.min(100, (e.clientY - rect.top) / rect.height * 100))
     const s    = useStore.getState()
     const vs   = VISIBLE_SECONDS / (s.zoomLevel ?? 1)
-    newDragRef.current = { anchorTime: s.currentTime + vs * (1 - pct / (PLAYHEAD_RATIO * 100)) }
+    const hit  = hitLineRatio(rect.top, rect.height, s.keyboardTopY)
+    newDragRef.current = { anchorTime: s.currentTime + vs * (hit - pct / 100) / PLAYHEAD_RATIO }
   }
 
   const handleWrap = (pct: number): React.CSSProperties => ({
@@ -309,8 +316,10 @@ function LoopOverlay() {
 
   const hasSelection = loopStart !== null && loopEnd !== null
   const visibleSecs  = VISIBLE_SECONDS / (zoomLevel ?? 1)
+  const overlayBox   = overlayRef.current?.getBoundingClientRect()
+  const hitPct       = 100 * (overlayBox ? hitLineRatio(overlayBox.top, overlayBox.height, useStore.getState().keyboardTopY) : PLAYHEAD_RATIO)
   const timeToPct    = (t: number) =>
-    PLAYHEAD_RATIO * 100 - ((t - currentTime) / visibleSecs) * (PLAYHEAD_RATIO * 100)
+    hitPct - ((t - currentTime) / visibleSecs) * (PLAYHEAD_RATIO * 100)
 
   const topPct    = hasSelection ? Math.max(0, Math.min(100, timeToPct(loopEnd!)))   : 0
   const botPct    = hasSelection ? Math.max(0, Math.min(100, timeToPct(loopStart!))) : 0
@@ -397,7 +406,6 @@ export default function PianoRoll() {
   const appRef            = useRef<Application | null>(null)
   const gridRef           = useRef<Graphics | null>(null)
   const notesRef          = useRef<Graphics | null>(null)
-  const playheadRef       = useRef<Graphics | null>(null)
   const overlayCanvasRef  = useRef<HTMLCanvasElement | null>(null)
   const overlayCtxRef     = useRef<CanvasRenderingContext2D | null>(null)
   const velocityCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -458,11 +466,15 @@ export default function PianoRoll() {
       s.zoomLevel !== prev.zoomLevel ||
       s.appTheme !== prev.appTheme ||
       s.keyboardSize !== prev.keyboardSize ||
+      s.fitKeys !== prev.fitKeys ||
+      s.chordExplorerOpen !== prev.chordExplorerOpen ||
+      s.scaleExplorerOpen !== prev.scaleExplorerOpen ||
+      s.noteNaming !== prev.noteNaming ||
+      s.accidentals !== prev.accidentals ||
       s.showBarNumbers !== prev.showBarNumbers ||
       s.barStarts !== prev.barStarts ||
       s.noteEditorActive !== prev.noteEditorActive ||
       s.showHandLabels !== prev.showHandLabels ||
-      s.playbarVisible !== prev.playbarVisible ||
       s.keyboardTopY !== prev.keyboardTopY ||
       s.hitEffectsEnabled !== prev.hitEffectsEnabled ||
       s.hitEffectPattern !== prev.hitEffectPattern ||
@@ -550,18 +562,15 @@ export default function PianoRoll() {
       const grid     = new Graphics()
       const barLines = new Graphics()   // bar dividers — behind notes, above key grid
       const notes    = new Graphics()
-      const playhead = new Graphics()
       const editG    = new Graphics()   // edit overlay — must be last (on top)
       app.stage.addChild(grid)
       app.stage.addChild(barLines)
       app.stage.addChild(notes)
-      app.stage.addChild(playhead)
-      const hitEffects = new HitEffectsRenderer(app.stage)   // above playhead, below edit overlay
+      const hitEffects = new HitEffectsRenderer(app.stage)   // below the edit overlay
       hitEffectsRef.current = hitEffects
       app.stage.addChild(editG)
       gridRef.current     = grid
       notesRef.current    = notes
-      playheadRef.current = playhead
 
       // ── Edit mode state — lives in closure, shared by drawFrame + pointer handlers ──
       let editFlatNotes:        EditFlatNote[]  = []
@@ -788,8 +797,7 @@ export default function PianoRoll() {
         app.renderer.resize(cw, ch, dpr)
         lastSizeW = cw; lastSizeH = ch; lastSizeDpr = dpr
 
-        const { keyboardSize: ks } = storeRef.current
-        const { min: syncMin, max: syncMax } = RANGES[ks] ?? RANGES[88]
+        const { min: syncMin, max: syncMax } = activeKeyRange(storeRef.current)
         drawGrid(cw, ch, syncMin, syncMax)
 
         if (overlayCanvasRef.current) {
@@ -839,7 +847,7 @@ export default function PianoRoll() {
           applyResize(cw, ch, dpr)
         }
 
-        const { midi, currentTime, tracks, detectedKey, zoomLevel, appTheme, keyboardSize, showBarNumbers, barStarts: storeBars, noteEditorActive, showHandLabels, playbarVisible, keyboardTopY, hitEffectsEnabled, hitEffectPattern, hitEffectBloomThreshold, hitEffectBloomIntensity, hitEffectBloomSpread, hitEffectColor } = storeRef.current
+        const { midi, currentTime, tracks, detectedKey, zoomLevel, appTheme, showBarNumbers, barStarts: storeBars, noteEditorActive, showHandLabels, keyboardTopY, hitEffectsEnabled, hitEffectPattern, hitEffectBloomThreshold, hitEffectBloomIntensity, hitEffectBloomSpread, hitEffectColor } = storeRef.current
         const transpose   = (detectedKey as any)?.transpose ?? 0
         const W = app.screen.width, H = app.screen.height
         // ── Hit-line Y position — fixed 80% line by default (unchanged), or the
@@ -851,16 +859,12 @@ export default function PianoRoll() {
         const staticPy    = H * PLAYHEAD_RATIO
         const visibleSecs = VISIBLE_SECONDS / (zoomLevel ?? 1)
         const pps         = staticPy / visibleSecs
-        let py = staticPy
-        if (!playbarVisible && keyboardTopY !== null) {
-          const rect = el.getBoundingClientRect()
-          py = Math.max(20, Math.min(H - 4, keyboardTopY - rect.top))
-        }
-        const { min: midiMin, max: midiMax } = RANGES[keyboardSize] ?? RANGES[88]
+        const py = H * hitLineRatio(el.getBoundingClientRect().top, H, keyboardTopY)
+        const { min: midiMin, max: midiMax } = activeKeyRange(storeRef.current)
         const totalKeys   = midiMax - midiMin + 1
 
-        if (keyboardSize !== lastKeySizeRef.current) {
-          lastKeySizeRef.current = keyboardSize
+        if (midiMin * 1000 + midiMax !== lastKeySizeRef.current) {
+          lastKeySizeRef.current = midiMin * 1000 + midiMax
           drawGrid(W, H, midiMin, midiMax)
         }
 
@@ -943,12 +947,6 @@ export default function PianoRoll() {
 
         app.renderer.background.color = appTheme === 'warm' ? CANVAS_BG_WARM_COLOR : CANVAS_BG_COLOR
 
-        playhead.clear()
-        if (playbarVisible) {
-          playhead.rect(0, py, W + 1, 2)
-          playhead.fill({ color: PLAYHEAD_COLOR, alpha: 0.90 })
-        }
-
         notes.clear()
 
         const ctx = overlayCtxRef.current
@@ -999,6 +997,14 @@ export default function PianoRoll() {
 
         const flat     = flatNotesRef.current
         const startIdx = lowerBound(flat, visStart - visibleSecs)
+        const { noteNaming, accidentals } = storeRef.current
+        const labelY = new Map<number, number>()   // the last letter on each key, so fast repeats don't stack
+        if (ctx) {
+          ctx.font = `600 10px ${FONT_MONO_STR}`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'alphabetic'
+          ctx.fillStyle = NOTE_LABEL_COLOR
+        }
         // Black-key notes go on top, so a neighbouring white note never runs over them
         for (const blackPass of [false, true]) for (let i = startIdx; i < flat.length; i++) {
           const note = flat[i]
@@ -1064,6 +1070,13 @@ export default function PianoRoll() {
             const edgeX = note.hand === 'L' ? key.x + 1 : key.x + 1 + drawW - edgeW
             notes.rect(edgeX, topY, edgeW, noteH)
             notes.fill({ color: 0xffffff, alpha: 0.55 })
+          }
+
+          // The letter sits where the note lands. The Note Editor has its own labels.
+          const labelBase = topY + noteH - 3
+          if (ctx && !noteEditorActive && drawW >= 9 && (labelY.get(idx) ?? Infinity) - labelBase >= 12) {
+            const label = getNoteLabel(note.midi + transpose, noteNaming, accidentals).replace(/-?\d+$/, '')
+            if (label) { ctx.fillText(label, key.x + key.width / 2, labelBase); labelY.set(idx, labelBase) }
           }
         }
 
@@ -1144,12 +1157,12 @@ export default function PianoRoll() {
       }
 
       const getViewParams = () => {
-        const { currentTime, zoomLevel, keyboardSize, detectedKey } = storeRef.current
+        const { currentTime, zoomLevel, detectedKey, keyboardTopY } = storeRef.current
         const H = app.screen.height
-        const py = H * PLAYHEAD_RATIO
+        const py = H * hitLineRatio(el.getBoundingClientRect().top, H, keyboardTopY)
         const visibleSecs = VISIBLE_SECONDS / (zoomLevel ?? 1)
-        const pps = py / visibleSecs
-        const { min: midiMin, max: midiMax } = RANGES[keyboardSize] ?? RANGES[88]
+        const pps = (H * PLAYHEAD_RATIO) / visibleSecs
+        const { min: midiMin, max: midiMax } = activeKeyRange(storeRef.current)
         const transpose = (detectedKey as any)?.transpose ?? 0
         return { currentTime, py, pps, midiMin, midiMax, transpose }
       }
@@ -2081,8 +2094,8 @@ export default function PianoRoll() {
       velCanvas.addEventListener('pointerleave',  onVelPointerLeave)
 
       // ── Initial draw ──────────────────────────────────────────────────────
-      const { keyboardSize } = useStore.getState()
-      lastKeySizeRef.current = keyboardSize
+      const initialKeys = activeKeyRange(useStore.getState())
+      lastKeySizeRef.current = initialKeys.min * 1000 + initialKeys.max
       applyResize(el.clientWidth || 800, el.clientHeight || 600, window.devicePixelRatio || 1)
       // Redraw every tick during playback or note editing (both need continuous
       // animation — scrolling playhead, drag previews, selection pulse). Otherwise

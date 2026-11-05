@@ -25,7 +25,7 @@ export type SettingId =
   | 'stepThrough' | 'chordPrompter' | 'closePanels' | 'handTags' | 'trackVu'
   | 'displaySystem' | 'accidentals' | 'chordTracking' | 'chordReading' | 'chordNaming'
   | 'keyRange' | 'showOctaves' | 'showNoteNames' | 'reflectPianoRoll' | 'preciseScrubTime' | 'explorerPause'
-  | 'rollZoom' | 'barNumbers' | 'playbar' | 'visualEffects'
+  | 'rollZoom' | 'barNumbers' | 'visualEffects'
   | 'handColors' | 'appZoom' | 'tooltips' | 'supportNote' | 'starmap'
   | 'midiKeyboards' | 'midiReconnect' | 'liveResponse' | 'latencyOffset' | 'gmOutput' | 'keyboardSound' | 'touchResponse' | 'duplicateFilter'
   | 'pedalsControls' | 'delayCheck' | 'midiTools'
@@ -161,9 +161,6 @@ export const SETTINGS: SettingInfo[] = [
   { id: 'barNumbers', group: 'piano-roll', name: t`Bar numbers & grid lines`, summary: t`Bar numbers and lines in the piano roll.`,
     description: t`Shows bar numbers and horizontal bar lines in the piano roll.`,
     keywords: 'bars grid lines measure numbers' },
-  { id: 'playbar', group: 'piano-roll', name: t`Show Playbar`, summary: t`The line where notes meet the keyboard.`,
-    description: t`When off, notes fall toward the keyboard's actual on-screen position instead of a fixed line.`,
-    keywords: 'playbar hit line' },
   { id: 'visualEffects', group: 'piano-roll', name: t`Visual Effects`, summary: t`Animated flourish when notes hit the playbar.`,
     description: t`An animated flourish when notes hit the playbar during playback. Choose which tracks, the colour, the pattern and the glow.`,
     keywords: 'effects bloom glow particles hit' },
@@ -232,7 +229,7 @@ export const QUICK_LAYOUT: Record<SettingsGroupId, QuickItem[]> = {
   'editing': ['handAssignment'],
   'notation': ['displaySystem', 'accidentals', 'chordTracking'],
   'keyboard': ['keyRange', 'showOctaves', 'showNoteNames'],
-  'piano-roll': ['rollZoom', 'barNumbers', 'playbar'],
+  'piano-roll': ['rollZoom', 'barNumbers'],
   'appearance': ['appZoom', 'tooltips'],
   'midi': ['keyboardSound'],
 }

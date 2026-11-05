@@ -119,7 +119,7 @@ export function TooltipBox({ anchorRect, content, visible, placement = 'top', on
         pointerEvents: 'none', zIndex: 99999,
         '--_modal-shadow': 'var(--elevation-strip)',
       } as React.CSSProperties}
-      className="orfeo-modal-glow"
+      className="orfeo-modal-glow o-tip"
     >
       {oneLine ? (
         <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.35, color: muted ? 'var(--stone)' : '#ffffff', whiteSpace: 'pre-line' }}>

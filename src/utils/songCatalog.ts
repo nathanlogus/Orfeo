@@ -176,3 +176,17 @@ export function placeholderHue(label: string): number {
   for (const ch of label) h = (h * 31 + ch.charCodeAt(0)) % 360
   return h
 }
+
+// ── A song's colour, by genre family; Text on these is always --ink ─────────────
+const GENRE_FILLS: Record<string, string> = {
+  'brazilian-popular': 'var(--paint-yellow)', mpb: 'var(--paint-yellow)', brazilian: 'var(--paint-yellow)',
+  choro: 'var(--paint-olive)', modinha: 'var(--paint-olive)',
+  samba: 'var(--paint-coral)', carnaval: 'var(--paint-coral)', marchinha: 'var(--paint-coral)', frevo: 'var(--paint-coral)',
+  'bossa-nova': 'var(--paint-sky)',
+  forro: 'var(--paint-lime)', baiao: 'var(--paint-lime)', nordeste: 'var(--paint-lime)', sertanejo: 'var(--paint-lime)',
+  folclore: 'var(--paint-lime)', 'festa-junina': 'var(--paint-lime)', toada: 'var(--paint-lime)', maracatu: 'var(--paint-lime)',
+  jazz: 'var(--paint-blue)', 'early-jazz': 'var(--paint-blue)',
+  ragtime: 'var(--paint-lilac)', 'pre-ragtime': 'var(--paint-lilac)', 'early-popular': 'var(--paint-lilac)',
+  blues: 'var(--paint-rose)', gospel: 'var(--paint-rose)', 'rock-brasileiro': 'var(--paint-rose)', 'jovem-guarda': 'var(--paint-rose)',
+}
+export const genreFill = (genre: string | undefined): string => GENRE_FILLS[genre ?? ''] ?? 'var(--sand)'

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef, type CSSProperties } from 'react'
-import { useStore } from '../../store'
+import { useStore, activeKeyRange } from '../../store'
 import { ArrowLeft, ArrowRight, Lock } from 'lucide-react'
 import { stepEvents } from '../../utils/stepThrough'
 import { t } from '../../utils/i18n'
@@ -50,7 +50,7 @@ function useSmoothedPct(rawPct: number | null): number | null {
 // something to show (beta). Key size, dock and Presentation moved to Setup, the
 // floating keyboard's head and the transport row. ───────────────────────────
 export default function KeyboardControls() {
-  const keyboardSize  = useStore((s) => s.keyboardSize)
+  const keyRange      = useStore(activeKeyRange)
   const presentationMode    = useStore((s) => s.presentationMode)
   const showHandLabels          = useStore((s) => s.showHandLabels)
   const handLabelMode           = useStore((s) => s.handLabelMode)
@@ -61,7 +61,7 @@ export default function KeyboardControls() {
   // averaged (not one static whole-file number) — see computeTaggedBoundaryCurve.
   // (Performance mode's indicator lives on the keys themselves — Keyboard.tsx —
   // reading each active note's own tag; nothing to render in this bar for it.)
-  const whiteKeys = useMemo(() => getWhiteKeys(keyboardSize), [keyboardSize])
+  const whiteKeys = useMemo(() => getWhiteKeys(keyRange), [keyRange])
   const [taggedCurve, setTaggedCurve] = useState<TaggedBoundarySample[]>([])
   useEffect(() => { setTaggedCurve(computeTaggedBoundaryCurve(midi)) }, [midi])
   const rawBoundary = useMemo(() => interpolateTaggedCurve(taggedCurve, currentTime), [taggedCurve, currentTime])
@@ -103,10 +103,12 @@ export function LockHint() {
 export function KeyboardSizeSeg() {
   const keyboardSize = useStore((s) => s.keyboardSize)
   const setKeyboardSize = useStore((s) => s.setKeyboardSize)
+  const fitKeys = useStore((s) => s.fitKeys)
   return (
     <div className="o-seg" role="group" aria-label={t`Keys`}>
+      <button aria-pressed={fitKeys} aria-label={t`Fit the keyboard to the song`} onClick={() => useStore.getState().setFitKeys(true)}>{t`Fit`}</button>
       {SIZES.map((size) => (
-        <button key={size} aria-pressed={keyboardSize === size} aria-label={`Switch to ${size}-key layout`} onClick={() => setKeyboardSize(size)}>{size}</button>
+        <button key={size} aria-pressed={!fitKeys && keyboardSize === size} aria-label={`Switch to ${size}-key layout`} onClick={() => setKeyboardSize(size)}>{size}</button>
       ))}
     </div>
   )

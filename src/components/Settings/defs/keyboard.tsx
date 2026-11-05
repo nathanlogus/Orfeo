@@ -10,9 +10,11 @@ const KEYBOARD_SIZES: KeyboardSize[] = [61, 73, 88]
 function KeyRangeControl() {
   const size = useStore(s => s.keyboardSize)
   const setSize = useStore(s => s.setKeyboardSize)
+  const fit = useStore(s => s.fitKeys)
   return (
     <OptionGroup label={t`Key range`}>
-      {KEYBOARD_SIZES.map(n => <OptionBtn key={n} active={size === n} onClick={() => setSize(n)}>{n}</OptionBtn>)}
+      <OptionBtn active={fit} onClick={() => useStore.getState().setFitKeys(true)}>{t`Fit`}</OptionBtn>
+      {KEYBOARD_SIZES.map(n => <OptionBtn key={n} active={!fit && size === n} onClick={() => setSize(n)}>{n}</OptionBtn>)}
     </OptionGroup>
   )
 }
