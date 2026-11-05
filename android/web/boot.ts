@@ -1,5 +1,6 @@
 // Android entry: the desktop main process and preload, then the app, in one page
 import './globals'
+import './touch'
 import fs from './fs'
 import { httpGet } from './native'
 import { disableUpdates, windowReady } from './electron'

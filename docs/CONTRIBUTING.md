@@ -186,6 +186,8 @@ right, the typecheck says the call sites still fit.
 
 Web MIDI and Web Audio come with the WebView. The Native sound engine isn't available on Android.
 
+The app listens for mouse events, so `android/web/touch.ts` turns a finger into a mouse: a press is sent as it happens, holding still shows a tooltip, and a drag scrolls only if something can scroll that way. Controls that handle pointer events themselves mark it with `touch-action: none` and are left alone.
+
 ## Home song server
 
 `npm run android:songs -- <folder>` (`android/song-server.mjs`) serves a folder of songs to the home page on desktop and Android. It only needs Node, so the one file can run on any computer. It is plain HTTP with no login, read-only, and answers private network addresses only.

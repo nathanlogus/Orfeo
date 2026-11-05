@@ -44,7 +44,8 @@ const SKIP_SECS = 5
 // `geometrychange`, so this tracks the real safe zone live. Falls back to a
 // conservative constant if the API isn't present yet (first paint, or a
 // non-Windows build).
-const OVERLAY_INSET_FALLBACK = 174
+// Android has no window buttons to clear, and the bar needs every pixel
+const OVERLAY_INSET_FALLBACK = /Android/.test(navigator.userAgent) ? 0 : 174
 
 function useTitlebarOverlayInset(): number {
   const [inset, setInset] = useState(OVERLAY_INSET_FALLBACK)
