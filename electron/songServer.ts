@@ -24,6 +24,17 @@ export function safeSongPath(p: unknown): p is string {
   return !p.split('/').some(x => x === '' || x === '.' || x === '..')
 }
 
+// Whole percents as bytes arrive, each reported once. No length from the server: nothing to report.
+export function percentCounter(total: number, report: (percent: number) => void) {
+  let received = 0
+  let last = -1
+  return (bytes: number) => {
+    received += bytes
+    const percent = Math.min(100, Math.floor((received / total) * 100))
+    if (total > 0 && percent !== last) report(last = percent)
+  }
+}
+
 export function songServerDest(root: string, path: string): string {
   return join(root, 'Home Server', ...path.split('/'))
 }

@@ -11,7 +11,7 @@ import { FULL_LEVEL, type Press } from '../utils/practiceScore'
 import { WINDOW_SEC } from '../utils/practiceSession'
 import { playableSteps } from '../utils/stepThrough'
 import { COURSE, lessonById, lessonScore, pieceScore } from './courseData'
-import { CLEAN_RUNS, PASS, afterPass, playScore } from './progress'
+import { CLEAN_RUNS, PASS, afterPass, afterRun, playScore } from './progress'
 import type { Lesson } from './course'
 
 export type LessonStep = 'hear' | 'learn' | 'drill' | 'wait' | 'time' | 'done'
@@ -32,11 +32,18 @@ export function stepsOf(lesson: Lesson): LessonStep[] {
 
 let _borrowed: { waitForNotes: boolean; scoreViewMode: 'roll' | 'both' | 'score'; countInEnabled: boolean; practiceLevel: number; song: string | null } | null = null
 let _presses: Press[] = []
+// The scores behind this pass, for the Lesson passed page
+let _drillScore: number | null = null
+let _runScores: number[] = []
+
+export const lessonScores = () => ({ drill: _drillScore, runs: _runScores })
+export function drillPassed(percent: number) { _drillScore = percent }
 
 const hideBar = (on: boolean) => document.documentElement.classList.toggle('lesson-hide-bar', on)
 
 function enterStep(lesson: Lesson, step: LessonStep) {
   _presses = []
+  if (step === 'time') _runScores = []
   hideBar(step === 'time' && lesson.mode === 'hide-bar')
   useStore.setState({
     lessonRun: { id: lesson.id, step, percent: null, clean: 0 },
@@ -81,6 +88,8 @@ export async function startLesson(id: string) {
   const bytes = await lessonScore(lesson)
   if (bytes) await loadScore(bytes, lesson.title, `${LESSON_PATH}${lesson.id}.score`)
   useStore.setState({ scoreViewMode: 'score', practiceLevel: FULL_LEVEL, homeOpen: false, presentationMode: false })
+  _drillScore = null
+  _runScores = []
   enterStep(lesson, stepsOf(lesson)[0])
 }
 
@@ -133,6 +142,7 @@ function attemptEnded() {
   const score = playScore(playableSteps(), _presses, WINDOW_SEC * speed)
   _presses = []
   const clean = score >= PASS ? run.clean + 1 : 0
+  _runScores = afterRun(_runScores, Math.round(score * 100), score >= PASS)
   if (clean >= CLEAN_RUNS) { nextStep(); return }
   useStore.setState({ lessonRun: { ...run, percent: Math.round(score * 100), clean } })
 }
@@ -145,5 +155,5 @@ useStore.subscribe((s, prev) => {
     for (const key of s.midiHeldKeys) if (!prev.midiHeldKeys.has(key)) _presses.push({ midi: key - transpose, time: s.currentTime })
   }
   // The engine can end a song by putting the clock back to 0, so go by where it was
-  if (s.playbackState === 'stopped' && prev.playbackState === 'playing' && prev.currentTime >= (playableSteps().at(-1)?.time ?? Infinity)) attemptEnded()
+  if (s.playbackState === 'stopped' && prev.playbackState !== 'stopped' && prev.currentTime >= (playableSteps().at(-1)?.time ?? Infinity)) attemptEnded()
 })

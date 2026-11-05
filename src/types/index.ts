@@ -232,6 +232,8 @@ declare global {
       songServerQuery:     (address: string, query: Record<string, string | number>) => Promise<SongServerList>
       songServerDownload:  (address: string, path: string, size: number) => Promise<string>
       songServerDiscover:  () => Promise<string | null>
+      onSongServerProgress:  (fn: (data: { path: string; percent: number }) => void) => void
+      offSongServerProgress: () => void
       // Export to audio: writes to <library>/Orfeo/Exports, returns the saved path
       saveExport:          (songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => Promise<string>
       statFiles:           (paths: string[]) => Promise<{ path: string; size: number; mtime: number }[]>

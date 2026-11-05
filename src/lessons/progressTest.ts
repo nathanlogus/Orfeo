@@ -1,6 +1,6 @@
 import type { Unit } from './course'
-import { afterPass, isOpen, nextLesson, playScore, tapScore } from './progress'
-import { earlierNotes, midiOf, staffStep, tapBeats } from './drill'
+import { afterPass, afterRun, isOpen, nextLesson, playScore, tapMarks, tapScore } from './progress'
+import { earlierNotes, midiOf, missedNote, noteOfKey, staffStep, tapBeats } from './drill'
 
 const lesson = (id: string) => ({ id, title: id, goal: 'g' })
 const UNITS: Unit[] = [
@@ -14,6 +14,26 @@ export function runProgressTest(): number {
     const a = JSON.stringify(got), b = JSON.stringify(want)
     if (a !== b) { console.error(`FAIL ${name}: got ${a}, want ${b}`); failures++ }
   }
+
+  eq('on time', tapMarks([1, 2], [1.1, 1.9], 0.16), ['on-time', 'on-time'])
+  eq('close, either way', tapMarks([1, 2], [0.75, 2.3], 0.16), ['early', 'late'])
+  eq('too far is a miss, and an extra tap', tapMarks([1], [2], 0.16), ['missed', 'extra'])
+  eq('a late tap leaves the next beat its own', tapMarks([1, 1.4], [1.3], 0.16), ['missed', 'on-time'])
+  eq('not due yet', tapMarks([1, 2], [1], 0.16, 1.2), ['on-time', null])
+  eq('due and gone', tapMarks([1, 2], [1], 0.16, 2.5), ['on-time', 'missed'])
+  eq('only on-time taps score', tapScore([1, 2], [1, 2.3], 0.16), 0.5)
+  eq('extra taps cost', tapScore([1, 2], [1, 2, 3, 4], 0.16), 0.5)
+  eq('a clean run counts', afterRun([], 92, true), [92])
+  eq('two clean runs', afterRun([92], 95, true), [92, 95])
+  eq('the last two', afterRun([92, 95], 97, true), [95, 97])
+  eq('a miss starts over', afterRun([92], 70, false), [])
+
+  eq('the key as a note', [noteOfKey(60), noteOfKey(61), noteOfKey(71)], ['C4', 'C#4', 'B4'])
+  eq('one step lower', missedNote('E4', 65), { played: 'F', want: 'E', amount: 'steps', count: 1, lower: true })
+  eq('two steps higher', missedNote('E4', 60), { played: 'C', want: 'E', amount: 'steps', count: 2, lower: false })
+  eq('sharp of the same letter', missedNote('F4', 66), { played: 'F♯', want: 'F', amount: 'half', count: 1, lower: true })
+  eq('the right note, an octave off', missedNote('C4', 72), { played: 'C', want: 'C', amount: 'octaves', count: 1, lower: true })
+  eq('a flat stays a flat', missedNote('Bb4', 69).want, 'B♭')
 
   eq('first lesson open', isOpen(UNITS, [], '1.1'), true)
   eq('second waits for the first', isOpen(UNITS, [], '1.2'), false)

@@ -66,17 +66,37 @@ export function StatusTag({ status }: { status: SongStatus }) {
   )
 }
 
-export const Card = memo(function Card({ card, index, loaded, mastery, status, onOpen }: {
+// A server song on its way: real numbers once the first bytes arrive
+export function Downloading({ percent }: { percent: number | null }) {
+  if (percent === null) return null
+  return <>
+    <span className="lib-download" role="progressbar" aria-label={t`Downloading`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><span style={{ width: `${percent}%` }} /></span>
+    <span className="lib-download-text">{`${t`Downloading`} · ${percent}%`}</span>
+  </>
+}
+
+export const Card = memo(function Card({ card, index, loaded, mastery, status, percent = null, failure, onOpen }: {
   card: SongCard
   index: number
   loaded: boolean
   mastery?: number
   status?: SongStatus
+  percent?: number | null
+  failure?: string
   onOpen: (path: string) => void
 }) {
   const facts = [card.key, card.bpm ? `${card.bpm} BPM` : null, formatDuration(card.duration)].filter(Boolean).join(' · ')
+  // Try again is its own button, and a button can't hold one
+  if (status === 'failed') return (
+    <div className="lib-card lib-card-failed">
+      <StatusTag status={status} />
+      <span className="lib-card-title" title={card.title}>{card.title}</span>
+      <span className="lib-card-artist">{failure}</span>
+      <button className="o-btn lib-retry" onClick={() => onOpen(card.path)}>{t`Try again`}</button>
+    </div>
+  )
   return (
-    <button className="lib-card" onClick={() => onOpen(card.path)} aria-current={loaded || undefined} style={{ background: CARD_FILLS[index % CARD_FILLS.length] }}>
+    <button className="lib-card" data-opening={status === 'opening' || undefined} onClick={() => onOpen(card.path)} aria-current={loaded || undefined} style={{ background: CARD_FILLS[index % CARD_FILLS.length] }}>
       <span className="lib-card-top">
         <Art card={card} tilt={index % 2 ? -2 : 2} />
         <span className="lib-card-tags">
@@ -96,7 +116,7 @@ export const Card = memo(function Card({ card, index, loaded, mastery, status, o
           </span>
         )}
       </span>
-      {mastery !== undefined && <>
+      {status === 'opening' ? <Downloading percent={percent} /> : mastery !== undefined && <>
         <span className="lib-card-bar"><span style={{ width: `${mastery}%` }} /></span>
         <span className="lib-card-artist">{masteryLabel(mastery)}</span>
       </>}

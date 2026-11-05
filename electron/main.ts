@@ -11,7 +11,7 @@ import { assignHands } from '../src/utils/handAssignment'
 import { buildHandExportHint, withHandSuffix, nameHandFromSuffix, parseHandMapMeta, RESTORED_CONFIDENCE } from '../src/utils/handMetadata'
 import { getGMGroup } from '../src/utils/gmInstruments'
 import { exportsDir, nextFreeName, safeExportBaseName } from './exportName'
-import { DISCOVERY_PORT, DISCOVERY_PROBE, discoveredAddress, safeSongPath, serverUrl, songServerDest } from './songServer'
+import { DISCOVERY_PORT, DISCOVERY_PROBE, discoveredAddress, percentCounter, safeSongPath, serverUrl, songServerDest } from './songServer'
 import { KEYBOARD_GROUPS } from '../src/utils/keyboardGroups'
 import { nextOrfeoVersion, stripOrfeoSuffix } from '../src/utils/orfeoVersioning'
 import { downloadEnding, newerRelease } from '../src/utils/newRelease'
@@ -581,19 +581,30 @@ ipcMain.handle('soundfont:download', (e, id: string) => {
 // ── Home song server ───────────────────────────────────────────────────────
 // A plain file save, not fetch: on Android the page may not call an http address
 const SONG_SERVER_TIMEOUT_MS = 10_000
-function saveUrl(url: string, dest: string): Promise<void> {
+function saveUrl(url: string, dest: string, onPercent?: (percent: number) => void): Promise<void> {
   const part = `${dest}.part`
+  let file: ReturnType<typeof createWriteStream> | undefined
   return new Promise<void>((resolve, reject) => {
     const http = require(url.startsWith('https:') ? 'https' : 'http')
     http.get(url, (res: import('http').IncomingMessage) => {
       if (res.statusCode !== 200) { res.resume(); reject(new Error(`server answered ${res.statusCode}`)); return }
-      const file = createWriteStream(part)
-      file.on('finish', () => file.close(() => resolve()))
+      const total = Number(res.headers['content-length'] ?? 0)
+      const count = percentCounter(total, percent => onPercent?.(percent))
+      file = createWriteStream(part)
+      // A dropped connection ends the response without ending the pipe
+      res.on('error', reject)
+      res.on('data', (chunk: Buffer) => count(chunk.length))
+      file.on('finish', () => file!.close(() => {
+        if (total > 0 && statSync(part).size !== total) reject(new Error('download was cut short'))
+        else resolve()
+      }))
       file.on('error', reject)
       res.pipe(file)
     }).on('error', reject).setTimeout(SONG_SERVER_TIMEOUT_MS, function (this: import('http').ClientRequest) { this.destroy(new Error('server timed out')) })
   }).then(() => renameSync(part, dest), (e) => {
-    if (existsSync(part)) unlinkSync(part)
+    (file as any)?.destroy?.()
+    // Windows can hold the file a moment longer; the next try overwrites it anyway
+    try { if (existsSync(part)) unlinkSync(part) } catch {}
     throw e
   })
 }
@@ -638,12 +649,12 @@ ipcMain.handle('songServer:query', async (_e, address: string, query: Record<str
 
 // A song that changed on the server comes down again; edits are never lost that
 // way, since the app saves those as new files in Orfeo/
-ipcMain.handle('songServer:download', async (_e, address: string, path: string, size: number) => {
+ipcMain.handle('songServer:download', async (e, address: string, path: string, size: number) => {
   if (!safeSongPath(path)) throw new Error('not a song path')
   const dest = songServerDest(songServerRoot(), path)
   if (!haveSong(dest, size)) {
     await mkdir(dirname(dest), { recursive: true })
-    await saveUrl(`${serverUrl(address)}/api/file?path=${encodeURIComponent(path)}`, dest)
+    await saveUrl(`${serverUrl(address)}/api/file?path=${encodeURIComponent(path)}`, dest, percent => e.sender.send('songServer:progress', { path, percent }))
   }
   return dest
 })

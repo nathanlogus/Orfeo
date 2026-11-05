@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { discoveredAddress, safeSongPath, serverUrl, songServerDest } from './songServer'
+import { discoveredAddress, percentCounter, safeSongPath, serverUrl, songServerDest } from './songServer'
 
 export function runSongServerTest(): number {
   let failures = 0
@@ -19,5 +19,14 @@ export function runSongServerTest(): number {
   for (const bad of ['orfeo-songs:', 'orfeo-songs:99999', 'hello', 'orfeo-songs:1;rm']) eq(bad, discoveredAddress(bad, '1.2.3.4'), null)
 
   eq('kept folders', songServerDest('/lib', 'Jazz/Bill/a.mid'), join('/lib', 'Home Server', 'Jazz', 'Bill', 'a.mid'))
+
+  const percents: number[] = []
+  const count = percentCounter(1000, p => percents.push(p))
+  for (const bytes of [1, 1, 498, 250, 250]) count(bytes)
+  eq('each percent once', percents.join(), '0,50,75,100')
+  const unknown: number[] = []
+  const blind = percentCounter(0, p => unknown.push(p))
+  blind(500)
+  eq('no length, no percent', unknown.length, 0)
   return failures
 }
