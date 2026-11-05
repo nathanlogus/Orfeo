@@ -979,3 +979,4 @@ textarea:focus-visible,
 .lesson-row-goal { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (hover: hover) { .lesson-row:hover:not(:disabled) { background-color: var(--bg-tile); } }
 .lesson-banner .home-action:disabled { opacity: 0.45; cursor: default; }
+.home-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 16px 10px; }

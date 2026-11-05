@@ -172,6 +172,10 @@ export interface SongServerList {
   songs: SongServerSong[]
   genres: { name: string; count: number }[]
   artists: { name: string; count: number }[]
+  arrangements: { name: string; count: number }[]
+  difficulties: { name: string; count: number }[]
+  keys: { name: string; count: number }[]
+  classics: number
 }
 
 export interface LibraryFile {

@@ -3,13 +3,14 @@ import { ArrowLeft, Check, CloudDownload, FolderOpen, LayoutGrid, List, Loader2,
 import { useStore } from '../../store'
 import { useMidiFile } from '../../hooks/useMidiFile'
 import { t } from '../../utils/i18n'
-import { deviceSongs, folderCounts, matchesSearch, songCard, type FilterOption } from '../../utils/homeSongs'
-import { genreLabel } from '../../utils/songCatalog'
-import { Card } from '../SongBrowser/SongBrowser'
+import { deviceSongs, filterSongs, matchesSearch, songCard, songFacets, sortSongs, type FilterOption } from '../../utils/homeSongs'
+import { genreLabel, type SongSort } from '../../utils/songCatalog'
+import { ARRANGEMENT_LABEL, Card, FilterSelect, Toggle, songSortOptions } from '../SongBrowser/SongBrowser'
+import { SettingsDropdown } from '../Settings/controls'
 import { songKey } from '../../utils/practiceSession'
 import FaceTheMusicMark from '../FaceTheMusicMark'
 import LearnHome from '../Lessons/LearnHome'
-import type { SongServerSong } from '../../types'
+import type { SongServerList, SongServerSong } from '../../types'
 
 const PAGE = 100
 const SEARCH_DELAY_MS = 200
@@ -34,6 +35,13 @@ export default function HomePage() {
   const [genre, setGenre] = useState<string | null>(null)
   const [artist, setArtist] = useState<string | null>(null)
   const [artistSearch, setArtistSearch] = useState('')
+  const [arrangement, setArrangement] = useState('')
+  const [difficulty, setDifficulty] = useState('')
+  const [songKeyFilter, setSongKeyFilter] = useState('')
+  const [classicOnly, setClassicOnly] = useState(false)
+  const [sort, setSort] = useState<SongSort>('title')
+  const [catalog, setCatalog] = useState<unknown>(null)
+  const [facets, setFacets] = useState<Pick<SongServerList, 'arrangements' | 'difficulties' | 'keys' | 'classics'>>({ arrangements: [], difficulties: [], keys: [], classics: 0 })
 
   const [address, setAddress] = useState('')
   const [connected, setConnected] = useState(false)
@@ -72,18 +80,28 @@ export default function HomePage() {
     })
   }, [])
 
+  // A library folder's own catalog.json, the same file the home server reads
+  useEffect(() => {
+    let current = true
+    setCatalog(null)
+    if (libraryFolder) void window.electronAPI.readSongCatalog(libraryFolder).then(c => { if (current) setCatalog(c) }).catch(() => {})
+    return () => { current = false }
+  }, [libraryFolder])
+
   const load = useCallback(async (offset: number) => {
     const id = ++latestQuery.current
     setLoading(true)
     try {
       const r = await window.electronAPI.songServerQuery(address, {
-        q, genre: genre ?? '', artist: artist ?? '', offset, limit: PAGE,
+        q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter,
+        classic: classicOnly ? 1 : '', sort, offset, limit: PAGE,
       })
       if (id !== latestQuery.current) return
       setServerSongs(old => (offset ? [...old, ...r.songs] : r.songs))
       setServerTotal(r.total)
       setGenres(r.genres)
       setArtists(r.artists)
+      setFacets(r)
       setError('')
       lookedForServer.current = false
       void window.electronAPI.setPrefs({ songServerUrl: address })
@@ -95,7 +113,7 @@ export default function HomePage() {
       if (!moved || moved === address) setError(t`Can't reach the server. Check the address and that it's running.`)
     }
     setLoading(false)
-  }, [address, q, genre, artist, findServer])
+  }, [address, q, genre, artist, arrangement, difficulty, songKeyFilter, classicOnly, sort, findServer])
 
   useEffect(() => {
     if (source === 'server' && !connected && !address && !lookedForServer.current) void findServer()
@@ -110,16 +128,19 @@ export default function HomePage() {
   // ── The same list, from what's already here ──────────────────────────────
   const allDevice = useMemo(() => {
     const library = hideDemoFolder ? libraryFiles.filter(f => !/[\\/]Demo[\\/]/.test(f.path)) : libraryFiles
-    return deviceSongs(library.length || hideDemoFolder ? library : demoFiles, libraryFolder)
-  }, [libraryFiles, demoFiles, hideDemoFolder, libraryFolder])
-  const searchedDevice = useMemo(() => allDevice.filter(s => matchesSearch(`${s.title} ${s.artist} ${s.genre}`, q)), [allDevice, q])
-  const filteredDevice = useMemo(() => searchedDevice.filter(s => !genre || s.genre === genre), [searchedDevice, genre])
+    return deviceSongs(library.length || hideDemoFolder ? library : demoFiles, libraryFolder, catalog)
+  }, [libraryFiles, demoFiles, hideDemoFolder, libraryFolder, catalog])
+  const deviceFilters = useMemo(() => ({ q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter, classic: classicOnly }),
+    [q, genre, artist, arrangement, difficulty, songKeyFilter, classicOnly])
+  const filteredDevice = useMemo(() => sortSongs(filterSongs(allDevice, deviceFilters), sort), [allDevice, deviceFilters, sort])
+  const deviceFacets = useMemo(() => songFacets(allDevice, deviceFilters), [allDevice, deviceFilters])
 
   const isServer = source === 'server'
   const songs = isServer ? serverSongs : filteredDevice.slice(0, deviceShown)
   const total = isServer ? serverTotal : filteredDevice.length
-  const genreOptions = isServer ? genres : folderCounts(searchedDevice)
-  const artistOptions = isServer ? artists.filter(a => matchesSearch(a.name, artistSearch)) : []
+  const shownFacets = isServer ? { ...facets, genres, artists } : deviceFacets
+  const genreOptions = shownFacets.genres
+  const artistOptions = shownFacets.artists.filter(a => matchesSearch(a.name, artistSearch))
 
   const changeView = () => {
     const next = view === 'cards' ? 'list' : 'cards'
@@ -132,9 +153,14 @@ export default function HomePage() {
     void window.electronAPI.setPrefs({ homeSection: next })
   }
 
-  const switchSource = (next: Source) => {
-    setSource(next); setGenre(null); setArtist(null); setError(''); setDeviceShown(PAGE)
+  const clearFilters = () => {
+    setGenre(null); setArtist(null); setArrangement(''); setDifficulty(''); setSongKeyFilter(''); setClassicOnly(false); setSort('title')
   }
+  const switchSource = (next: Source) => {
+    setSource(next); clearFilters(); setError(''); setDeviceShown(PAGE)
+  }
+  const filtered = !!(genre || artist || arrangement || difficulty || songKeyFilter || classicOnly || sort !== 'title')
+  const asFacet = (list: { name: string; count: number }[]) => list.map(o => ({ value: o.name, count: o.count }))
 
   const open = async (song: SongServerSong) => {
     if (opening) return
@@ -194,12 +220,14 @@ export default function HomePage() {
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <nav aria-label={t`Filters`} className="orfeo-rise-in orfeo-rise-in-2" style={{ width: 240, flexShrink: 0, overflowY: 'auto', padding: '12px 10px', borderRight: '1px solid var(--border2)' }}>
-            <h3 className="home-heading">{isServer ? t`Genre` : t`Folder`}</h3>
+            <h3 className="home-heading">{t`Genre`}</h3>
             <FilterButton label={t`All`} active={!genre} onClick={() => { setGenre(null); setArtist(null) }} />
-            {genreOptions.map(g => <FilterButton key={g.name} label={isServer ? genreLabel(g.name) : g.name} count={g.count} active={genre === g.name} onClick={() => { setGenre(genre === g.name ? null : g.name); setArtist(null); setDeviceShown(PAGE) }} />)}
-            {isServer && <>
+            {genreOptions.map(g => <FilterButton key={g.name} label={genreLabel(g.name)} count={g.count} active={genre === g.name} onClick={() => { setGenre(genre === g.name ? null : g.name); setArtist(null); setDeviceShown(PAGE) }} />)}
+            <h3 className="home-heading" style={{ marginTop: 16 }}>{t`Sort`}</h3>
+            {songSortOptions().map(o => <FilterButton key={o.value} label={o.label.replace(/^[^:]*:\s*/, '')} active={sort === o.value} onClick={() => setSort(o.value)} />)}
+            {shownFacets.artists.length > 0 && <>
               <h3 className="home-heading" style={{ marginTop: 16 }}>{t`Artist`}</h3>
-              {artists.length > 8 && <input className="home-filter-search" value={artistSearch} onChange={e => setArtistSearch(e.target.value)} placeholder={t`Find an artist`} aria-label={t`Find an artist`} />}
+              {shownFacets.artists.length > 8 && <input className="home-filter-search" value={artistSearch} onChange={e => setArtistSearch(e.target.value)} placeholder={t`Find an artist`} aria-label={t`Find an artist`} />}
               <FilterButton label={t`All`} active={!artist} onClick={() => setArtist(null)} />
               {artistOptions.map(a => <FilterButton key={a.name} label={a.name} count={a.count} active={artist === a.name} onClick={() => setArtist(artist === a.name ? null : a.name)} />)}
             </>}
@@ -217,6 +245,20 @@ export default function HomePage() {
                 ? <button className="home-link" onClick={() => setConnected(false)}>{t`Change server`}</button>
                 : <button className="home-link" onClick={pickFolder}>{libraryFolder ? t`Change folder` : t`Choose your song folder`}</button>}
             </div>
+            {(!isServer || connected) && (
+              <div className="home-filterbar">
+                <FilterSelect title={t`Genre`} all={t`All genres`} value={genre ?? ''} options={asFacet(shownFacets.genres)} onChange={v => { setGenre(v || null); setArtist(null) }} label={genreLabel} />
+                <FilterSelect title={t`Composer`} all={t`All composers`} value={artist ?? ''} options={asFacet(shownFacets.artists)} onChange={v => setArtist(v || null)} />
+                <FilterSelect title={t`Arrangement`} all={t`All arrangements`} value={arrangement} options={asFacet(shownFacets.arrangements)} onChange={setArrangement} label={v => ARRANGEMENT_LABEL[v]?.() ?? v} />
+                <FilterSelect title={t`Difficulty`} all={t`Any difficulty`} value={difficulty} options={asFacet(shownFacets.difficulties)} onChange={setDifficulty} label={v => t`Difficulty ${v}`} />
+                <FilterSelect title={t`Key`} all={t`Any key`} value={songKeyFilter} options={asFacet(shownFacets.keys)} onChange={setSongKeyFilter} />
+                <div style={{ width: 150, flexShrink: 0 }}>
+                  <SettingsDropdown value={sort} options={songSortOptions()} onChange={setSort} title={t`Sort songs`} />
+                </div>
+                {shownFacets.classics > 0 && <Toggle label={t`Classic composers`} value={classicOnly} onChange={setClassicOnly} />}
+                {filtered && <button className="home-link" onClick={clearFilters}>{t`Clear filters`}</button>}
+              </div>
+            )}
             {error && <div role="alert" className="home-error">{error}</div>}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 8px 12px' }}>
               {view === 'cards' && <div className="home-cards">

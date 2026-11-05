@@ -17,12 +17,20 @@ import {
 
 const PAGE = 120 // cards added each time the grid scrolls near its end
 
-const ARRANGEMENT_LABEL: Record<string, () => string> = {
+export const ARRANGEMENT_LABEL: Record<string, () => string> = {
   'solo-piano': () => t`Solo piano`,
   'piano-led': () => t`Piano-led`,
   band: () => t`Full band`,
   'solo-line': () => t`Single-line solo`,
 }
+
+export const songSortOptions = (): { value: SongSort; label: string }[] => [
+  { value: 'title', label: t`Sort: Title` },
+  { value: 'person', label: t`Sort: Composer` },
+  { value: 'easiest', label: t`Sort: Easiest first` },
+  { value: 'tempo', label: t`Sort: Tempo` },
+  { value: 'length', label: t`Sort: Length` },
+]
 
 function Art({ card }: { card: SongCard }) {
   const [broken, setBroken] = useState(false)
@@ -90,7 +98,7 @@ export const Card = memo(function Card({ card, loaded, onOpen }: { card: SongCar
   )
 })
 
-function FilterSelect({ title, all, value, options, onChange, label }: {
+export function FilterSelect({ title, all, value, options, onChange, label }: {
   title: string
   all: string
   value: string
@@ -176,13 +184,7 @@ export function SongBrowser({ onOpen, onClose }: { onOpen: (path: string) => voi
     return () => io.disconnect()
   }, [matches.length, shown])
 
-  const sortOptions: { value: SongSort; label: string }[] = [
-    { value: 'title', label: t`Sort: Title` },
-    { value: 'person', label: t`Sort: Composer` },
-    { value: 'easiest', label: t`Sort: Easiest first` },
-    { value: 'tempo', label: t`Sort: Tempo` },
-    { value: 'length', label: t`Sort: Length` },
-  ]
+  const sortOptions = songSortOptions()
 
   return createPortal(
     <div
@@ -253,7 +255,7 @@ export function SongBrowser({ onOpen, onClose }: { onOpen: (path: string) => voi
   )
 }
 
-function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-inactive)', flexShrink: 0 }}>
       <Switch value={value} onChange={onChange} label={label} />
