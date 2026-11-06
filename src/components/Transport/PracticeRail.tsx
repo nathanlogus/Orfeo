@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { Play, Pause, Repeat, Hourglass, ListTree, SlidersVertical, Music2, Compass, X, FolderOpen, SlidersHorizontal, Square } from 'lucide-react'
+import { Play, Pause, Repeat, Hourglass, Brain, ListTree, SlidersVertical, Music2, Compass, X, FolderOpen, SlidersHorizontal, Square } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
 import { useMidiFile } from '../../hooks/useMidiFile'
@@ -49,6 +49,7 @@ export default function PracticeRail() {
   const loopEnd = useStore((s) => s.loopEnd)
   const barStarts = useStore((s) => s.barStarts)
   const waitForNotes = useStore((s) => s.waitForNotes)
+  const memoryMode = useStore((s) => s.memoryMode)
   const metronomeEnabled = useStore((s) => s.metronomeEnabled)
   const countInEnabled = useStore((s) => s.countInEnabled)
   const countInBars = useStore((s) => s.countInBars)
@@ -113,6 +114,10 @@ export default function PracticeRail() {
         title={waitForNotes ? t`Waiting for your notes` : t`Wait for notes`}
         description={t`The song plays and holds at each note until you play it on your MIDI keyboard. Hide or mute a track to leave its notes out.`}
         onClick={() => useStore.getState().setWaitForNotes(!waitForNotes)} />
+      <Tile label={t`Memory`} icon={<Brain size={20} strokeWidth={1.8} />} on={memoryMode} dot={memoryMode} disabled={!midi}
+        title={memoryMode ? t`Memory on` : t`Memory`}
+        description={t`Once a phrase is clean at the full level, each clean run fades its notes further until they're gone. A rough run brings them back. Runs count at 100% tempo, without Wait.`}
+        onClick={() => useStore.getState().setMemoryMode(!memoryMode)} />
       <Tile label={t`Click`} on={metronomeEnabled} dot={metronomeEnabled}
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 11.4V9.1" /><path d="m12 17 6.59-6.59" /><path d="m15.05 5.7-.218-.691a3 3 0 0 0-5.663 0L4.418 19.695A1 1 0 0 0 5.37 21h13.253a1 1 0 0 0 .951-1.31L18.45 16.2" /><circle cx="20" cy="9" r="2" /></svg>}
         badge={countInEnabled ? <span className="pr-tile-badge" aria-label={t`Count-in ${countInBars} bars`}>{countInBars}</span> : undefined}

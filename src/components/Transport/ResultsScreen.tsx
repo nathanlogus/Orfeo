@@ -34,6 +34,7 @@ export default function ResultsScreen() {
           <div className="pr-result-head">
             <span className="o-note">{r.song} · {r.level === 0 ? t`automatic level` : t`level ${r.level}`} · {t`${r.tempoPercent}% tempo`}</span>
             <h1 id="pr-result-title">{r.title}</h1>
+            {r.notCounted && <span className="o-note">{r.notCounted}</span>}
           </div>
 
           <div className="pr-result-main">

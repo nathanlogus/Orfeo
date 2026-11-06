@@ -179,8 +179,11 @@ interface PliageStore {
   // 1-5 is a level you chose, 0 is Auto: each phrase's level follows your playing
   practiceLevel: number
   setPracticeLevel: (level: number) => void
+  memoryMode: boolean
+  setMemoryMode: (on: boolean) => void
   phraseLevels: number[]
-  phraseResult: { percent: number; level: number; mastery: number } | null
+  phraseMemory: (number | null)[]
+  phraseResult: { percent: number; level: number; mastery: number; moved: number } | null
   // The Results screen: set when a song ends, or by End, if keys were played
   practiceResult: PracticeResult | null
   // The Lock-a-Chord hint on the roll
@@ -799,7 +802,10 @@ export const useStore = create<PliageStore>((set, get) => ({
   setWaitForNotes: (waitForNotes) => set({ waitForNotes }),
   practiceLevel: 5,
   setPracticeLevel: (practiceLevel) => set({ practiceLevel }),
+  memoryMode: false,
+  setMemoryMode: (memoryMode) => set({ memoryMode }),
   phraseLevels: [],
+  phraseMemory: [],
   phraseResult: null,
   practiceResult: null,
   lockHintOpen: false,

@@ -2,6 +2,7 @@ import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, activeKeyRange } from '../../store'
 import { isScoreOnly } from '../../utils/scoreSource'
+import { memoryStepAt } from '../../utils/practiceSession'
 import { isBlackKey } from '../../utils/midiParser'
 import { getNoteLabel, getNoteName } from '../../utils/noteNames'
 import { detectChord, detectChordWithInversion, inversionForKnownChord, formatInversionDisplay, localizeChord, ordinalSuffix, buildCompactVoicing } from '../../utils/chordDetection'
@@ -45,10 +46,14 @@ function resolveCurrentIndex(seq: { displayTime: number }[], currentTime: number
   return idx
 }
 
+// The song stays off the keys in score view, and from a phrase's first fade in
+// Memory: a dimmed key would still say which note it is
+const hidesSong = (s: ReturnType<typeof useStore.getState>) => isScoreOnly(s) || memoryStepAt(s.currentTime) > 0
+
 export default function Keyboard() {
   const keyboardSize = useStore((s) => s.keyboardSize)
   const { min, max } = useStore(activeKeyRange)
-  const activeKeys = useStore((s) => isScoreOnly(s) ? s.midiHeldKeys : s.activeKeys)
+  const activeKeys = useStore((s) => hidesSong(s) ? s.midiHeldKeys : s.activeKeys)
   const activeKeyColors = useStore((s) => s.activeKeyColors)
   const noteNaming              = useStore((s) => s.noteNaming)
   const accidentals             = useStore((s) => s.accidentals)
@@ -114,7 +119,7 @@ export default function Keyboard() {
   // when one of those genuinely changes. ─────────────────────────────────
   const reflectCacheRef = useRef<{ key: string; result: SoundingNote[] } | null>(null)
   const reflectSounding = useStore((s) => {
-    if (!s.reflectPianoRollOnKeyboard || s.playbackState === 'playing' || !s.midi || isScoreOnly(s)) return EMPTY_SOUNDING
+    if (!s.reflectPianoRollOnKeyboard || s.playbackState === 'playing' || !s.midi || hidesSong(s)) return EMPTY_SOUNDING
     // An Explorer on screen owns the keyboard: the song's notes at the
     // playhead would mix with its tiles' notes. They come back as it closes
     // or is minimised.
@@ -189,7 +194,7 @@ export default function Keyboard() {
   // shown when playback stopped. currentChordIndex is itself the selected
   // (already-resolved) store value — see the subscription above. ──────────
   const currentIndex = currentChordIndex
-  const scoreOnly = useStore(isScoreOnly)
+  const scoreOnly = useStore(hidesSong)
   const sequenceChord = currentIndex >= 0 && !scoreOnly ? chordSequence[currentIndex] : null
 
   // ── Chord-display legibility fix (two independent root causes, both real):

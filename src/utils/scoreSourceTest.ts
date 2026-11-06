@@ -1,4 +1,4 @@
-import { findImportSource, isScoreFor, leftHandChannels, partsToShow, stavesToShow, staffHands, transposeKeySignature, withTextEvents } from './scoreSource'
+import { findImportSource, isScoreFor, leftHandChannels, offLevel, partsToShow, stavesToShow, staffHands, tickKey, ticksInLevel, transposeKeySignature, withTextEvents } from './scoreSource'
 
 export function runScoreSourceTest(): number {
   console.group('[scoreSource] self-check')
@@ -8,6 +8,15 @@ export function runScoreSourceTest(): number {
   check(transposeKeySignature(0, 1) === -5, 'up 1 from C is Db')
   check(transposeKeySignature(0, -1) === 5, 'down 1 from C is B')
   check(transposeKeySignature(-3, 12) === -3, 'an octave keeps the key')
+  const asked = ticksInLevel([
+    { index: 0, notes: [{ midi: 60, time: 0, ticks: 0 }, { midi: 62, time: 1, ticks: 960 }] },
+    { index: 1, notes: [{ midi: 60, time: 0, ticks: 0 }] },
+  ], 480, (track, midi) => track === 1 || midi === 99)
+  check(asked.get(tickKey(60, 480)) === true, 'two tracks on one note: either one asks for it')
+  check(asked.get(tickKey(62, 1440)) === false, 'the cut lead is added back to a tick')
+  check(offLevel(asked, [tickKey(62, 1440)]), 'a note nobody asks for is off the level')
+  check(!offLevel(asked, [tickKey(62, 1440), tickKey(60, 480)]), 'a repeat that asks for it keeps it')
+  check(!offLevel(asked, [tickKey(70, 0)]), 'a note with no match stays as written')
   const part = (primaryChannel: number) => ({ playbackInfo: { primaryChannel, secondaryChannel: primaryChannel + 1 } })
   const parts = [part(0), part(2)]
   check(partsToShow(parts, [{ channel: 0, visible: false }, { channel: 2, visible: true }])[0] === parts[1], 'hidden part is left out')

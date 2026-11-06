@@ -14,6 +14,7 @@ import { useCurrentTempoTrust } from '../../hooks/useTempoTrustScan'
 import { stepDisplayedBpm, typedBpm } from '../../utils/bpmStep'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { t } from '../../utils/i18n'
+import { MEMORY_GONE } from '../../utils/practiceScore'
 import { useMidiSettings } from '../../store/midiSettings'
 import { shortName } from '../../utils/midiDeviceNames'
 import { touchScreen } from '../../utils/touchScreen'
@@ -60,6 +61,21 @@ function useTitlebarOverlayInset(): number {
   return inset
 }
 
+// ── Memory: one cell a phrase, filling as its notes fade away ───────────────
+function MemoryMap({ steps }: { steps: (number | null)[] }) {
+  const phrases = steps.filter(step => step !== null)
+  const gone = phrases.filter(step => step === MEMORY_GONE).length
+  return (
+    <div className="pr-group">
+      <span className="pr-label">{t`Memory`}</span>
+      <div className="pr-memory-map" role="img" aria-label={t`${gone} of ${phrases.length} phrases memorized`}>
+        {steps.map((step, i) => <i key={i} data-step={step ?? 'rest'} />)}
+      </div>
+      <span className="pr-soft">{gone}/{phrases.length}</span>
+    </div>
+  )
+}
+
 export default function TopBar() {
   useCurrentTempoTrust()
   const overlayInset = useTitlebarOverlayInset()
@@ -94,6 +110,8 @@ export default function TopBar() {
   const { pause, stop, seek, seekAndPlay } = usePlayback()
   const practiceLevel = useStore((s) => s.practiceLevel)
   const phraseResult = useStore((s) => s.phraseResult)
+  const memoryMode = useStore((s) => s.memoryMode)
+  const phraseMemory = useStore((s) => s.phraseMemory)
   const wasPlayingRef = useRef(false)
 
   const handleScrubStart = useCallback(() => {
@@ -300,9 +318,16 @@ export default function TopBar() {
                 {phraseResult
                   ? <span><span className="pr-soft">{t`this phrase`}</span> {phraseResult.percent}%</span>
                   : <span className="pr-soft">{levelName}</span>}
+                {!!phraseResult?.moved && (
+                  <span className="pr-level-moved" role="status" key={phraseResult.percent + phraseResult.level}>
+                    {phraseResult.moved > 0 ? '↑' : '↓'} {t`level ${phraseResult.level}`}
+                  </span>
+                )}
               </button>
             </Tooltip>
           </div>
+
+          {memoryMode && <MemoryMap steps={phraseMemory} />}
 
           <SoundStatus />
 

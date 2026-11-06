@@ -45,7 +45,7 @@ export function amberHex(): string {
 // covered without touching each color source individually.
 const _cssVarHex = new Map<string, string>()
 let _cssVarHexVersion = 0
-function resolveCssColor(color: string): string {
+export function resolveCssColor(color: string): string {
   const m = /^var\((--[\w-]+)\)$/.exec(color)
   if (!m) return color
   // the user changed their hand colours — --hand-lh/--hand-rh resolve anew
@@ -74,5 +74,25 @@ export function drainHitEffects(): HitEffectEvent[] {
   if (_queue.length === 0) return _queue
   const drained = _queue
   _queue = []
+  return drained
+}
+
+// ── Practice marks: a played note hit or missed. Their own queue: the song's
+// notes fill the one above whether anyone plays or not. Only the roll drains
+// it, and it's gone in score view, so only the latest are kept. ──────────────
+export interface PracticeMark { midi: number; hit: boolean }
+
+const MAX_MARKS = 16
+let _marks: PracticeMark[] = []
+
+export function pushPracticeMark(midi: number, hit: boolean): void {
+  if (_marks.length >= MAX_MARKS) _marks.shift()
+  _marks.push({ midi, hit })
+}
+
+export function drainPracticeMarks(): PracticeMark[] {
+  if (_marks.length === 0) return _marks
+  const drained = _marks
+  _marks = []
   return drained
 }

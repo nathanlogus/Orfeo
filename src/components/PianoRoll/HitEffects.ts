@@ -21,6 +21,8 @@ export type { HitEffectPattern }
 
 const GRAVITY_PX_PER_S2 = 220
 
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 // ── Small color helpers — hex int <-> HSL, for the color-shifting effects.
 // PixiJS colors are plain 0xRRGGBB ints; GSAP has no built-in hue rotation,
 // so shifting a color over an effect's lifetime means converting once at
@@ -103,6 +105,20 @@ export class HitEffectsRenderer {
       case 'starburstNova': return this.spawnStarburstNova(x, y, color)
       case 'cometTrail':  return this.spawnCometTrail(x, y, color)
     }
+  }
+
+  // ── Practice: a hit rings out, a miss is a cross. Told apart by shape as well
+  // as colour. With reduced motion, both only fade where they stand. ─────────
+  spawnPracticeMark(hit: boolean, x: number, y: number, color: number): void {
+    if (hit && !reduceMotion()) return this.spawnRippleRing(x, y, color)
+    const g = new Graphics()
+    g.x = x; g.y = y
+    if (hit) g.circle(0, 0, 9)
+    else g.moveTo(-6, -6).lineTo(6, 6).moveTo(6, -6).lineTo(-6, 6)
+    g.stroke({ width: 3, color })
+    this.container.addChild(g)
+    const tw = gsap.to(g, { alpha: 0, duration: 0.45, ease: 'power1.in', onComplete: () => { g.destroy(); this.untrack(tw) } })
+    this.track(tw)
   }
 
   // ── Two-layer additive bloom: soft wide halo + brighter, faster-decaying core.
