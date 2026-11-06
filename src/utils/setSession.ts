@@ -135,7 +135,7 @@ export function playEncore() {
   void openAt(run.songs.length)
 }
 
-// Off the summary, and back to the Library with the settings as they were
+// Off the summary, and back to the menu with the settings as they were
 export function closeSet() {
   const run = current()
   if (!run) return

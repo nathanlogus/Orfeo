@@ -80,7 +80,7 @@ export function SetSummary() {
           </div>
         </div>
         <div className="pr-result-actions">
-          <button className="o-btn-quiet" onClick={closeSet}>{t`Back to library`}</button>
+          <button className="o-btn-quiet" onClick={closeSet}>{t`Back to menu`}</button>
           <span className="o-spacer" />
           {encore && <button className="o-btn-primary o-btn-lg" onClick={playEncore}>{t`Encore: ${encore.title}`}</button>}
         </div>
