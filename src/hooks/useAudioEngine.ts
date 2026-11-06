@@ -53,7 +53,7 @@ export function getMeasuredOutputLatencySec(): number {
 }
 export function getGmOutputName(): string { return _openOutput }
 
-function initJZZ(): Promise<void> {
+export function initJZZ(): Promise<void> {
   if (_jzzReady) return Promise.resolve()
   if (_jzzInitP) return _jzzInitP
   _jzzInitP = (async () => {

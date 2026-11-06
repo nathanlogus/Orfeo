@@ -158,7 +158,7 @@ function resendSongKeepingPlace() {
   if (s.playbackState === 'playing') nativeCall('play')
 }
 
-function sendTrackState(tracks: Tracks) {
+export function sendTrackState(tracks: Tracks) {
   const hasSolo = tracks.some(t => t.solo)
   const n = Math.max(0, ...tracks.map(t => t.index + 1))
   const audible = Array.from({ length: n }, (_, i) => {

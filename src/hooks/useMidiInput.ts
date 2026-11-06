@@ -130,6 +130,13 @@ function setActive(key: string) {
   publishTopBar()
 }
 
+// Who else wants each played note with its touch (Jam's band listens here)
+const _noteListeners = new Set<(note: number, vel: number) => void>()
+export function onLiveNote(fn: (note: number, vel: number) => void): () => void {
+  _noteListeners.add(fn)
+  return () => { _noteListeners.delete(fn) }
+}
+
 // ── Note on / off ────────────────────────────────────────────────────────────
 function noteOn(key: string, note: number, raw: number, stamp: number, t0: number) {
   // During a Tap Tempo session a key press is a tap, not a note
@@ -153,6 +160,7 @@ function noteOn(key: string, note: number, raw: number, stamp: number, t0: numbe
   lightOn(note)
   advanceIfPlayed()
   setActive(key)
+  _noteListeners.forEach(fn => fn(note, vel))
 }
 
 function noteOff(key: string, note: number) {
