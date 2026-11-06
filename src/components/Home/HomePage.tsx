@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Check, FolderOpen, LayoutGrid, List, Loader2, MoreHorizontal, Play, Search, Settings, Wifi, X } from 'lucide-react'
 import '../../styles/redesign-home.css'
 import { useStore } from '../../store'
@@ -424,7 +424,7 @@ export default function HomePage() {
         <button className="o-icon-btn" style={{ position: 'relative' }} onClick={() => useStore.getState().openSettingsWindow()} aria-label={t`Settings`}><Settings size={18} /><NewVersionDot /></button>
       </header>
 
-      {GameMode ? <GameMode /> : section === 'learn' ? <LearnHome /> : showConnect ? (
+      {GameMode ? <Suspense fallback={null}><GameMode /></Suspense> : section === 'learn' ? <LearnHome /> : showConnect ? (
         <ConnectServer
           address={address} setAddress={setAddress} searching={searching} error={error} sourceSwitch={sourceSwitch}
           onConnect={() => { if (address.trim()) { setConnected(true); setError('') } }}

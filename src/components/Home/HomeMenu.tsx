@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType } from 'react'
+import { lazy, useEffect, useRef, useState, type ComponentType } from 'react'
 import { Play, Settings } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
@@ -17,10 +17,14 @@ import type { SongServerSong } from '../../types'
 
 export type MenuSection = 'library' | 'learn' | 'arcade' | 'jam'
 
+// Loaded on opening, so three.js and the band stay out of the first screen
+const ArcadeHome = lazy(() => import('../../arcade/ArcadeHome'))
+const JamHome = lazy(() => import('../../jam/JamHome'))
+
 // A game mode stays off the menu until it's available. To wire one in, set `available` and `home`.
 export const GAME_MODES: { id: MenuSection; name: () => string; note: () => string; available: boolean; home: ComponentType | null }[] = [
-  { id: 'arcade', name: () => t`Arcade`, note: () => t`Short games for your hands and ears`, available: false, home: null },
-  { id: 'jam', name: () => t`Jam`, note: () => t`Play along with a band that listens`, available: false, home: null },
+  { id: 'arcade', name: () => t`Arcade`, note: () => t`Short games for your hands and ears`, available: true, home: ArcadeHome },
+  { id: 'jam', name: () => t`Jam`, note: () => t`Play along with a band that listens`, available: true, home: JamHome },
 ]
 
 const IN_PROGRESS = 4
