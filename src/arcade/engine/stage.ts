@@ -38,14 +38,18 @@ function toonSteps(): THREE.DataTexture {
   return steps
 }
 
-// One material for a whole world; a palette of null is for headless checks
-export function paperMaterial(palette: THREE.Texture | null): THREE.MeshToonMaterial {
-  const material = new THREE.MeshToonMaterial({ map: palette, gradientMap: toonSteps() })
+// The paper's grain, on any material: unlit backdrops are the same paper as the lit props
+export function paperGrain<T extends THREE.Material>(material: T): T {
   material.onBeforeCompile = shader => {
     shader.fragmentShader = shader.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
       gl_FragColor.rgb *= 1.0 - ${GRAIN.toFixed(3)} * fract(sin(dot(floor(gl_FragCoord.xy / 2.0), vec2(12.9898, 78.233))) * 43758.5453);`)
   }
   return material
+}
+
+// One material for a whole world; a palette of null is for headless checks
+export function paperMaterial(palette: THREE.Texture | null): THREE.MeshToonMaterial {
+  return paperGrain(new THREE.MeshToonMaterial({ map: palette, gradientMap: toonSteps() }))
 }
 
 export function loadPalette(url: string): Promise<THREE.Texture> {

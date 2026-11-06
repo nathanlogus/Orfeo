@@ -3,7 +3,7 @@
 // Jam shows a scene: changing scene swaps the world under a frozen frame of the
 // old one, and leaving hands the shared renderer and every GPU resource back.
 import * as THREE from 'three'
-import { disposeScene, fitCamera, loadGlb, loadPalette, mergeProps, paperMaterial, releaseRenderer, sharedRenderer } from '../../arcade/engine/stage'
+import { disposeScene, fitCamera, loadGlb, loadPalette, mergeProps, paperGrain, paperMaterial, releaseRenderer, sharedRenderer } from '../../arcade/engine/stage'
 import type { BandLevel } from '../reaction'
 import { ROOM_SPECS, type Mote, type RoomSpec } from './rooms'
 import { roomLight, tooSlow, type Room } from './roomChoice'
@@ -259,7 +259,7 @@ export function buildRoom(spec: RoomSpec, props: THREE.Object3D, material: THREE
     const dim = feel.off('lamps') ? 0.72 : 1
     ambient.intensity = spec.ambient.intensity * light * dim
     key.intensity = spec.key.intensity * light * dim
-    lit.color.setScalar(light)
+    lit.color.setScalar(light * (spec.dim ?? 1))
     signalMaterial.color.setScalar(feel.off('tally') ? 0.2 : light * tubeBuzz(t, feel.pop('neon') ? 0.7 : spec.buzz) * (1 + 0.5 * feel.pop('neon')))
     if (swinging) swinging.rotation.z = sway(t) * (1 + 4 * feel.pop('swing'))
     if (spinning) {
@@ -433,7 +433,7 @@ export function createRoomView(host: HTMLElement, reduced: boolean, band: () => 
         palette.dispose()
         return
       }
-      const lit = new THREE.MeshBasicMaterial({ map: palette })
+      const lit = paperGrain(new THREE.MeshBasicMaterial({ map: palette }))
       const next = { ...buildRoom(ROOM_SPECS[room], props, paperMaterial(palette), lit, glowTexture()), props, palette }
       if (!renderer) {
         renderer = sharedRenderer()

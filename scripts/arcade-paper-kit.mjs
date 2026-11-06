@@ -442,6 +442,9 @@ function snowcap(r, h, teeth) {
   return flat(g)
 }
 
+// The folding recipe, for the Jam rooms' own kit
+export const FOLDS = { flat, card, band, folded, box, rod, cone, gem, at }
+
 export const PAPER_KIT = { deepSong: DEEP_SONG, kiteFestival: KITE_FESTIVAL, orbitStation: ORBIT_STATION, midnightJob: MIDNIGHT_JOB, summit: SUMMIT }
 
 // ── A climbing cycle for KayKit's humanoid rig, which ships without one ─────────
