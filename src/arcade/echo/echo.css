@@ -1,0 +1,34 @@
+/* ── Deep Song: the panel and the whale's words over the diorama ─────────────── */
+/* The ocean runs behind the keyboard, as on the board */
+.ee { position: absolute; inset: 0 0 calc(-1 * var(--keys, 150px)); overflow: hidden; background: #071a33; }
+
+.ee-says { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.ee-says span { display: flex; align-items: center; height: 38px; padding: 0 12px; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper-card); color: var(--ink); font-size: 15px; font-weight: 600; white-space: nowrap; }
+.ee-says::after { content: ''; border: 7px solid transparent; border-top: 8px solid var(--ink); border-bottom: 0; }
+
+.ee-panel { position: absolute; left: 50%; bottom: 54px; z-index: 1; width: min(580px, calc(100% - 32px)); transform: translateX(-50%); display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 18px; background: var(--paper-card); box-shadow: 4px 4px 0 var(--ink); color: var(--ink); }
+.ee-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.ee-panel-head span:first-child { font-size: 18px; font-weight: 600; }
+.ee-panel-head span:last-child, .ee-panel-foot span { font-size: 14px; color: var(--ink-soft); }
+.ee-slots { display: grid; grid-template-columns: repeat(var(--slots), minmax(0, 1fr)); gap: 10px; }
+.ee-slot { display: flex; align-items: center; justify-content: center; height: 52px; box-sizing: border-box; border: 2px dashed var(--ink-soft); border-radius: 12px; background: #f1e8de; font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; transition: background 0.15s; }
+.ee-slot[data-state='right'] { border: 2px solid var(--ink); background: var(--paint-yellow); }
+.ee-slot[data-state='wrong'] { border: 2px solid var(--ink); background: var(--paint-pink); }
+.ee-slot[data-state='now'] { border: 3px solid var(--ink); background: var(--paper-card); box-shadow: 0 0 0 4px var(--paint-yellow); font-size: 22px; }
+.ee-slot[data-state='sung'] { border: 2px solid var(--ink); background: #bfeaf2; }
+.ee-panel-foot { display: flex; align-items: center; gap: 10px; }
+.ee-replay { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; flex-shrink: 0; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper-card); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.ee-replay:disabled { opacity: 0.45; cursor: default; }
+
+@media (max-width: 759px) {
+  .ee-panel { bottom: 58px; gap: 8px; padding: 12px; }
+  .ee-panel-foot span { display: none; }
+  .ee-slots { gap: 6px; }
+  .ee-slot { height: 44px; font-size: 14px; }
+  .ee-says { display: none; }
+}
+@media (max-height: 560px) {
+  .ee-panel { gap: 6px; padding: 8px 12px; bottom: 50px; }
+  .ee-slot { height: 36px; }
+  .ee-replay { height: 36px; }
+}
