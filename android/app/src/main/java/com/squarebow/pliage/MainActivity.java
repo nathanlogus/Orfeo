@@ -335,7 +335,7 @@ public class MainActivity extends Activity {
                     s.receive(reply);
                     String text = new String(reply.getData(), 0, reply.getLength(), StandardCharsets.UTF_8);
                     if (text.matches("pliage-songs:\\d{1,5}") && reply.getAddress().isSiteLocalAddress())
-                        found = reply.getAddress().getHostAddress() + ":" + text.substring(12);
+                        found = reply.getAddress().getHostAddress() + text.substring(text.indexOf(':'));
                 } catch (IOException e) { android.util.Log.i("Pliage", "no song server: " + e.getMessage()); }
                 answer(id, found);
             }).start();
