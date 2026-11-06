@@ -166,7 +166,57 @@ permissive:
 
 ---
 
-## MIT — [full text](https://opensource.org/license/mit) (100 packages)
+## Arcade art and music
+
+Curated by `scripts/arcade-assets.mjs` and `scripts/arcade-licks.mjs`. Files live in
+`public/arcade/` and `src/arcade/library/licks.ts`.
+
+| Used for | Pack | Author | License |
+|---|---|---|---|
+| Monster Hollow graveyard, lanterns | KayKit Halloween Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Monster Hollow village, ground, clouds | KayKit Medieval Hexagon Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Monster Hollow trees, rock, bush | KayKit Forest Nature Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Monster Hollow monsters, converted from FBX, recoloured | Animated Monsters | [Quaternius](https://www.patreon.com/quaternius) | CC0 1.0 |
+
+Arcade riffs and some progressions come from SundayLicks. Riffs were converted to alphaTex and
+their names translated. Some progressions come from free-midi-chords.
+
+<details>
+<summary>SundayLicks and free-midi-chords: MIT license text</summary>
+
+```
+MIT License
+
+Copyright (c) 2026 Richard Fossland
+(SundayLicks, https://github.com/richardfossland/sundaylicks)
+
+Copyright (c) 2019 Ludovic Drolez
+(free-midi-chords, https://github.com/ldrolez/free-midi-chords)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+</details>
+
+---
+
+## MIT — [full text](https://opensource.org/license/mit) (101 packages)
 
 <details>
 <summary>Show license text</summary>
@@ -285,6 +335,7 @@ THE SOFTWARE.
 | `shiki@0.10.1` | octref/shiki | Copyright (c) 2021 Pine Wu |
 | `soundfont-player@0.12.0` | danigb/soundfont-player | Copyright (c) 2015 Daniel Gómez Blasco <danigb@gmail.com> |
 | `standardized-audio-context@25.3.77` | chrisguttandin/standardized-audio-context | Copyright (c) 2024 Christoph Guttandin |
+| `three@0.170.0` | mrdoob/three.js | Copyright © 2010-2024 three.js authors |
 | `tiny-inflate@1.0.3` | devongovett/tiny-inflate | Copyright (c) 2015-present Devon Govett |
 | `tiny-typed-emitter@2.1.0` | binier/tiny-typed-emitter | Copyright (c) 2020 Zurab Benashvili (binier) <zura.bena@gmail.com> |
 | `tonal@6.4.3` | tonaljs/tonal | Copyright (c) 2015 danigb |

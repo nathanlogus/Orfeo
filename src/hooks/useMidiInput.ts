@@ -39,6 +39,9 @@ const _known = new Map<string, MidiDeviceInfo>()        // every keyboard seen t
 const _held = new Map<string, Set<number>>()            // device key -> keys currently down
 const _lastOn = new Map<string, number>()               // `${device}:${note}` -> time of last accepted note-on
 const _swallow = new Map<string, number>()              // note-offs to ignore for dropped/ignored note-ons
+// The newest accepted key's own MIDI timestamp: Arcade judges by when a key
+// arrived, not by when a busy page got round to it
+export let lastNoteStamp = 0
 // Keyboards that were unplugged while "Reconnect automatically" was off —
 // not listened to again until Rescan
 const _waitingForRescan = new Set<string>()
@@ -150,6 +153,7 @@ function noteOn(key: string, note: number, raw: number, stamp: number, t0: numbe
   soundOn(note, vel)
   recordNote(stamp, t0, performance.now(), note, vel, key)
   heldBy(key).add(note)
+  lastNoteStamp = stamp
   lightOn(note)
   advanceIfPlayed()
   setActive(key)
