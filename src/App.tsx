@@ -438,6 +438,8 @@ export default function App() {
           else enterPresentationMode()
           break
         case ' ':
+          // Home is on top: the song behind it stays put, and a focused button keeps Space
+          if (useStore.getState().homeOpen || !useStore.getState().midi) break
           e.preventDefault()
           // During a Tap Tempo session Space is a tap, not play/pause
           if (isTapCapturing()) { if (!e.repeat) registerTap(); break }

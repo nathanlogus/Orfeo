@@ -42,7 +42,7 @@ let remembered: Partial<{
 
 export default function HomePage() {
   const { openFile } = useMidiFile()
-  const { seek } = usePlayback()
+  const { seek, pause } = usePlayback()
   const hasSong = useStore(s => !!s.midi)
   const barTimes = useStore(s => s.midi?._barTimes)
   const loadedPath = useStore(s => (s.midi as any)?._filePath as string | undefined)
@@ -274,6 +274,9 @@ export default function HomePage() {
     setPreview(null)
   }
   useEffect(() => () => { previewRun.current++; stopPreviewSound.current?.() }, [])
+
+  // A game mode has the sound to itself: the song behind it waits
+  useEffect(() => { if (GAME_MODES.some(m => m.id === section) && useStore.getState().playbackState === 'playing') pause() }, [section, pause])
 
   const backToMenu = () => { stopPreview(); setSection('menu') }
   const leave = useRef(backToMenu)
