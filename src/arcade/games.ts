@@ -40,6 +40,7 @@ import { t } from '../utils/i18n'
 import type { HudState, KeysState } from './hud'
 import { drillSteps } from './chordRush/run'
 import { STAGES as HOLLOW_STAGES } from './chordRush/stages'
+import { STAGES as ORBIT_STAGES } from './pocket/stages'
 
 const ART = './arcade/art'
 
@@ -55,6 +56,7 @@ export interface MeetIt {
   hear: string              // the Hear button's words
   cards: MeetCard[]
   hearSteps?: number[][]    // what Hear plays instead of the cards, step by step: a scale, a phrase
+  hearMs?: number           // ms a step, for a rhythm; an empty step is a rest
   tryIt: {
     prompt: string          // "Try one now: play any C chord, any way up"
     keys: number[]          // lit and labelled on the keyboard
@@ -135,7 +137,20 @@ export const GAMES: GameDef[] = [
     drill: drillSteps,
   },
   soon('frontier', t`Sight Line`, t`Frontier Express`, t`sight-reading`, 'card-sight-line.svg'),
-  soon('orbit', t`Pocket`, t`Orbit Station`, t`timing`, 'card-pocket.jpg'),
+  {
+    id: 'orbit',
+    game: t`Pocket`,
+    world: t`Orbit Station`,
+    skill: t`timing`,
+    description: t`A paper space station turns on your beat. You are the pilot: the click plays, then goes silent, and steady playing keeps the rings in orbit while rushing or dragging pulls them out.`,
+    art: `${ART}/card-pocket.jpg`,
+    scene: `${ART}/scene-orbit-station.jpg`,
+    sceneAlt: t`Orbit Station: a paper space station with two turning rings, a planet and a comet`,
+    assist: t`The click stays on longer and the steady zone is wider.`,
+    figure: { name: t`The Pilot`, art: `${ART}/figure-pilot.svg` },
+    stages: ORBIT_STAGES,
+    Game: lazy(() => import('./pocket/Pocket')),
+  },
   soon('midnight', t`Soft Touch`, t`The Midnight Job`, t`dynamic control`, 'card-soft-touch.jpg'),
   soon('deepsong', t`Echo`, t`Deep Song`, t`ear training`, 'card-echo.jpg'),
   soon('kites', t`Split`, t`Kite Festival`, t`hand independence`, 'card-split.jpg'),
