@@ -12,6 +12,16 @@ export type Check =
   | { kind: 'tap'; beats: number; fade: boolean; patterns: string[][] }
   | { kind: 'chunks' }
   | { kind: 'scan' }
+  | { kind: 'chords'; clef: Clef; chords: ChordAsk[] }
+  | { kind: 'touch'; clef: Clef; styles: TouchStyle[]; notes: string[] }
+  | { kind: 'quiz'; questions: Question[] }
+
+// A chord with a name is played from the name, in any octave or inversion
+export interface ChordAsk { name?: string; notes: string[] }
+// What the keyboard can report about how a phrase was played
+export type TouchStyle = 'soft' | 'loud' | 'even' | 'legato' | 'staccato' | 'pedal'
+// hear: what to play first, one list of notes per moment
+export interface Question { text: string; hear?: string[][]; answer: string; wrong: string[] }
 
 export interface Lesson {
   id: string
@@ -26,9 +36,10 @@ export interface Lesson {
   piece?: string
   file?: string
   after?: string
+  tool?: string
 }
 
-export interface Unit { n: number; title: string; intro?: string; lessons: Lesson[] }
+export interface Unit { n: number; title: string; track: string; intro?: string; lessons: Lesson[] }
 
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean)
 
@@ -54,7 +65,29 @@ export function parseCheck(text: string): Check {
     return { kind, beats: Number(rest[0]), fade, patterns: body.replace(/^\d+\s*(fade)?/, '').split('|').map(words) }
   }
   if (kind === 'chunks' || kind === 'scan') return { kind }
+  if (kind === 'chords') {
+    return {
+      kind, clef: rest[0] as Clef,
+      chords: rest.slice(1).map(word => {
+        const [notes, name] = word.split('=').reverse()
+        return { name: name?.replace(/_/g, ' '), notes: notes.split('+') }
+      }),
+    }
+  }
+  if (kind === 'touch') {
+    const [styles, notes] = body.split(':').map(words)
+    return { kind, clef: styles[0] as Clef, styles: styles.slice(1) as TouchStyle[], notes }
+  }
+  if (kind === 'quiz') return { kind, questions: body.split('|').map(parseQuestion) }
   throw new Error(`Unknown lesson check: ${text}`)
+}
+
+// "[C4 E4] What is this? = Right / Wrong / Wrong"
+function parseQuestion(text: string): Question {
+  const [ask, choices] = text.split('=')
+  const hear = ask.match(/^\s*\[(.*)\]/)
+  const [answer, ...wrong] = choices.split('/').map(c => c.trim())
+  return { text: ask.replace(/^\s*\[.*\]/, '').trim(), hear: hear ? words(hear[1]).map(w => w.split('+')) : undefined, answer, wrong }
 }
 
 function parseLesson(id: string, title: string, body: string): Lesson {
@@ -74,6 +107,7 @@ function parseLesson(id: string, title: string, body: string): Lesson {
     piece: fields.get('Piece'),
     file: fields.get('File'),
     after: after || undefined,
+    tool: fields.get('Tool'),
   }
 }
 
@@ -82,13 +116,15 @@ const lines = (md: string) => md.replace(/\r\n/g, '\n')
 
 export function parseCourse(md: string): Unit[] {
   const units: Unit[] = []
+  let track = 'Reading music'
   for (const block of lines(md).split(/^(?=## )/m)) {
+    track = block.match(/^## Track: (.*)$/m)?.[1].trim() ?? track
     const head = block.match(/^## Unit (\d+): (.*)$/m)
     if (!head) continue
     const [top, ...sections] = block.split(/^(?=### )/m)
     const intro = top.split('\n').slice(1).join('\n').trim()
     units.push({
-      n: Number(head[1]), title: head[2].trim(), intro: intro || undefined,
+      n: Number(head[1]), title: head[2].trim(), track, intro: intro || undefined,
       lessons: sections.map(s => {
         const m = s.match(/^### (\d+\.\d+) (.*)$/m)!
         return parseLesson(m[1], m[2].trim(), s)

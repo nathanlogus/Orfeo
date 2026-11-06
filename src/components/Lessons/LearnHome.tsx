@@ -1,32 +1,47 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Check, Lock, Play } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
-import { COURSE, LESSONS, SHELF } from '../../lessons/courseData'
+import { COURSE, SHELF } from '../../lessons/courseData'
+import { allLessons } from '../../lessons/course'
 import { isOpen, nextLesson } from '../../lessons/progress'
 import { openPiece, startLesson } from '../../lessons/session'
 import { CARD_FILLS } from '../SongBrowser/SongBrowser'
 import { EXPLORE_TOOLS } from './exploreTools'
 
+const TRACK_NAME = (): Record<string, string> => ({ 'Reading music': t`Reading music`, 'Piano skills': t`Piano skills` })
+const TRACKS = [...new Set(COURSE.map(u => u.track))]
+const unitsOf = (track: string) => COURSE.filter(u => u.track === track)
+
 // ── The course on the home page: units down the side, lessons in the middle ──
 export default function LearnHome() {
   const passed = useStore(s => s.lessonPassed)
   const connected = useStore(s => s.midiDeviceConnected)
-  const next = nextLesson(COURSE, passed)
+  const first = nextLesson(COURSE, passed)
   const [chosen, setChosen] = useState<number | 'pieces' | null>(null)
-  const unit = COURSE.find(u => u.n === chosen) ?? COURSE.find(u => u.lessons.some(l => l.id === next?.id)) ?? COURSE[COURSE.length - 1]
+  const unit = COURSE.find(u => u.n === chosen) ?? COURSE.find(u => u.lessons.some(l => l.id === first?.id)) ?? COURSE[COURSE.length - 1]
+  // Up next, and Continue, stay on the track being looked at
+  const next = nextLesson(unitsOf(unit.track), passed)
+  const trackStarted = allLessons(unitsOf(unit.track)).some(l => passed.includes(l.id))
 
   return (
     <div className="learn">
       <nav aria-label={t`Units`} className="learn-nav pliage-rise-in pliage-rise-in-2">
-        <h3 className="lib-nav-head">{`${t`Reading music`} · ${t`${passed.length} of ${LESSONS.length} lessons`}`}</h3>
-        {COURSE.map(u => (
-          <button key={u.n} className="lib-nav-item learn-unit" aria-pressed={chosen !== 'pieces' && u.n === unit.n} onClick={() => setChosen(u.n)}>
-            <span className="learn-unit-n">{u.n}</span>
-            <span className="lib-ellipsis" style={{ flex: 1 }}>{u.title}</span>
-            <span className="learn-unit-n">{`${u.lessons.filter(l => passed.includes(l.id)).length}/${u.lessons.length}`}</span>
-          </button>
-        ))}
+        {TRACKS.map(track => {
+          const lessons = allLessons(unitsOf(track))
+          return (
+            <Fragment key={track}>
+              <h3 className="lib-nav-head">{`${TRACK_NAME()[track]} · ${t`${lessons.filter(l => passed.includes(l.id)).length} of ${lessons.length} lessons`}`}</h3>
+              {unitsOf(track).map(u => (
+                <button key={u.n} className="lib-nav-item learn-unit" aria-pressed={chosen !== 'pieces' && u.n === unit.n} onClick={() => setChosen(u.n)}>
+                  <span className="learn-unit-n">{u.n}</span>
+                  <span className="lib-ellipsis" style={{ flex: 1 }}>{u.title}</span>
+                  <span className="learn-unit-n">{`${u.lessons.filter(l => passed.includes(l.id)).length}/${u.lessons.length}`}</span>
+                </button>
+              ))}
+            </Fragment>
+          )
+        })}
         <h3 className="lib-nav-head">{t`Practice`}</h3>
         <button className="lib-nav-item learn-unit" aria-pressed={chosen === 'pieces'} onClick={() => setChosen('pieces')}>
           <span style={{ flex: 1 }}>{t`Pieces`}</span>
@@ -60,7 +75,7 @@ export default function LearnHome() {
             <h1 className="learn-title">{unit.title}</h1>
           </div>
           {next
-            ? <button className="o-btn-primary learn-go" onClick={() => void startLesson(next.id)}><Play size={14} fill="currentColor" aria-hidden /><span className="lib-ellipsis">{`${passed.length ? t`Continue` : t`Start`}: ${next.title}`}</span></button>
+            ? <button className="o-btn-primary learn-go" onClick={() => void startLesson(next.id)}><Play size={14} fill="currentColor" aria-hidden /><span className="lib-ellipsis">{`${trackStarted ? t`Continue` : t`Start`}: ${next.title}`}</span></button>
             : <span className="learn-title" style={{ fontSize: 'var(--text-xl)' }}>{t`Course complete`}</span>}
         </div>
         {unit.intro && <p className="o-note">{unit.intro}</p>}

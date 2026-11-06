@@ -1,11 +1,16 @@
 import type { Unit } from './course'
-import { afterPass, afterRun, isOpen, nextLesson, playScore, tapMarks, tapScore } from './progress'
-import { earlierNotes, midiOf, missedNote, noteOfKey, staffStep, tapBeats } from './drill'
+import { afterPass, afterRun, isOpen, nextLesson, playScore, tapMarks, tapScore, trackUnits } from './progress'
+import { chordPress, earlierNotes, midiOf, missedNote, nextPrompt, noteOfKey, staffStep, tapBeats, touchScore } from './drill'
 
 const lesson = (id: string) => ({ id, title: id, goal: 'g' })
 const UNITS: Unit[] = [
-  { n: 1, title: 'a', lessons: [lesson('1.1'), lesson('1.2'), lesson('1.3')] },
-  { n: 2, title: 'b', lessons: [lesson('2.1'), lesson('2.2')] },
+  { n: 1, title: 'a', track: 'one', lessons: [lesson('1.1'), lesson('1.2'), lesson('1.3')] },
+  { n: 2, title: 'b', track: 'one', lessons: [lesson('2.1'), lesson('2.2')] },
+]
+const TRACKS: Unit[] = [
+  ...UNITS,
+  { n: 3, title: 'c', track: 'two', lessons: [lesson('3.1'), lesson('3.2')] },
+  { n: 4, title: 'd', track: 'two', lessons: [lesson('4.1'), lesson('4.2')] },
 ]
 
 export function runProgressTest(): number {
@@ -45,6 +50,43 @@ export function runProgressTest(): number {
   eq('a pass is kept once', afterPass(UNITS, ['1.1'], '1.1'), ['1.1'])
   eq('next is the first not passed', nextLesson(UNITS, ['1.1'])?.id, '1.2')
   eq('nothing left', nextLesson(UNITS, ['1.1', '1.2', '1.3', '2.1', '2.2']), null)
+
+  eq('a second track opens from the start', isOpen(TRACKS, [], '3.1'), true)
+  eq('its second unit still waits', isOpen(TRACKS, [], '4.1'), false)
+  eq('and opens when its first is done', isOpen(TRACKS, ['3.1', '3.2'], '4.1'), true)
+  eq('the other track doesn\'t open it', isOpen(TRACKS, ['1.1', '1.2', '1.3', '2.1', '2.2'], '4.1'), false)
+  eq('passes on one track leave the other alone', isOpen(TRACKS, ['3.1', '3.2'], '2.1'), false)
+  eq('a track is its units', trackUnits(TRACKS, '4.2').map(u => u.n), [3, 4])
+  eq('next stays on the track asked about', nextLesson(trackUnits(TRACKS, '3.1'), ['1.1'])?.id, '3.1')
+
+  const named = { kind: 'chord' as const, clef: 'treble' as const, name: 'C', notes: ['C4', 'E4', 'G4'] }
+  eq('a named chord takes any inversion', chordPress(named, 67, new Set([52, 60, 67])), 'done')
+  eq('a named chord waits for every note', chordPress(named, 60, new Set([60])), 'more')
+  eq('a wrong note is wrong', chordPress(named, 61, new Set([60, 61])), 'wrong')
+  const staffed = { ...named, name: undefined }
+  eq('a chord on the staff wants its keys', chordPress(staffed, 72, new Set([72])), 'wrong')
+  eq('pairs are two-note chords', nextPrompt({ kind: 'pairs', left: ['C3'], right: ['C4'] }, { index: 0, earlier: [], missed: [], exercises: [], rng: () => 0 }), { kind: 'chord', clef: 'grand', notes: ['C3', 'C4'] })
+  const quiz = nextPrompt({ kind: 'quiz', questions: [{ text: 'q', answer: 'a', wrong: ['b', 'c'] }] }, { index: 0, earlier: [], missed: [], exercises: [], rng: () => 0.99 })
+  eq('the answer lands anywhere among the options', quiz, { kind: 'quiz', question: 'q', options: ['b', 'c', 'a'], answer: 'a' })
+
+  const phrase = (vel: number[], gap = 500, off?: (i: number) => number, pedal = 2) => vel.map((v, i) => ({ vel: v, on: i * gap, off: off?.(i), pedal }))
+  const soft = phrase([40, 42, 38, 40]), loud = phrase([90, 95, 88, 92]), level = phrase([62, 60, 64, 60])
+  eq('the first phrase sets the level', touchScore('soft', soft, null, true).value, 1)
+  eq('louder than the last phrase', touchScore('loud', loud, soft, true).value, 1)
+  eq('no louder than the last phrase', touchScore('loud', level, phrase([60, 60, 62, 60]), true).value, 0)
+  eq('softer than the last phrase', touchScore('soft', soft, loud, true).value, 1)
+  eq('a fixed touch can\'t be judged', touchScore('loud', phrase([100, 100, 100, 100]), phrase([100, 100, 100, 100]), true), { value: 1, seen: false })
+  eq('even notes', touchScore('even', phrase([70, 72, 68, 70]), null, true).value, 1)
+  eq('one note stands out', touchScore('even', phrase([70, 72, 120, 70]), null, true).value, 0.75)
+  eq('one gap stands out', touchScore('even', [0, 500, 1000, 2500].map(on => ({ vel: 70, on, pedal: 0 })), null, true).value < 1, true)
+  eq('held to the next note is legato', touchScore('legato', phrase([70, 70, 70, 70], 500, i => (i + 1) * 500), null, true).value, 1)
+  eq('a gap isn\'t legato', touchScore('legato', phrase([70, 70, 70, 70], 500, i => i * 500 + 300), null, true).value, 0)
+  eq('keys left down aren\'t legato', touchScore('legato', phrase([70, 70, 70, 70]), null, true).value < 1, true)
+  eq('short notes are staccato', touchScore('staccato', phrase([70, 70, 70, 70], 500, i => i * 500 + 100), null, true).value, 1)
+  eq('held notes aren\'t staccato', touchScore('staccato', phrase([70, 70, 70, 70], 500, i => (i + 1) * 500), null, true).value, 0)
+  eq('a pedal change after each note', touchScore('pedal', phrase([70, 70, 70, 70]), null, true).value, 1)
+  eq('no change is a miss', touchScore('pedal', phrase([70, 70, 70, 70], 500, undefined, 0), null, true).value, 0)
+  eq('no pedal can\'t be judged', touchScore('pedal', phrase([70, 70, 70, 70], 500, undefined, 0), null, false), { value: 1, seen: false })
 
   const steps = [{ time: 1, notes: [{ midi: 60 }] }, { time: 2, notes: [{ midi: 62 }] }]
   eq('clean play', playScore(steps, [{ midi: 60, time: 1 }, { midi: 62, time: 2 }], 0.25), 1)

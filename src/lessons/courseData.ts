@@ -6,7 +6,8 @@ export const COURSE = parseCourse(courseText)
 export const LESSONS = allLessons(COURSE)
 export const lessonById = (id: string) => LESSONS.find(l => l.id === id) ?? null
 export const SHELF = parseShelf(courseText)
-export const EXERCISES = LESSONS.flatMap(l => (l.tex ? [l.tex] : []))
+// The scan drill's pool: its questions only know the keys and metres Reading music uses
+export const EXERCISES = allLessons(COURSE.filter(u => u.track === COURSE[0].track)).flatMap(l => (l.tex ? [l.tex] : []))
 
 // Real pieces are kept out of the startup bundle until a lesson opens one
 const PIECES = import.meta.glob('./pieces/*.musicxml', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>
