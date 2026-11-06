@@ -7,17 +7,13 @@
   --pr-header-h: 92px;
   --pr-transport-h: 60px;
 }
-/* Too short for one column of tiles: two, so nothing on the rail hides */
-@media (max-height: 730px) {
-  :root { --pr-rail-w: 108px; }
-}
 /* A short screen (a phone on its side): the roll keeps what the bars give up */
 @media (max-height: 620px) {
   :root { --pr-header-h: 60px; --pr-transport-h: 48px; }
 }
 
 /* ── Rail ───────────────────────────────────────────────────────────────── */
-.pr-rail { flex-shrink: 0; width: var(--pr-rail-w); height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 0 16px; overflow-y: auto; overflow-x: hidden; background: #000000; color: #ffffff; scrollbar-width: none; }
+.pr-rail { flex-shrink: 0; width: var(--pr-rail-w); height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 0 16px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; background: #000000; color: #ffffff; scrollbar-width: none; }  /* one column at any height: a short screen scrolls */
 .pr-rail::-webkit-scrollbar { display: none; }
 .pr-rail-home { flex-shrink: 0; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent); cursor: pointer; }
 
@@ -46,14 +42,6 @@
   .pr-tile { width: 60px; height: 48px; gap: 2px; }
   .pr-tile span.pr-tile-label { font-size: var(--text-xs); }
   .pr-rail-setup { width: 44px; height: 44px; }
-}
-@media (max-height: 730px) {
-  .pr-rail { display: grid; grid-template-columns: 48px 48px; justify-content: center; align-content: start; }
-  .pr-rail-home, .pr-rail-play, .pr-tile, .pr-rail-setup { width: 48px; height: 48px; margin: 0; }
-  .pr-tile span.pr-tile-label { display: none; }
-  .pr-rail-gap { grid-column: 1 / -1; height: 6px; }
-  .pr-tile-badge { left: 2px; top: 2px; }
-  .pr-tile-dot { right: 5px; top: 5px; }
 }
 
 /* ── Song header ────────────────────────────────────────────────────────── */
