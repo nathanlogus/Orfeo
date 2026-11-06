@@ -177,7 +177,7 @@ permissive:
 
 ## Arcade art and music
 
-Curated by `scripts/arcade-assets.mjs` and `scripts/arcade-licks.mjs`. Files live in
+Curated by `scripts/arcade-assets.mjs`, `scripts/arcade-frontier.mjs` and `scripts/arcade-licks.mjs`. Files live in
 `public/arcade/` and `src/arcade/library/licks.ts`.
 
 | Used for | Pack | Author | License |

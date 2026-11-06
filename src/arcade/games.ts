@@ -45,6 +45,8 @@ import { STAGES as DEEP_STAGES } from './echo/stages'
 import { STAGES as ORBIT_STAGES } from './pocket/stages'
 import { STAGES as MIDNIGHT_STAGES } from './softTouch/stages'
 import { STAGES as KITE_STAGES } from './split/stages'
+import { drillSteps as frontierDrill } from './sightLine/run'
+import { STAGES as FRONTIER_STAGES } from './sightLine/stages'
 
 const ART = './arcade/art'
 
@@ -141,7 +143,6 @@ export const GAMES: GameDef[] = [
     Game: lazy(() => import('./chordRush/ChordRush')),
     drill: drillSteps,
   },
-  soon('frontier', t`Sight Line`, t`Frontier Express`, t`sight-reading`, 'card-sight-line.svg'),
   {
     id: 'orbit',
     game: t`Pocket`,
@@ -156,7 +157,21 @@ export const GAMES: GameDef[] = [
     stages: ORBIT_STAGES,
     Game: lazy(() => import('./pocket/Pocket')),
   },
-  soon('midnight', t`Soft Touch`, t`The Midnight Job`, t`dynamic control`, 'card-soft-touch.jpg'),
+  {
+    id: 'frontier',
+    game: t`Sight Line`,
+    world: t`Frontier Express`,
+    skill: t`sight-reading`,
+    description: t`A stagecoach crosses the desert and the staff lines are its trails. Each note is a fork: play it and the coach rolls on. You are the driver, and three misses at the line end the run.`,
+    art: `${ART}/card-sight-line.jpg`,
+    scene: `${ART}/scene-frontier-express.jpg`,
+    sceneAlt: t`Frontier Express: a paper stagecoach rolling across a desert of mesas and cacti under a low sun`,
+    assist: t`The stagecoach rolls slower.`,
+    figure: { name: t`The Stagecoach Driver`, art: `${ART}/figure-stagecoach-driver.svg` },
+    stages: FRONTIER_STAGES,
+    Game: lazy(() => import('./sightLine/SightLine')),
+    drill: frontierDrill,
+  },
   {
     id: 'deepsong',
     game: t`Echo`,
@@ -171,7 +186,6 @@ export const GAMES: GameDef[] = [
     stages: DEEP_STAGES,
     Game: lazy(() => import('./echo/Echo')),
   },
-  soon('orbit', t`Pocket`, t`Orbit Station`, t`timing`, 'card-pocket.jpg'),
   {
     id: 'midnight',
     game: t`Soft Touch`,
@@ -186,8 +200,6 @@ export const GAMES: GameDef[] = [
     stages: MIDNIGHT_STAGES,
     Game: lazy(() => import('./softTouch/SoftTouch')),
   },
-  soon('deepsong', t`Echo`, t`Deep Song`, t`ear training`, 'card-echo.jpg'),
-  soon('kites', t`Split`, t`Kite Festival`, t`hand independence`, 'card-split.jpg'),
   {
     id: 'summit',
     game: t`Scale Climb`,
@@ -217,7 +229,6 @@ export const GAMES: GameDef[] = [
     stages: KITE_STAGES,
     Game: lazy(() => import('./split/Split')),
   },
-  soon('summit', t`Scale Climb`, t`The Summit`, t`scales`, 'card-scale-climb.jpg'),
 ]
 
 // Three stages and a boss, three stars each. Endless has a best, not stars.
