@@ -159,7 +159,7 @@ export const TextStars = ({ count }: { count: number }) => (
 export function MeetIt({ def, stage, connected, assist, onStart, onBack }: {
   def: GameDef; stage: StageDef; connected: boolean; assist: boolean; onStart: (assist: boolean) => void; onBack: () => void
 }) {
-  const { text, hear, cards, hearSteps, tryIt } = stage.meet
+  const { text, hear, cards, hearSteps, hearMs = HEAR_STEP_MS, tryIt } = stage.meet
   const [plays, setPlays] = useState(0)
   const [step, setStep] = useState(-1)
   const [fit, setFit] = useState(false)
@@ -169,8 +169,8 @@ export function MeetIt({ def, stage, connected, assist, onStart, onBack }: {
   useEffect(() => {
     if (!plays) return
     const steps = hearSteps ?? cards.map(c => c.keys)
-    const timers = steps.map((keys, i) => setTimeout(() => { setStep(i); ringChord(keys) }, i * HEAR_STEP_MS))
-    timers.push(setTimeout(() => setStep(-1), steps.length * HEAR_STEP_MS))
+    const timers = steps.map((keys, i) => setTimeout(() => { setStep(i); ringChord(keys) }, i * hearMs))
+    timers.push(setTimeout(() => setStep(-1), steps.length * hearMs))
     return () => timers.forEach(clearTimeout)
   }, [plays]) // eslint-disable-line react-hooks/exhaustive-deps
 
