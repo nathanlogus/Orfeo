@@ -299,7 +299,7 @@ export default function HomePage() {
     setError('')
     useFoldersPage.setState({ failed: null })
     const path = fromServer ? await fetchSong(song) : song.path
-    if (path) useStore.getState().openSong(path, fromServer ? { art: song.art ?? null, people: song.people ?? [] } : undefined)
+    if (path) useStore.getState().openSong(path, fromServer ? { art: song.art ?? null, people: song.people ?? [], title: song.title } : undefined)
   }
 
   // Songs on this device get the Library's menu; one that's only on the server has less to offer

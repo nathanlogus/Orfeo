@@ -87,8 +87,8 @@ export default function TopBar() {
   const barStarts = useStore((s) => s.barStarts)
   const chordSequence = useStore((s) => s.chordSequence)
   const presentationMode = useStore((s) => s.presentationMode)
-  const songName = midi?.fileName?.replace(/\.[^.]+$/, '') ?? ''
   const cover = useSongCover((midi as any)?._filePath)
+  const songName = cover?.title ?? midi?.fileName?.replace(/\.[^.]+$/, '') ?? ''
   const setPresentationMode = useStore((s) => s.setPresentationMode)
 
   const { pause, stop, seek, seekAndPlay } = usePlayback()

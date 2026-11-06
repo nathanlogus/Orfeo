@@ -31,7 +31,7 @@ let _focusSnapshot: Map<number, { muted: boolean; visible: boolean }> | null = n
 // Only these groups light up the piano keyboard
 const KEYBOARD_DISPLAY_GROUPS = new Set(['piano', 'chromatic', 'organ'])
 
-export interface SongCoverInfo { art: string | null; people: string[] }
+export interface SongCoverInfo { art: string | null; people: string[]; title?: string }
 
 interface PliageStore {
   midi: ParsedMidi | null
