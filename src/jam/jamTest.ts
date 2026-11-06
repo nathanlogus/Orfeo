@@ -270,9 +270,9 @@ export function runJamTest(): number {
     late.settings.feel = 'relaxed'
     late.run(2)
     tight.run(2)
-    const first = (x: typeof late) => x.notes.find(n => n.ch === COMP_CH)!.at
+    const first = (x: typeof late) => x.notes.find(n => n.ch === COMP_CH && n.at > 0.5)!.at // past what start() planned
     check(first(late) > first(tight), 'relaxed sits behind the beat')
-    check(late.notes.find(n => n.ch === DRUM_CH)!.at === tight.notes.find(n => n.ch === DRUM_CH)!.at, 'and the drums keep it')
+    check(late.notes.find(n => n.ch === DRUM_CH && n.at > 0.5)!.at === tight.notes.find(n => n.ch === DRUM_CH && n.at > 0.5)!.at, 'and the drums keep it')
   }
 
   console.log(`${pass} passed, ${fail} failed`)
