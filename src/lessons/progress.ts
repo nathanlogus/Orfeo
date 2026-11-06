@@ -7,9 +7,16 @@ export const CLEAN_RUNS = 2
 
 const unitDone = (unit: Unit, passed: string[]) => unit.lessons.every(l => passed.includes(l.id))
 
-// Units open in order. Inside one, lessons open in order, and its last lesson is
-// always open: passing that skips the rest of the unit.
-export function isOpen(units: Unit[], passed: string[], id: string): boolean {
+// The units on the same track as a lesson
+export function trackUnits(all: Unit[], id: string): Unit[] {
+  const track = all.find(unit => unit.lessons.some(l => l.id === id))?.track
+  return all.filter(unit => unit.track === track)
+}
+
+// Each track's units open in order. Inside one, lessons open in order, and its
+// last lesson is always open: passing that skips the rest of the unit.
+export function isOpen(all: Unit[], passed: string[], id: string): boolean {
+  const units = trackUnits(all, id)
   const u = units.findIndex(unit => unit.lessons.some(l => l.id === id))
   if (u < 0 || (u > 0 && !unitDone(units[u - 1], passed))) return false
   const { lessons } = units[u]
