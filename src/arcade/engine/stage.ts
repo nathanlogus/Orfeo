@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-const MAX_PIXEL_RATIO = 1.5
+export const MAX_PIXEL_RATIO = 1.5
 const SHADOW_SIZE = 1024
 const GRAIN = 0.07
 const TOON_STEPS = [150, 205, 255]

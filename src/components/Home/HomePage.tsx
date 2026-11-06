@@ -390,7 +390,9 @@ export default function HomePage() {
     )
   }
 
-  const GameMode = GAME_MODES.find(m => m.id === section)?.home
+  const mode = GAME_MODES.find(m => m.id === section)
+  const GameMode = mode?.home
+  if (GameMode && mode?.ownPage) return <div className="theme-paper lib-page"><Suspense fallback={null}><GameMode onBack={backToMenu} /></Suspense></div>
   const showConnect = isServer && !connected
   const failure = isServer ? t`Couldn't download that song.` : t`Couldn't open that song.`
   // The top genres as chips, always with the chosen one; the Genre filter below still holds them all
@@ -427,7 +429,7 @@ export default function HomePage() {
         <button className="o-icon-btn" style={{ position: 'relative' }} onClick={() => useStore.getState().openSettingsWindow()} aria-label={t`Settings`}><Settings size={18} /><NewVersionDot /></button>
       </header>
 
-      {GameMode ? <Suspense fallback={null}><GameMode /></Suspense> : section === 'learn' ? <LearnHome /> : showConnect ? (
+      {GameMode ? <Suspense fallback={null}><GameMode onBack={backToMenu} /></Suspense> : section === 'learn' ? <LearnHome /> : showConnect ? (
         <ConnectServer
           address={address} setAddress={setAddress} searching={searching} error={error} sourceSwitch={sourceSwitch}
           onConnect={() => { if (address.trim()) { setConnected(true); setError('') } }}

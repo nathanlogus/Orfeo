@@ -1,48 +1,53 @@
 // ── Chord Rush: a run on screen. The rules live in run.ts ─────────────────────
+// The worked example of a game: see the top of ../games.ts for the contract.
 import { useEffect, useRef, useState } from 'react'
-import { Flame, X } from 'lucide-react'
-import { useStore } from '../../store'
+import { ArrowRight } from 'lucide-react'
 import { t } from '../../utils/i18n'
 import { gameClock } from '../clock'
-import { chordLabel, onKeyDown } from '../keys'
-import { afterRun, offersAssist, saveRecord, type StageRecord } from '../progress'
-import { ArcadeKeys, NeedKeyboard, ResultCard, type RunSummary } from '../screens'
+import type { GameProps } from '../games'
+import { chordLabel, onKeyDown, spelledLabels } from '../keys'
+import type { Target } from '../library/chords'
 import { openHollow, type Hollow } from './hollow'
-import { LIVES, createRun, starsFor, type Run, type RunEvent, type Wave } from './run'
+import { LIVES, cleanForThree, createRun, multiplierFor, starsFor, type Run, type RunEvent, type Wave } from './run'
 import type { Stage } from './stages'
 
-const WORLD = 'hollow'
 const BOSS = -1
 const BOSS_FIRST = 0.04
 const BOSS_LAST = 0.82
 const POINTS_MS = 650
+// The last monster gets to fold before the page changes
+const FINISH_MS = 900
+const WAVE_CHIPS = 6
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-interface Hud { score: number; combo: number; lives: number; wave: Wave | null; waveNo: number; lit: number[]; chord: number; wrong: number }
-const START: Hud = { score: 0, combo: 0, lives: LIVES, wave: null, waveNo: 0, lit: [], chord: 0, wrong: 0 }
+interface Shown { wave: Wave | null; chord: number }
 
 function tagFor(layer: HTMLElement, name: string): HTMLElement {
   const tag = document.createElement('span')
-  tag.className = 'ac-tag'
+  tag.className = 'ac-tag-chord'
   tag.textContent = chordLabel(name)
   layer.appendChild(tag)
   return tag
 }
 
-export default function ChordRush({ stage, record, startAssist, onRecord, onBack }: {
-  stage: Stage; record: StageRecord | undefined; startAssist: boolean; onRecord: (r: StageRecord) => void; onBack: () => void
-}) {
-  const connected = useStore(s => s.midiDeviceConnected)
+// "Dm is D, F and A. Any octave, any way up."
+function hintFor(target: Target) {
+  const notes = spelledLabels(target.keys, target.notes)
+  const all = `${notes.slice(0, -1).join(', ')} ${t`and`} ${notes[notes.length - 1]}`
+  return <><b>{chordLabel(target.name)}</b> {target.bass === null ? t`is ${all}. Any octave, any way up.` : t`is ${all}, with ${notes[0]} at the bottom.`}</>
+}
+
+export default function ChordRush({ stage, assist, paused, weak, hud, keys, hint, miss, finish }: GameProps<Stage>) {
   const host = useRef<HTMLDivElement>(null)
   const layer = useRef<HTMLDivElement>(null)
   const body = useRef<HTMLDivElement>(null)
   const [world, setWorld] = useState<Hollow | null>(null)
   const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState({ n: 0, assist: startAssist })
-  const [hud, setHud] = useState(START)
-  const [summary, setSummary] = useState<RunSummary | null>(null)
-  const saved = useRef(record)
-  const boss = stage.id === 'boss'
+  const [shown, setShown] = useState<Shown>({ wave: null, chord: 0 })
+  const held = useRef(paused)
+  held.current = paused
+  const boss = stage.kind === 'boss'
+  const endless = stage.kind === 'endless'
 
   useEffect(() => {
     let closed = false
@@ -55,42 +60,52 @@ export default function ChordRush({ stage, record, startAssist, onRecord, onBack
   }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !summary) onBack() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onBack, summary])
-
-  useEffect(() => {
     if (!world) return
-    const { assist } = attempt
     const clock = gameClock(performance.now())
     const tags = new Map<number, HTMLElement>()
     const dropTag = (id: number) => { tags.get(id)?.remove(); tags.delete(id) }
+    const heard = new Map<string, Target>()
     let run: Run | null = null
-    let total = 0, done = 0
+    let total = 0, done = 0, waves = 0
+    let front: Target | undefined
+    let leaving = 0
 
-    const sync = (patch: Partial<Hud> = {}) => setHud(h => ({
-      ...h, ...patch,
-      score: run?.state.score ?? 0, combo: run?.state.combo ?? 0, lives: LIVES - (run?.state.landed ?? 0),
-      lit: run?.foes[0]?.target.keys ?? [],
-    }))
+    const sync = (patch: Partial<Shown> = {}) => {
+      setShown(s => ({ ...s, ...patch }))
+      if (!run) return    // the first wave is announced from inside createRun
+      const { score, combo, landed } = run.state
+      hud({ score, combo, multiplier: multiplierFor(combo), lives: LIVES - landed })
+      const next = run.foes[0]?.target
+      if (next !== front) {
+        front = next
+        keys({ sun: next?.keys ?? [], names: next && spelledLabels(next.keys, next.notes) })
+        hint(next ? hintFor(next) : null)
+      }
+    }
 
-    function finish(cleared: boolean) {
-      const { score, bestCombo } = run!.state
+    function report(cleared: boolean) {
+      const { score, bestCombo, clean, played, landed } = run!.state
       const stars = cleared ? starsFor(run!.accuracy, assist) : 0
-      const next = afterRun(saved.current, { cleared, stars, score })
-      saved.current = next
-      void saveRecord(WORLD, stage.id, next)
-      onRecord(next)
-      setSummary({ cleared, stars, score, best: next.best, accuracy: run!.accuracy, bestCombo, assist })
+      const need = cleanForThree(played)
+      const folded = played - landed
+      finish({
+        cleared, stars, score,
+        title: cleared ? t`The village sleeps` : endless ? t`The night is over` : folded ? t`The lanterns went out, but you folded ${folded} monsters` : t`The lanterns went out`,
+        goal: !cleared ? null : assist ? t`A clear with Assist on earns 1 star.` : stars === 3 ? null : t`Three stars needs ${need} clean chords out of ${played}. You were ${need - clean} short.`,
+        stats: [{ label: t`Clean chords`, value: `${clean} / ${played}` }, { label: t`Top combo`, value: String(bestCombo) }],
+        probes: [...heard.values()].map(c => ({ name: c.name, pcs: c.pcs })),
+      })
     }
 
     const emit = (e: RunEvent) => {
       switch (e.type) {
         case 'wave':
           done = 0
+          waves = e.index
           total = e.wave.chords.length
-          sync({ wave: e.wave, waveNo: e.index, chord: 0 })
+          for (const chord of e.wave.chords) heard.set(chord.name, chord)
+          hud({ detail: endless ? t`Wave ${waves}` : t`Wave ${waves} of ${stage.waves}` })
+          sync({ wave: e.wave, chord: 0 })
           break
         case 'spawn':
           if (!boss) {
@@ -101,8 +116,7 @@ export default function ChordRush({ stage, record, startAssist, onRecord, onBack
           break
         case 'fold': {
           done++
-          if (boss) sync({ chord: done })
-          else {
+          if (!boss) {
             world.fold(e.foe.id, performance.now())
             const tag = tags.get(e.foe.id)
             tags.delete(e.foe.id)
@@ -111,18 +125,20 @@ export default function ChordRush({ stage, record, startAssist, onRecord, onBack
               tag.dataset.state = 'points'
               setTimeout(() => tag.remove(), POINTS_MS)
             }
-            sync()
           }
+          sync({ chord: done })
           break
         }
         case 'land':
           done++
           if (!boss) { world.remove(e.foe.id); dropTag(e.foe.id) }
+          if (!e.foe.dirty) miss(e.foe.target.name, chordLabel(e.foe.target.name))
           world.lives(LIVES - run!.state.landed)
           sync({ chord: done })
           break
         case 'wrong':
-          sync({ wrong: e.foe.id + 1 })
+          miss(e.foe.target.name, chordLabel(e.foe.target.name))
+          sync()
           if (!boss) {
             const tag = tags.get(e.foe.id)
             if (tag) { tag.dataset.state = 'wrong'; setTimeout(() => { delete tag.dataset.state }, 300) }
@@ -130,18 +146,16 @@ export default function ChordRush({ stage, record, startAssist, onRecord, onBack
           break
         case 'end':
           if (e.cleared && boss) world.fold(BOSS, performance.now())
-          finish(e.cleared)
+          leaving = window.setTimeout(() => report(e.cleared), reducedMotion() ? 0 : FINISH_MS)
           break
       }
     }
 
-    setSummary(null)
-    setHud(START)
     world.lives(LIVES)
     if (boss) world.spawnBoss(BOSS)
-    run = createRun({ stage, assist, rng: Math.random, emit, start: 0 })
+    run = createRun({ stage, assist, rng: Math.random, emit, start: 0, weak })
     sync()
-    const off = onKeyDown((key, stamp, held) => run!.noteOn(key, clock.at(stamp), held))
+    const off = onKeyDown((key, stamp, down) => { if (!held.current) run!.noteOn(key, clock.at(stamp), down) })
 
     let raf = 0
     let last = performance.now()
@@ -149,8 +163,7 @@ export default function ChordRush({ stage, record, startAssist, onRecord, onBack
       raf = requestAnimationFrame(frame)
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
-      const live = useStore.getState().midiDeviceConnected
-      const game = live ? clock.tick(now) : clock.hold(now)
+      const game = held.current ? clock.hold(now) : clock.tick(now)
       run!.tick(game)
       if (boss) {
         const foe = run!.foes[0]
@@ -177,45 +190,38 @@ export default function ChordRush({ stage, record, startAssist, onRecord, onBack
 
     return () => {
       cancelAnimationFrame(raf)
+      clearTimeout(leaving)
       off()
       for (const id of [...world.actors.keys()]) world.remove(id)
       for (const id of [...tags.keys()]) dropTag(id)
     }
-  }, [world, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [world]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const multiplier = Math.min(3, 1 + Math.floor(hud.combo / 4) * 0.5)
+  const { wave, chord } = shown
+  const chips = wave?.chords.slice(chord, chord + WAVE_CHIPS) ?? []
   return (
-    <div className="ac-game">
+    <>
       <div ref={host} className="ac-stage" />
       <div ref={layer} className="ac-tags" aria-hidden />
-      {boss && hud.wave && (
+      {boss && wave && (
         <div ref={body} className="ac-body">
-          {hud.wave.chords.map((chord, i) => (
-            <span key={i} className="ac-panel" data-state={i < hud.chord ? 'done' : i === hud.chord ? 'now' : undefined}>{chordLabel(chord.name)}</span>
+          {wave.chords.map((c, i) => (
+            <span key={i} className="ac-panel" data-state={i < chord ? 'done' : i === chord ? 'now' : undefined}>{chordLabel(c.name)}</span>
           ))}
         </div>
       )}
-
-      <header className="ac-hud">
-        <button className="o-icon-btn" aria-label={t`Leave the run`} onClick={onBack}><X size={18} /></button>
-        <span className="ac-hud-score">{hud.score.toLocaleString()}</span>
-        <span className="ac-hud-combo" data-on={hud.combo > 1 || undefined}><Flame size={16} aria-hidden />{`${hud.combo}`}{multiplier > 1 && <em>{`×${multiplier}`}</em>}</span>
-        <span className="ac-hud-wave">{hud.wave && `${t`Wave`} ${hud.waveNo} · ${hud.wave.name} · ${t`in`} ${hud.wave.key}`}{attempt.assist && ` · ${t`Assist`}`}</span>
-        <span className="ac-hud-lives" role="img" aria-label={t`${hud.lives} lanterns lit`}>
-          {Array.from({ length: LIVES }, (_, i) => <i key={i} data-lit={i < hud.lives || undefined} />)}
-        </span>
-      </header>
-
-      {failed && <div role="alert" className="lib-alert ac-paused">{t`Monster Hollow couldn't load its art.`}</div>}
-      {!connected && !summary && <div className="ac-paused"><NeedKeyboard /></div>}
-
-      <ArcadeKeys lit={hud.lit} />
-      {summary && (
-        <ResultCard
-          summary={summary} concept={stage.concept} endless={stage.waves === Infinity} assistOffered={offersAssist(saved.current)}
-          onRetry={assist => setAttempt(a => ({ n: a.n + 1, assist }))} onBack={onBack}
-        />
+      {!boss && wave && (
+        <div className="ac-wave" aria-label={t`This wave: ${wave.name} in ${wave.key}`}>
+          <span>{t`${wave.name} in ${wave.key}`}</span>
+          {chips.map((c, i) => (
+            <span key={chord + i} className="ac-wave-step">
+              {i > 0 && <ArrowRight size={14} strokeWidth={2.4} aria-hidden />}
+              <b data-now={i === 0 || undefined}>{chordLabel(c.name)}</b>
+            </span>
+          ))}
+        </div>
       )}
-    </div>
+      {failed && <div role="alert" className="lib-alert ac-paused">{t`Monster Hollow couldn't load its art.`}</div>}
+    </>
   )
 }

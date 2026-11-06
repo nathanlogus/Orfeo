@@ -23,8 +23,9 @@ const ArcadeHome = lazy(() => import('../../arcade/ArcadeHome'))
 const JamHome = lazy(() => import('../../jam/JamHome'))
 
 // A game mode stays off the menu until it's available. To wire one in, set `available` and `home`.
-export const GAME_MODES: { id: MenuSection; name: () => string; note: () => string; available: boolean; home: ComponentType | null }[] = [
-  { id: 'arcade', name: () => t`Arcade`, note: () => t`Short games for your hands and ears`, available: true, home: ArcadeHome },
+// ownPage: it draws its whole page, header and Back to menu included.
+export const GAME_MODES: { id: MenuSection; name: () => string; note: () => string; available: boolean; home: ComponentType<{ onBack: () => void }> | null; ownPage?: boolean }[] = [
+  { id: 'arcade', name: () => t`Arcade`, note: () => t`Short games for your hands and ears`, available: true, home: ArcadeHome, ownPage: true },
   { id: 'jam', name: () => t`Jam`, note: () => t`Play along with a band that listens`, available: true, home: JamHome },
 ]
 

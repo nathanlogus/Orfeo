@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### New
+- **The Arcade, redesigned.** A new home with seven worlds, your level and your weak spot, a page for each world, a Meet it card you can hear and try, and results that say what three stars needs, which chords slipped and which song in your library uses them. Monster Hollow is the first world open; the others show as coming soon.
 - **Memory.** A new switch on the practice rail: once a phrase is clean at the full level, each clean run fades its notes further, until you play it with nothing showing. A rough run brings them back for that phrase. The top bar shows how much of the song is memorized.
 - **See every note land.** While you play, each note rings on the piano roll when you hit it and shows a cross when you miss it. The sheet music dims what your level leaves out, and the level button shows when a phrase moves up or down.
 - **A main menu.** Pliage now opens on a full-screen menu: *Continue*, *Library* and *Learn*, each with a preview of what's there, and a *Next up* strip with a phrase to fix and your next lesson. Move with the mouse, touch, the arrow keys or the keys around Middle C on your MIDI keyboard. Notes you play stir the shapes in the background. *Continue* replaces *Back to song*.

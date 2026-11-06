@@ -3,6 +3,7 @@
 // time along, so what counts as played is decided by MIDI events, not frames.
 import { progression } from '../library'
 import { chordsOf, fits, type Target } from '../library/chords'
+import type { DrillStep } from '../games'
 import { EARLIER_SHARE, MISSED_SHARE } from '../../lessons/drill'
 import { BOSS_WAVES, SPACING, STAGES, dialAt, type Stage } from './stages'
 
@@ -42,7 +43,8 @@ export type RunEvent =
   | { type: 'wrong'; foe: Foe }
   | { type: 'end'; cleared: boolean }
 
-interface Options { stage: Stage; assist: boolean; rng: () => number; emit: (e: RunEvent) => void; start: number }
+// weak: chords this player has slipped on before, sent more often from the first wave
+interface Options { stage: Stage; assist: boolean; rng: () => number; emit: (e: RunEvent) => void; start: number; weak?: string[] }
 
 // Everything a wave could be: each listed item in each key
 const waveOf = (itemId: string, key: string): Wave => {
@@ -65,13 +67,26 @@ export function nextWave(pool: Wave[], earlier: Wave[], missed: string[], last: 
 }
 
 export const starsFor = (accuracy: number, assist: boolean) => (assist ? 1 : accuracy >= NEAR_CLEAN ? 3 : accuracy >= GOOD ? 2 : 1)
+// How many of this many chords have to be clean for three stars
+export const cleanForThree = (played: number) => Math.ceil(Number((played * NEAR_CLEAN).toFixed(6)))
+export const multiplierFor = (combo: number) => Math.min(MAX_MULTIPLIER, 1 + Math.floor(combo / COMBO_STEP) * COMBO_BONUS)
 
-export function createRun({ stage, assist, rng, emit, start }: Options) {
+// The Two-minute drill: the chords that slipped, each once
+export function drillSteps(items: string[]): DrillStep[] {
+  const waves = [...STAGES.filter(s => s.id !== 'boss').flatMap(poolOf), ...BOSS_WAVES.map(([id, key]) => waveOf(id, key))]
+  const steps = new Map<string, DrillStep>()
+  for (const chord of waves.flatMap(w => w.chords)) {
+    if (items.includes(chord.name) && !steps.has(chord.name)) steps.set(chord.name, { label: chord.name, keys: chord.keys, fits: held => fits(chord, held) })
+  }
+  return [...steps.values()]
+}
+
+export function createRun({ stage, assist, rng, emit, start, weak = [] }: Options) {
   const boss = stage.id === 'boss'
   const pool = boss ? [] : poolOf(stage)
   const earlier = STAGES.slice(0, STAGES.indexOf(stage)).filter(s => s.id !== 'boss').flatMap(poolOf)
   const struck = new Map<number, number>()
-  const missed: string[] = []
+  const missed = weak.slice(0, RECENT_MISSES)
   const state = { score: 0, combo: 0, bestCombo: 0, landed: 0, clean: 0, played: 0, waves: 0, dial: dialAt(stage, 0, assist), over: false, cleared: false }
   let foes: Foe[] = []       // walking now, front first
   let queue: Target[] = []   // this wave, still to come
@@ -117,7 +132,7 @@ export function createRun({ stage, assist, rng, emit, start }: Options) {
   function fold(foe: Foe, at: number) {
     const left = Math.min(1, Math.max(0, (foe.landAt - at) / (foe.landAt - foe.frontSince)))
     const clean = !foe.dirty
-    const multiplier = clean ? Math.min(MAX_MULTIPLIER, 1 + Math.floor(state.combo / COMBO_STEP) * COMBO_BONUS) : 1
+    const multiplier = clean ? multiplierFor(state.combo) : 1
     const points = Math.round((BASE_SCORE + SPEED_SCORE * left) * multiplier)
     state.score += points
     if (clean) {

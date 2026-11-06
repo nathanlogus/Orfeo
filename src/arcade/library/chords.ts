@@ -8,6 +8,7 @@ export interface Target {
   pcs: number[]           // every pitch class it takes, in voicing order
   bass: number | null     // the pitch class that has to be lowest, for an inversion
   keys: number[]          // the voicing lit on the keyboard
+  notes: string[]         // the same notes, spelled for this chord: D major has F#, not Gb
 }
 
 const NUMERAL = /^(b|#)?(iii|ii|iv|vii|vi|v|i)(.*?)(?:\^(\d))?$/i
@@ -45,7 +46,7 @@ export function chordOf(numeral: string, tonic: string, minor = false): Target {
   const pcs = stack.map(n => Note.chroma(n) as number)
   const keys: number[] = [LOWEST_KEY + (pcs[0] - LOWEST_KEY % OCTAVE + OCTAVE) % OCTAVE]
   for (const pc of pcs.slice(1)) keys.push(rise(keys[keys.length - 1], pc + OCTAVE))
-  return { numeral, name: turn ? `${symbol}/${Note.simplify(stack[0])}` : symbol, pcs, bass: turn ? pcs[0] : null, keys }
+  return { numeral, name: turn ? `${symbol}/${Note.simplify(stack[0])}` : symbol, pcs, bass: turn ? pcs[0] : null, keys, notes: stack.map(n => Note.simplify(n)) }
 }
 
 // minor items are stored on their relative major, so 'C' asks for A minor

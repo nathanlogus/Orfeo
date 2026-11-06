@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { disposeScene, fitCamera, loadGlb, loadPalette, mergeProps, paperMaterial, sharedRenderer, type Placement } from '../engine/stage'
+import { MAX_PIXEL_RATIO, disposeScene, fitCamera, loadGlb, loadPalette, mergeProps, paperMaterial, sharedRenderer, type Placement } from '../engine/stage'
 import type { Target } from '../library/chords'
 
 const ART = './arcade/hollow'
@@ -183,6 +183,8 @@ export async function openHollow(host: HTMLElement, reduced: boolean) {
   const fit = () => {
     const { clientWidth: w, clientHeight: h } = host
     if (!w || !h) return
+    // The Arcade zooms its board: draw for the pixels the canvas really covers
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio * host.getBoundingClientRect().width / w, MAX_PIXEL_RATIO))
     renderer.setSize(w, h)
     fitCamera(world.camera, w, h, STAGE_ASPECT)
   }

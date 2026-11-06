@@ -2,7 +2,7 @@
 // Run: node --import ./scripts/ts-esbuild-hooks.mjs src/runAllTests.ts --file src/arcade/chordRush/runTest.ts
 import { progression } from '../library'
 import { chordsOf } from '../library/chords'
-import { LIVES, createRun, nextWave, starsFor, type RunEvent, type Wave } from './run'
+import { LIVES, cleanForThree, createRun, drillSteps, multiplierFor, nextWave, starsFor, type RunEvent, type Wave } from './run'
 import { STAGES, dialAt, stageById } from './stages'
 
 const seeded = (seed: number) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32 }
@@ -146,5 +146,27 @@ export function runChordRushTest(): number {
   }
 
   eq([starsFor(0.5, false), starsFor(0.8, false), starsFor(0.95, false), starsFor(1, true)], [1, 2, 3, 1], 'stars')
+  // What the shared screens are told is what the judge really needs
+  for (const played of [1, 20, 36, 37, 100]) {
+    const need = cleanForThree(played)
+    if (starsFor(need / played, false) !== 3) fail(`${need} of ${played} should be three stars`)
+    if (need > 1 && starsFor((need - 1) / played, false) === 3) fail(`${need - 1} of ${played} should not be`)
+  }
+  eq([multiplierFor(0), multiplierFor(4), multiplierFor(40)], [1, 1.5, 3], 'multiplier')
+
+  // A saved weak chord is sent more often from the first wave on
+  const pool = STAGES[0].items.flatMap(id => STAGES[0].keys.map(key => ({ itemId: id, name: id, key, chords: chordsOf(progression(id), key) })))
+  const weakChord = 'Dm'
+  const holds = (w: Wave) => w.chords.some(c => c.name === weakChord)
+  const count = (missed: string[]) => { const rng = seeded(7); return Array.from({ length: 400 }, () => nextWave(pool, [], missed, null, rng)).filter(holds).length }
+  if (count([weakChord]) <= count([])) fail('a weak chord should come up more')
+  const seededRun = createRun({ stage: stageById('triads'), assist: false, rng: seeded(1), emit: () => {}, start: 0, weak: [weakChord] })
+  if (!seededRun.wave) fail('a run with weak chords still starts')
+
+  // The drill holds what slipped and nothing else, and hears it any way up
+  const steps = drillSteps(['Dm7', 'Am7', 'no such chord'])
+  eq(steps.map(s => s.label).sort(), ['Am7', 'Dm7'], 'drill steps')
+  const dm7 = steps.find(s => s.label === 'Dm7')!
+  if (!dm7.fits([50, 53, 57, 60]) || dm7.fits([50, 53, 57])) fail('drill judges the chord')
   return failures
 }
