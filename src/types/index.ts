@@ -165,6 +165,7 @@ export interface SongServerSong {
   busyness?: number
   classic?: boolean
   hands?: string
+  sheet?: boolean
   art?: string | null
 }
 
@@ -230,7 +231,7 @@ declare global {
       getDemoFolder:       () => Promise<string | null>
       loadMidiFromPath:    (path: string) => Promise<MidiFileResult | null>
       songServerQuery:     (address: string, query: Record<string, string | number>) => Promise<SongServerList>
-      songServerDownload:  (address: string, path: string, size: number) => Promise<string>
+      songServerDownload:  (address: string, path: string, size: number, sheet?: boolean) => Promise<string>
       songServerDiscover:  () => Promise<string | null>
       onSongServerProgress:  (fn: (data: { path: string; percent: number }) => void) => void
       offSongServerProgress: () => void

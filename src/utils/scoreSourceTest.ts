@@ -1,4 +1,4 @@
-import { findImportSource, isScoreFor, leftHandChannels, partsToShow, stavesToShow, staffHands, transposeKeySignature, withTextEvents } from './scoreSource'
+import { dropSelfTies, findImportSource, isScoreFor, leftHandChannels, partsToShow, stavesToShow, staffHands, transposeKeySignature, withTextEvents } from './scoreSource'
 
 export function runScoreSourceTest(): number {
   console.group('[scoreSource] self-check')
@@ -53,6 +53,13 @@ export function runScoreSourceTest(): number {
   check(findImportSource('D:\\Lib\\Pliage\\Song_PLIAGE_IMPORTED.mid', files, notation)?.path === 'D:/Lib/Song.mxl', 'copy finds its notation source, not a same-named MIDI')
   check(findImportSource('D:/Lib/Pliage/Gone_PLIAGE_IMPORTED.mid', files, notation) === null, 'source no longer in the library')
   check(findImportSource('D:/Lib/Song.mid', files, notation) === null, 'an ordinary MIDI is not a copy')
+
+  const looped: any = { tieDestination: null, tieOrigin: null, isTieDestination: true }
+  looped.tieDestination = looped
+  const next = {}, tied: any = { tieDestination: next, isTieDestination: false }
+  dropSelfTies({ tracks: [{ staves: [{ bars: [{ voices: [{ beats: [{ notes: [looped, tied] }] }] }] }] }] })
+  check(looped.tieDestination === null && !looped.isTieDestination, 'a note tied to itself loses the tie')
+  check(tied.tieDestination === next, 'a real tie stays')
 
   console.log(`${pass} passed, ${fail} failed`)
   console.groupEnd()

@@ -66,6 +66,9 @@ export const NES = {
   // ── Registered by NoteEditorToolbar — fires on every history push/undo/redo ────────────
   onHistoryChange: null as (() => void) | null,
 
+  // ── Registered by the sheet (ScoreView) — the edit buffer changed, write it again ──
+  onSheetChange: null as (() => void) | null,
+
   // ── Fires when PianoRoll updates hoverHint — toolbar subscribes to re-render hint line ──
   onHintChange: null as (() => void) | null,
 

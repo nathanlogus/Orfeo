@@ -95,6 +95,11 @@ async function getPliageOutputDir(sourceFilePath: string): Promise<string> {
 // use makes every save land on a genuinely unused filename. ────────────────
 function nextAvailablePliagePath(pliageDir: string, rawBase: string): string {
   const strippedBase = stripPliageSuffix(rawBase)
+  const version = Math.max(highestPliageVersion(pliageDir, strippedBase) + 1, nextPliageVersion(rawBase))
+  return join(pliageDir, `${strippedBase}_PLIAGE_v${version}.mid`)
+}
+
+function highestPliageVersion(pliageDir: string, strippedBase: string): number {
   const escaped = strippedBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const versionRe = new RegExp(`^${escaped}_${SAVED_WORD}_v(\\d+)\\.mid$`, 'i')
   let existingMax = 0
@@ -107,8 +112,7 @@ function nextAvailablePliagePath(pliageDir: string, rawBase: string): string {
       }
     } catch {}
   }
-  const version = Math.max(existingMax + 1, nextPliageVersion(rawBase))
-  return join(pliageDir, `${strippedBase}_PLIAGE_v${version}.mid`)
+  return existingMax
 }
 
 // ── Main window ────────────────────────────────────────────────────────────
@@ -658,15 +662,24 @@ ipcMain.handle('songServer:query', async (_e, address: string, query: Record<str
 })
 
 // A song that changed on the server comes down again; edits are never lost that
-// way, since the app saves those as new files in Pliage/
-ipcMain.handle('songServer:download', async (e, address: string, path: string, size: number) => {
+// way, since the app saves those as new files in Pliage/. The server is read-only,
+// so those stay on this device, and the song opens at its newest saved version.
+// The sheet travels as <song>.sheet, a name the library doesn't list as a song.
+ipcMain.handle('songServer:download', async (e, address: string, path: string, size: number, sheet?: boolean) => {
   if (!safeSongPath(path)) throw new Error('not a song path')
   const dest = songServerDest(songServerRoot(), path)
-  if (!haveSong(dest, size)) {
+  const stale = !haveSong(dest, size)
+  if (stale) {
     await mkdir(dirname(dest), { recursive: true })
     await saveUrl(`${serverUrl(address)}/api/file?path=${encodeURIComponent(path)}`, dest, percent => e.sender.send('songServer:progress', { path, percent }))
   }
-  return dest
+  if (sheet && (stale || !existsSync(`${dest}.sheet`))) {
+    await saveUrl(`${serverUrl(address)}/api/sheet?path=${encodeURIComponent(path)}`, `${dest}.sheet`).catch(() => {})
+  }
+  const pliageDir = join(dirname(dest), 'Pliage')
+  const strippedBase = stripPliageSuffix(basename(dest).replace(/\.[^.]+$/, ''))
+  const newest = highestPliageVersion(pliageDir, strippedBase)
+  return newest ? join(pliageDir, `${strippedBase}_PLIAGE_v${newest}.mid`) : dest
 })
 
 ipcMain.handle('dialog:openMidi', async () => {

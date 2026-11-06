@@ -33,7 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDemoFolder:      () => ipcRenderer.invoke('app:getDemoFolder'),
   loadMidiFromPath:   (path: string) => ipcRenderer.invoke('fs:loadMidiFromPath', path),
   songServerQuery:    (address: string, query: Record<string, string | number>) => ipcRenderer.invoke('songServer:query', address, query),
-  songServerDownload: (address: string, path: string, size: number) => ipcRenderer.invoke('songServer:download', address, path, size),
+  songServerDownload: (address: string, path: string, size: number, sheet?: boolean) => ipcRenderer.invoke('songServer:download', address, path, size, sheet),
   songServerDiscover: () => ipcRenderer.invoke('songServer:discover'),
   onSongServerProgress: (fn: (data: { path: string; percent: number }) => void) => ipcRenderer.on('songServer:progress', (_e, data) => fn(data)),
   offSongServerProgress: () => ipcRenderer.removeAllListeners('songServer:progress'),

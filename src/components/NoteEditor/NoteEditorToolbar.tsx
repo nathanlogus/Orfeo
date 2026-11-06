@@ -1,5 +1,5 @@
 import { useEffect, useState, useReducer, useRef, useCallback, useMemo, useSyncExternalStore } from 'react'
-import { PenLine, SquareDashed, CircleDashed, Save, Undo2, Redo2, X, ChevronDown } from 'lucide-react'
+import { PenLine, SquareDashed, CircleDashed, Save, Undo2, Redo2, X, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Minus, Plus, Trash2 } from 'lucide-react'
 import { useStore } from '../../store'
 import { NES, buildNoteEditSummary, type NETool } from '../../utils/noteEditorState'
 import { confirmDialog } from '../../utils/confirmController'
@@ -13,7 +13,9 @@ import { detectKeyFromTracks, parseKeySignature } from '../../utils/keyDetection
 import { getPianoRollAreaRect } from '../../utils/modalAnchors'
 import { HAND_ASSIGN_GROUPS } from '../../utils/keyboardGroups'
 import ExplorerMenu from '../ExplorerMenu'
-import { noteSelection, selectionHand, assignSelectedHand } from './noteSelection'
+import { saveVersionSheet } from '../../utils/foreignFormatImport'
+import { isScoreFor } from '../../utils/scoreSource'
+import { noteSelection, selectionHand, assignSelectedHand, repitchSelected, moveSelected, resizeSelected, addAfterSelected, deleteSelectedNotes } from './noteSelection'
 import '../../styles/redesign-tools.css'
 
 const HANDS = [
@@ -26,6 +28,31 @@ const HANDS = [
 const dockRect = () => {
   const roll = getPianoRollAreaRect()
   return { left: roll?.left ?? 0, height: roll?.top ?? 0 }
+}
+
+// ── The selected notes, by button ─────────────────────────────────────────────
+// Between the sheet and the roll: what a mouse does by dragging, for a finger
+// that can't hit a 16th-note's edge. Time and length step by the Quantize grid.
+export function NoteActions() {
+  useSyncExternalStore(noteSelection.subscribe, noteSelection.getVersion)
+  const none = noteSelection.size === 0
+  const pair = (label: string, lower: string, raise: string, down: React.ReactNode, up: React.ReactNode, by: (step: number) => void) => (
+    <>
+      <span className="xp-note">{label}</span>
+      <button className="xp-ne-show" aria-label={lower} disabled={none} onClick={() => by(-1)}>{down}</button>
+      <button className="xp-ne-show" aria-label={raise} disabled={none} onClick={() => by(1)}>{up}</button>
+    </>
+  )
+  return (
+    <div className="xp-ne-note" role="group" aria-label="Selected notes">
+      {pair('Pitch', 'Pitch down', 'Pitch up', <ChevronDown size={18} />, <ChevronUp size={18} />, repitchSelected)}
+      {pair('Time', 'Earlier', 'Later', <ChevronLeft size={18} />, <ChevronRight size={18} />, moveSelected)}
+      {pair('Length', 'Shorter', 'Longer', <Minus size={18} />, <Plus size={18} />, resizeSelected)}
+      <div className="o-spacer" />
+      <button className="xp-ne-show" disabled={none} onClick={addAfterSelected}>Add after</button>
+      <button className="xp-ne-show" aria-label="Delete selected notes" disabled={none} onClick={deleteSelectedNotes}><Trash2 size={18} /></button>
+    </div>
+  )
 }
 
 // ── NoteEditorToolbar ─────────────────────────────────────────────────────────
@@ -46,6 +73,8 @@ export default function NoteEditorToolbar() {
   const soloTrack               = useStore(s => s.tracks.find(t => t.index === s.noteEditorSoloTrackIndex))
   const velocityPanelOpen       = useStore(s => s.velocityPanelOpen)
   const setVelocityPanelOpen    = useStore(s => s.setVelocityPanelOpen)
+  const noteEditorSheet         = useStore(s => s.noteEditorSheet)
+  const setNoteEditorSheet      = useStore(s => s.setNoteEditorSheet)
 
   // ── Force re-render on history changes (push/undo/redo) ───────────────────
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
@@ -92,7 +121,7 @@ export default function NoteEditorToolbar() {
     // its Undo icon never re-rendered enabled — Ctrl+Z and the context
     // menu's Undo both read NES.history fresh each time, so they worked
     // regardless. Store the actual handler reference so cleanup can match it.
-    const handler = () => forceUpdate()
+    const handler = () => { forceUpdate(); NES.onSheetChange?.() }
     NES.onHistoryChange = handler
     return () => { if (NES.onHistoryChange === handler) NES.onHistoryChange = null }
   }, [])
@@ -162,6 +191,8 @@ export default function NoteEditorToolbar() {
     // convention as the Playback Editor and Mixer Console saves, no save
     // dialog (a dialog defaulting to a not-yet-created folder can silently
     // fall back to wherever the OS last had one open, e.g. Downloads).
+    const scored = useStore.getState().scoreSource
+    const source = isScoreFor(scored, sourcePath) ? scored.bytes : null
     const result = await window.electronAPI.saveNoteEditor({ filePath: sourcePath, base64, summary: saveSummary })
     if (!result.ok) return false
 
@@ -184,6 +215,7 @@ export default function NoteEditorToolbar() {
       const moved = carryCorrection(useStore.getState().tempoCorrections, useStore.getState().songKey, songKey(arr.buffer), 1)
       if (moved) useStore.setState({ tempoCorrections: moved })
       useStore.getState().setMidi(parsed)
+      if (source) void saveVersionSheet(result.filePath, arr.buffer, parsed, source)
       const raw = parsed as any
       if (raw._keySignature != null) {
         useStore.getState().setDetectedKey(parseKeySignature(raw._keySignature.key, raw._keySignature.scale))
@@ -368,6 +400,7 @@ export default function NoteEditorToolbar() {
     { id: 'pen', label: 'Pen', hint: 'Pen — Alt+click to add, click a note to mark for delete', icon: <PenLine size={16} /> },
   ]
   const shows = [
+    { label: 'Sheet', on: noteEditorSheet, toggle: () => setNoteEditorSheet(!noteEditorSheet), hint: 'Sheet — show these notes as a score above the roll; tap a note to select it' },
     { label: 'Note names', on: showNoteNames, toggle: toggleNoteNames, hint: 'Note names — show pitch labels on notes' },
     { label: 'Assign hands', on: reassignHands, toggle: toggleReassignHands, hint: 'Reassign hands — show LH/RH colors and enable Assign LH/RH' },
     { label: 'Velocity', on: velocityPanelOpen, toggle: () => setVelocityPanelOpen(!velocityPanelOpen), hint: velocityPanelOpen ? 'Velocity lane — hide the velocity editor' : noteEditorSoloTrackIndex !== null ? 'Velocity lane — edit velocity for the soloed track' : 'Velocity lane — solo a track to edit its velocity' },

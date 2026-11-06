@@ -7,6 +7,9 @@
 //     Each list ignores its own filter, so any filter can be changed. sort is title (the
 //     default), person, easiest, tempo or length.
 // GET /api/file?path=<path from the list>
+// GET /api/sheet?path=<path from the list>   the score a song was made from, for the songs
+//     the catalog marks sheet: true. Sheets live in sheets/ under PLIAGE_DATA (by default the
+//     folder holding this one), at the song's own path, as .musicxml or .mxl.
 // GET /api/art?path=<art from the list>
 // UDP port 8765: answers "pliage-songs?" with "pliage-songs:<port>", so the app can find this server
 //
@@ -35,6 +38,7 @@ const DISCOVERY_PORT = 8765
 const [folder, port = '8765'] = process.argv.slice(2)
 if (!folder) { console.error('Usage: node server/song-server.mjs <folder> [port]'); process.exit(1) }
 const root = realpathSync(resolve(folder))
+const sheets = resolve(process.env.PLIAGE_DATA ?? join(root, '..'), 'sheets')
 
 function readJson(name) {
   try { return JSON.parse(readFileSync(join(root, name), 'utf8')) } catch (e) {
@@ -51,7 +55,7 @@ function fromCatalog(e) {
   const fields = {
     title: e.title, artist: people[0], genre: e.genres?.[0]?.name, people, genres: e.genres,
     key: e.key, bpm: e.bpm, meter: e.meter, duration: e.duration, arrangement: e.arrangement,
-    difficulty: e.difficulty, busyness: e.busyness, classic: e.classic, hands: e.hands,
+    difficulty: e.difficulty, busyness: e.busyness, classic: e.classic, hands: e.hands, sheet: e.sheet,
     art: e.art?.url && `/api/art?path=${encodeURIComponent(e.art.url)}`,
   }
   return Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined && v !== null))
@@ -185,6 +189,16 @@ function find(rel, allowed) {
   } catch { return null }
 }
 
+function sheetOf(rel) {
+  for (const ext of ['.musicxml', '.mxl']) {
+    try {
+      const p = realpathSync(resolve(sheets, rel.replace(/\.[^./]+$/, ext)))
+      if (p.startsWith(sheets + sep) && statSync(p).isFile()) return p
+    } catch {}
+  }
+  return null
+}
+
 const discovery = createSocket('udp4')
 discovery.on('message', (msg, from) => {
   if (HOME.test(from.address) && msg.toString() === 'pliage-songs?') discovery.send(`pliage-songs:${port}`, from.port, from.address)
@@ -202,6 +216,7 @@ createServer(async (req, res) => {
   const rel = url.searchParams.get('path') ?? ''
   const file = req.method === 'GET' && (
     url.pathname === '/api/file' ? find(rel, p => SONG.test(p))
+      : url.pathname === '/api/sheet' ? sheetOf(rel)
       : url.pathname === '/api/art' ? (/^https?:/i.test(rel) ? await webArt(rel) : find(rel, p => extname(p).toLowerCase() in IMAGE)) : null)
   if (!file) { res.writeHead(404).end(); return }
   const type = IMAGE[extname(file).toLowerCase()]

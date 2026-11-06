@@ -184,6 +184,11 @@ button.xp-chip { cursor: pointer; }
 .xp-ne-tools .xp-seg button { padding: 0 12px; }
 .xp-ne-tools .xp-seg[aria-label='Quantize grid'] button { min-width: 44px; padding: 0 6px; }
 .xp-ne-show { flex-shrink: 0; height: var(--control-h); padding: 0 12px; border: 1px solid var(--line-600); border-radius: var(--radius-pill); background: none; color: #ffffff; font: inherit; font-size: var(--text-base); white-space: nowrap; cursor: pointer; }
+.xp-ne-show:disabled { opacity: 0.4; cursor: default; }
+.xp-ne-note { flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; box-sizing: border-box; padding: 6px 20px; background: var(--ink); color: #ffffff; font-family: var(--font-ui); letter-spacing: -0.02em; }
+.xp-ne-note .xp-note { margin-left: 8px; color: var(--stone); }
+.xp-ne-note .xp-note:first-child { margin-left: 0; }
+.xp-ne-note .xp-ne-show[aria-label] { display: flex; align-items: center; justify-content: center; min-width: 44px; padding: 0 8px; }
 .xp-ne-show[aria-pressed='true'] { border-color: var(--paper-card); background: var(--paper-card); color: var(--ink); }
 .xp-ne-hint { position: absolute; top: 100%; left: 0; max-width: 100%; box-sizing: border-box; padding: 3px 20px; overflow: hidden; background: var(--ink); color: var(--stone); font-size: var(--text-sm); line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
 .xp-ne-hint b { font-weight: 400; color: #ffffff; }

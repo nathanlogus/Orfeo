@@ -196,6 +196,7 @@ div.touch-volume-pop .touch-volume-head strong { color: #ffffff; font-family: va
 .pr-chord-strip { height: 44px; display: flex; flex-direction: column; background: #000000; }
 
 /* ── Score ──────────────────────────────────────────────────────────────── */
+.pr-sheet-pick { position: absolute; box-sizing: content-box; margin: -3px 0 0 -3px; padding: 3px; border-radius: 50%; background: rgba(255, 222, 59, 0.55); box-shadow: 0 0 0 2px #000000; pointer-events: none; }
 .pr-score-bar { flex-shrink: 0; height: 60px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding: 0 24px 0 20px; }
 .pr-score-bar .o-seg { border-color: transparent; background: #000000; }
 .pr-score-bar .o-seg button { color: var(--stone); }

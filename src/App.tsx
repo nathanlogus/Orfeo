@@ -25,7 +25,7 @@ import ScaleExplorer from './components/ScaleExplorer'
 import LockedChordModal from './components/LockedChordModal'
 import MidiEditor from './components/MidiEditor/MidiEditor'
 import MixerConsole from './components/Mixer/MixerConsole'
-import NoteEditorToolbar from './components/NoteEditor/NoteEditorToolbar'
+import NoteEditorToolbar, { NoteActions } from './components/NoteEditor/NoteEditorToolbar'
 import { ConfirmDialogHost } from './components/ConfirmDialog'
 import Tooltip from './components/Tooltip'
 import { confirmDialog } from './utils/confirmController'
@@ -87,7 +87,8 @@ export default function App() {
   const noteEditorActive = useStore((s) => s.noteEditorActive)
   const scoreViewMode = useStore((s) => s.scoreViewMode)
   const scoreBytes = useStore((s) => isScoreFor(s.scoreSource, (s.midi as any)?._filePath) ? s.scoreSource.bytes : null)
-  // the Note Editor draws on the roll, so it always gets it
+  // the Note Editor draws on the roll, so it always gets it, under a sheet of its own notes
+  const liveSheet = useStore((s) => s.noteEditorActive && s.noteEditorSheet)
   const showScore = !!scoreBytes && scoreViewMode !== 'roll' && !noteEditorActive
   const showRoll = !showScore || scoreViewMode === 'both'
   // Home covers the whole window: the practice rail and bars step aside for it
@@ -600,6 +601,8 @@ export default function App() {
               </div>
             )}
             {showScore && <ScoreView bytes={scoreBytes} style={{ flex: showRoll ? '0 0 50%' : 1 }} />}
+            {liveSheet && <ScoreView bytes={null} live style={{ flex: '1.5 1 0' }} />}
+            {noteEditorActive && <NoteActions />}
             {showRoll && midi && <div style={{ flex: 1, minHeight: 0 }}><PianoRoll /></div>}
             {!presentationMode && <StepPill />}
             <LockHint />

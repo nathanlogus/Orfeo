@@ -5,9 +5,9 @@ import { useStore, activeKeyRange } from '../../store'
 import { isBlackKey } from '../../utils/midiParser'
 import { buildKeyLayout, type KeyLayout } from '../../utils/keyLayout'
 import { NES } from '../../utils/noteEditorState'
-import { noteSelection, assignSelectedHand } from '../NoteEditor/noteSelection'
+import { noteSelection, assignSelectedHand, deleteSelectedNotes } from '../NoteEditor/noteSelection'
 import {
-  cmdAddNote, cmdRemoveNotes, cmdSetRangeVelocity, midiToEditableCopy, copyHandTagsOntoEditBuffer,
+  cmdAddNote, cmdSetRangeVelocity, midiToEditableCopy, copyHandTagsOntoEditBuffer,
   type ToneNote,
 } from '../../utils/noteEditorCommands'
 import { getNoteLabel } from '../../utils/noteNames'
@@ -899,6 +899,7 @@ export default function PianoRoll() {
             copyHandTagsOntoEditBuffer(midi, NES.editMidi)
           }
           NES.needsFlatRebuild = true
+          NES.onSheetChange?.()
           // Prime GM channel programs via a silent SMF player so notes preview
           // on the correct instrument before the user presses Play for the first time.
           ;(window as any).__pliageWarmupEditChannels?.()
@@ -1286,29 +1287,6 @@ export default function PianoRoll() {
         return parsedMidi?.tracks?.find((t: any) => t.index === parsedIdx)?.channel
       }
 
-      // ── deleteSelectedNotes — shared by Delete key and context menu ───────
-      const deleteSelectedNotes = () => {
-        if (editSelectedNotes.size === 0) return
-        const notesToDel = [...editSelectedNotes]
-        const byTrack = new Map<Track, ToneNote[]>()
-        for (const ef of editFlatNotes) {
-          if (editSelectedNotes.has(ef.note)) {
-            const arr = byTrack.get(ef.track) ?? []
-            arr.push(ef.note)
-            byTrack.set(ef.track, arr)
-          }
-        }
-        for (const [t, ns] of byTrack) {
-          const cmd = cmdRemoveNotes(t, ns)
-          cmd.apply()
-          NES.history.push(cmd)
-        }
-        for (const n of notesToDel) { editSelectedNotes.delete(n); editNewNotes.delete(n) }
-        NES.dirty            = true
-        NES.needsFlatRebuild = true
-        NES.onHistoryChange?.()
-      }
-
       // ── flattenSelectedVelocity — sets every selected note to the same
       // velocity (their own average) as one undoable step, via the shared
       // Set-Velocity-on-a-range command. For nudging a selection up/down
@@ -1410,7 +1388,8 @@ export default function PianoRoll() {
 
         // ── Empty space — behavior fully isolated per tool ──────────────────
         if (tool === 'pen') {
-          if (!e.altKey) return   // Pen only adds on Alt+click; plain click on empty is a no-op
+          // Pen only adds on Alt+click; plain click on empty is a no-op. A finger has no Alt.
+          if (!e.altKey && e.pointerType !== 'touch') return
           // ── Alt+click empty: add a new note to NES.editMidi ──────────────
           const editMidi = NES.editMidi as any
           if (!editMidi) return

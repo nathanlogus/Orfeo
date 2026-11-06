@@ -483,12 +483,14 @@ export function useAudioEngine() {
     // visual = false skips the timed key-light entirely — used for glissando,
     // which drives the keyboard light itself (instant swap, no fade timer)
     // instead of relying on this note-duration-based ring.
+    // The roll's previews pass 1-127, the keyboard's 0-1
+    const midiVelocity = (vel: number) => (vel > 1 ? vel : Math.max(1, Math.round(vel * 127)))
     const playNote = async (midiNum: number, vel = 90, durMs = 500, channel?: number, visual = true, color?: string) => {
       const { audioEngine } = useStore.getState()
       if (audioEngine === 'native') {
         // channel undefined = the live/preview channel (16), as in Samples
         if (channel === undefined) nativeLivePiano()
-        nativeCall('noteFor', channel ?? 15, midiNum, Math.max(1, Math.round(vel * 127)), durMs / 1000)
+        nativeCall('noteFor', channel ?? 15, midiNum, midiVelocity(vel), durMs / 1000)
         if (visual) nativeLightKey(midiNum, color ?? amberHex(), durMs + 100)
         return
       }
@@ -512,7 +514,7 @@ export function useAudioEngine() {
         const key = ch * 128 + midiNum
         const pending = _clickNoteOffs.get(key)
         if (pending) { clearTimeout(pending); _port.send([0x80 | ch, midiNum, 0]) }
-        _port.send([0x90 | ch, midiNum, Math.round(vel * 127)])
+        _port.send([0x90 | ch, midiNum, midiVelocity(vel)])
         _clickNoteOffs.set(key, setTimeout(() => {
           _clickNoteOffs.delete(key)
           try { _port.send([0x80 | ch, midiNum, 0]) } catch {}

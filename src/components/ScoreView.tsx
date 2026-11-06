@@ -5,7 +5,10 @@ import { t } from '../utils/i18n'
 import { usePlayback } from '../hooks/usePlayback'
 import { fingerEvents } from '../utils/fingering'
 import { handHex } from '../utils/handPalette'
-import { leftHandChannels, partsToShow, staffHands, stavesToShow, transposeKeySignature } from '../utils/scoreSource'
+import { NES } from '../utils/noteEditorState'
+import { dropSelfTies, isScoreFor, leftHandChannels, partsToShow, staffHands, stavesToShow, transposeKeySignature } from '../utils/scoreSource'
+import { playedBars, sheetFromMidi, type SheetBar } from '../utils/sheetFromNotes'
+import { noteSelection } from './NoteEditor/noteSelection'
 
 // ── Score view ────────────────────────────────────────────────────────────
 // Engraves the notation file a song was imported from. alphaTab has no sound
@@ -13,9 +16,19 @@ import { leftHandChannels, partsToShow, staffHands, stavesToShow, transposeKeySi
 // follows Pliage's clock. Pliage's MIDI for these files comes from the same
 // alphaTab generator (foreignFormatImport.ts), so the two share one timeline.
 // The Track Panel's eye picks the parts, and each hand of a piano's two staves.
-export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: React.CSSProperties }) {
+// `live` is the Note Editor's sheet instead: written from the notes being edited
+// (sheetFromNotes.ts) and written again after each edit, and a tap selects a note.
+const REWRITE_MS = 150
+const TAP_PX = 8
+const TAP_REACH_PX = 22
+const TOOLBAR_HINT_PX = 28
+const LIVE_SCALE = 0.8
+const ALPHATAB_PPQ = 960
+
+export default function ScoreView({ bytes, live = false, style }: { bytes: Uint8Array | null; live?: boolean; style: React.CSSProperties }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
+  const picksRef = useRef<HTMLDivElement>(null)
   const [failed, setFailed] = useState(false)
   const { seek, seekAndPlay } = usePlayback()
 
@@ -35,13 +48,15 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
     const keepLineAtTop = () => {
       const bar = host.querySelector('.at-cursor-bar')?.getBoundingClientRect()
       if (!bar) return
-      const offset = bar.top - scroller.getBoundingClientRect().top - 12
+      const offset = bar.top - scroller.getBoundingClientRect().top - (live ? TOOLBAR_HINT_PX : 12)
       if (Math.abs(offset) > 1) scroller.scrollTop += offset
     }
     const syncCursor = () => {
       const { currentTime, midi } = useStore.getState()
+      const header = NES.editMidi?.header
+      if (live) { if (header) api.tickPosition = header.secondsToTicks(currentTime) * (ALPHATAB_PPQ / header.ppq) }
       // Skip empty bars cuts the song Pliage plays, never the score
-      api.timePosition = (currentTime + (midi?._leadSec ?? 0)) * 1000
+      else api.timePosition = (currentTime + (midi?._leadSec ?? 0)) * 1000
     }
     // Written pitch and key signature, on the score itself so a file's own
     // transposition (a guitar's octave) stays underneath
@@ -74,6 +89,7 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
             note.style.colors.set(at.model.NoteSubElement.StandardNotationNoteHead, at.model.Color.fromJson(handHex()[hand === 'L' ? 'lh' : 'rh']))
           }
         }
+        if (live) return // fingers would crowd the sheet being corrected
         const events = [...struck.keys()].sort((a, b) => a - b).map(t => struck.get(t)!)
         const fingers = fingerEvents(
           hand,
@@ -86,7 +102,8 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       })
       suggested = true
     }
-    const shownParts = () => {
+    const shownParts = (): any[] => {
+      if (live) return score.tracks
       const { tracks, midi } = useStore.getState()
       const channels = tracks.map(t => ({ visible: t.visible, channel: midi?.tracks.find(m => m.index === t.index)?.channel ?? -1 }))
       const leftHands = leftHandChannels<any>(score.tracks)
@@ -110,6 +127,79 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       markHands(useStore.getState().detectedKey?.transpose ?? 0)
       api.renderScore(score, shownParts().map(p => p.index))
     }
+
+    // ── The Note Editor's sheet ───────────────────────────────────────────────
+    let heads = new Map<object, object[]>()
+    let noteBoxes: { note: object; x: number; y: number; w: number; h: number }[] = []
+    let notation: { bytes: Uint8Array | null; bars: SheetBar[] | null } = { bytes: null, bars: null }
+    let rewriteTimer: ReturnType<typeof setTimeout> | undefined
+    const shownTracks = () => useStore.getState().tracks.filter(t => t.visible).map(t => t.index)
+    let writtenTracks = ''
+    const rewrite = () => {
+      const s = useStore.getState()
+      if (!at || !api || !NES.editMidi) return
+      const source = isScoreFor(s.scoreSource, (s.midi as any)?._filePath) ? s.scoreSource.bytes : null
+      if (source !== notation.bytes) {
+        let bars = null
+        try { bars = source && playedBars(at, source) } catch (e) { console.warn('[Pliage] Score has no usable bars:', e) }
+        notation = { bytes: source, bars }
+      }
+      const shown = shownTracks()
+      writtenTracks = `${shown}`
+      const sheet = sheetFromMidi(at, NES.editMidi, { settings: api.settings, played: notation.bars, lead: s.midi?._leadTick ?? 0, key: s.detectedKey, shown: i => shown.includes(i) })
+      if (!sheet) return
+      score = sheet.score
+      heads = sheet.heads
+      fileView.clear()
+      suggested = false
+      drawn = ''
+      redrawIfChanged()
+    }
+    const paintPicks = () => {
+      picksRef.current?.replaceChildren(...noteBoxes.filter(b => heads.get(b.note)?.some(n => noteSelection.has(n as any))).map(b => {
+        const pick = document.createElement('span')
+        pick.className = 'pr-sheet-pick'
+        pick.style.cssText = `left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px`
+        return pick
+      }))
+    }
+    const measureNotes = () => {
+      noteBoxes = []
+      for (const system of api.boundsLookup?.staffSystems ?? []) for (const master of system.bars) for (const bar of master.bars) for (const beat of bar.beats) {
+        for (const n of beat.notes ?? []) noteBoxes.push({ note: n.note, ...n.noteHeadBounds })
+      }
+      paintPicks()
+    }
+    const nearestNote = (x: number, y: number) => {
+      let best: object | null = null, bestDistance = TAP_REACH_PX
+      for (const b of noteBoxes) {
+        const distance = Math.hypot(x - (b.x + b.w / 2), y - (b.y + b.h / 2))
+        if (distance < bestDistance && heads.has(b.note)) { best = b.note; bestDistance = distance }
+      }
+      return best
+    }
+    // On release, so a finger scrolling the sheet selects nothing
+    let down: { x: number; y: number } | null = null
+    const onPointerDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY } }
+    const onPointerUp = (e: PointerEvent) => {
+      if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_PX) return
+      down = null
+      const box = host.getBoundingClientRect()
+      const note = nearestNote(e.clientX - box.left, e.clientY - box.top)
+      const notes = (note ? heads.get(note) : null) as any[] | null
+      if (!e.shiftKey && !e.ctrlKey) noteSelection.clear()
+      if (!notes) return
+      for (const n of notes) noteSelection.add(n)
+      ;(window as any).__pliagePlayNote?.(notes[0].midi)
+      seek(notes[0].time)
+    }
+    if (live) {
+      host.addEventListener('pointerdown', onPointerDown)
+      host.addEventListener('pointerup', onPointerUp)
+      NES.onSheetChange = () => { clearTimeout(rewriteTimer); rewriteTimer = setTimeout(rewrite, REWRITE_MS) }
+    }
+    const unsubscribePicks = live ? noteSelection.subscribe(paintPicks) : () => {}
+
     // alphaTab moves its cursor some frames after a seek, so follow the cursor itself
     const cursorMoves = new MutationObserver((changes) => {
       if (changes.some(c => (c.target as Element).classList.contains('at-cursor-bar'))) keepLineAtTop()
@@ -124,10 +214,11 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
           // shortcut: engraves on the main thread, a worker needs alphaTab's Vite plugin if long scores stall
           useWorkers: false,
           tracks: 'all',
+          includeNoteBounds: live,
           smuflFontSources: new Map([[at.FontFileFormat.Woff2, new URL(bravuraUrl, document.baseURI).href]]),
         },
         // alphaTab fades voices after the first, and many piano files give each hand its own voice
-        display: { staveProfile: at.StaveProfile.Score, resources: { secondaryGlyphColor: '#000000' } },
+        display: { staveProfile: at.StaveProfile.Score, scale: live ? LIVE_SCALE : 1, resources: { secondaryGlyphColor: '#000000' } },
         notation: { fingeringMode: at.FingeringMode.ScoreForcePiano },
         player: {
           playerMode: at.PlayerMode.EnabledExternalMedia,
@@ -138,7 +229,8 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       } as any)
       api.error.on((e: unknown) => { console.error('[Pliage] Score view failed:', e); setFailed(true) })
       api.postRenderFinished.on(syncCursor)
-      api.beatMouseDown.on((beat: unknown) => {
+      if (live) api.postRenderFinished.on(measureNotes)
+      else api.beatMouseDown.on((beat: unknown) => {
         api.tickPosition = api.tickCache.getBeatStart(beat)
         const { midi, playbackState } = useStore.getState()
         const time = api.timePosition / 1000 - (midi?._leadSec ?? 0)
@@ -146,10 +238,12 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       })
       unsubscribe = useStore.subscribe((s, prev) => {
         if (s.currentTime !== prev.currentTime) syncCursor()
-        if (s.tracks !== prev.tracks || s.detectedKey !== prev.detectedKey) redrawIfChanged()
+        if (live && `${shownTracks()}` !== writtenTracks) NES.onSheetChange?.()
+        else if (s.tracks !== prev.tracks || s.detectedKey !== prev.detectedKey) redrawIfChanged()
       })
+      if (live) { rewrite(); return }
       // api.load would draw the first part alone
-      score = (at as any).importer.ScoreLoader.loadScoreFromBytes(bytes, api.settings)
+      score = dropSelfTies((at as any).importer.ScoreLoader.loadScoreFromBytes(bytes!, api.settings))
       redrawIfChanged()
     })().catch((e) => { console.error('[Pliage] Score view failed:', e); setFailed(true) })
 
@@ -157,9 +251,14 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       cancelled = true
       cursorMoves.disconnect()
       unsubscribe()
+      unsubscribePicks()
+      clearTimeout(rewriteTimer)
+      if (live) NES.onSheetChange = null
+      host.removeEventListener('pointerdown', onPointerDown)
+      host.removeEventListener('pointerup', onPointerUp)
       api?.destroy()
     }
-  }, [bytes])
+  }, [bytes, live])
 
   return (
     <div ref={scrollerRef} data-score-view style={{ ...style, minHeight: 0, overflow: 'auto', position: 'relative', background: 'var(--paper-card)' }}>
@@ -168,7 +267,10 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
         [data-score-view] .at-cursor-beat { background: #000000; width: 2px; }
         .lesson-hide-bar [data-score-view] .at-cursor-bar { background: var(--paper-card); opacity: 1 !important; }
       `}</style>
-      <div ref={hostRef} />
+      <div style={{ position: 'relative', marginTop: live ? TOOLBAR_HINT_PX : 0 }}>
+        <div ref={hostRef} />
+        <div ref={picksRef} aria-hidden="true" />
+      </div>
       {failed && (
         <div role="alert" className="pr-score-failed theme-paper">
           <div>

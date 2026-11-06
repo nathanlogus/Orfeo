@@ -243,7 +243,7 @@ export default function HomePage() {
     setError('')
     useFoldersPage.setState({ failed: null })
     try {
-      const path = await window.electronAPI.songServerDownload(address, song.path, song.size)
+      const path = await window.electronAPI.songServerDownload(address, song.path, song.size, song.sheet)
       const store = useStore.getState()
       if (store.libraryFolder) store.setLibraryFiles(await window.electronAPI.scanMidiFolder(store.libraryFolder))
       setServerSongs(list => list.map(s => (s.path === song.path ? { ...s, local: true } : s)))
@@ -278,7 +278,7 @@ export default function HomePage() {
     try {
       const store = useStore.getState()
       if (store.playbackState === 'playing') store.setPlaybackState('paused')
-      const path = isServer ? await window.electronAPI.songServerDownload(address, song.path, song.size) : song.path
+      const path = isServer ? await window.electronAPI.songServerDownload(address, song.path, song.size, song.sheet) : song.path
       const file = await window.electronAPI.loadMidiFromPath(path)
       if (!file) throw new Error('unreadable')
       if (run !== previewRun.current) return

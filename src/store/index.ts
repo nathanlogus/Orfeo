@@ -282,6 +282,9 @@ interface PliageStore {
   setCurrentTrust: (r: TrustResult | null) => void
   noteEditorActive: boolean
   setNoteEditorActive: (v: boolean) => void
+  // The sheet above the roll while editing
+  noteEditorSheet: boolean
+  setNoteEditorSheet: (v: boolean) => void
   noteEditorToolbarX: number
   noteEditorToolbarY: number
   setNoteEditorToolbarPos: (x: number, y: number) => void
@@ -943,6 +946,8 @@ export const useStore = create<PliageStore>((set, get) => ({
   setCurrentTrust: (currentTrust) => set({ currentTrust }),
   noteEditorActive: false,
   setNoteEditorActive: (noteEditorActive) => set(noteEditorActive ? { noteEditorActive } : { noteEditorActive, velocityPanelOpen: false }),
+  noteEditorSheet: true,
+  setNoteEditorSheet: (noteEditorSheet) => set({ noteEditorSheet }),
   noteEditorToolbarX: 24,
   noteEditorToolbarY: 80,
   setNoteEditorToolbarPos: (noteEditorToolbarX, noteEditorToolbarY) => set({ noteEditorToolbarX, noteEditorToolbarY }),

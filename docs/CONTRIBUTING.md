@@ -194,7 +194,7 @@ Touch screens get their own sizing from one check: `src/utils/touchScreen.ts` in
 
 `npm run android:songs -- <folder>` (`server/song-server.mjs`) serves a folder of songs to the home page on desktop and Android. It only needs Node, so the one file can run on any computer. It is plain HTTP with no login, read-only, and answers private network addresses only.
 
-Genre, artist and title come from `Genre/Artist/Title.mid` paths. A `metadata.json` in the folder overrides them, keyed by path; the format is at the top of the file. The app finds the server by a UDP broadcast on port 8765, or takes a typed address. Songs download to `<library>/Home Server` when opened and stay there. The filtering API (`/api/songs`) is documented in the same place.
+Genre, artist and title come from `Genre/Artist/Title.mid` paths. A `metadata.json` in the folder overrides them, keyed by path; the format is at the top of the file. The app finds the server by a UDP broadcast on port 8765, or takes a typed address. Songs download to `<library>/Home Server` when opened and stay there. A song the catalog marks `sheet: true` brings its score along as `<song>.sheet`, from `sheets/` under `PLIAGE_DATA` (`/api/sheet`). Edits are versions saved on the device in `Home Server/.../Pliage`, and the song opens at the newest one; the server stays read-only. The filtering API (`/api/songs`) is documented in the same place.
 
 ---
 

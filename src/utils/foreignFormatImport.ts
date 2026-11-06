@@ -6,8 +6,10 @@
 
 import { useStore } from '../store';
 import { confirmDialog } from './confirmController';
-import { findImportSource, leftHandChannels, withTextEvents, type ScoreSource } from './scoreSource';
+import { dropSelfTies, findImportSource, leftHandChannels, withTextEvents, type ScoreSource } from './scoreSource';
 import { legacyImportPath, SAVED_WORD } from './legacyNames';
+import { copyHandTagsOntoEditBuffer, midiToEditableCopy } from './noteEditorCommands';
+import { playedBars, sheetFromMidi } from './sheetFromNotes';
 
 const HAND_HINT = new RegExp(`${SAVED_WORD}_TRACK_HAND:`);
 
@@ -46,7 +48,7 @@ export async function convertForeignFileToMidiBuffer(
 
   let score: any;
   try {
-    score = (at as any).importer.ScoreLoader.loadScoreFromBytes(bytes, settings);
+    score = dropSelfTies((at as any).importer.ScoreLoader.loadScoreFromBytes(bytes, settings));
   } catch (e: any) {
     throw new Error(
       `Couldn't read this ${FORMAT_LABEL[format]} file — it may be corrupted or use an unsupported feature. (${e?.message ?? e})`
@@ -60,7 +62,7 @@ export async function convertForeignFileToMidiBuffer(
     Object.assign(left.playbackInfo, part.playbackInfo, { primaryChannel: channels[0], secondaryChannel: channels[1] });
     score.addTrack(left);
     left.addStaff(part.staves.pop());
-    hands.push(`${HAND_HINT}${part.playbackInfo.primaryChannel}:R`, `${HAND_HINT}${channels[0]}:L`);
+    hands.push(`PLIAGE_TRACK_HAND:${part.playbackInfo.primaryChannel}:R`, `PLIAGE_TRACK_HAND:${channels[0]}:L`);
   }
 
   const midiFile = new (at as any).midi.MidiFile();
@@ -238,6 +240,9 @@ async function loadScoreSource(
       bytes: base64ToBytes(originalBase64),
     };
   }
+  // A song from the home server, or a corrected version, has its sheet beside it
+  const sheet = await window.electronAPI.loadMidiFromPath(`${filePath}.sheet`).catch(() => null);
+  if (sheet) return { midiPaths: [filePath], bytes: base64ToBytes(sheet.base64) };
   const { libraryFiles } = useStore.getState();
   const source = findImportSource(filePath, libraryFiles, (p) => !!detectForeignFormat(p));
   if (!source) return null;
@@ -246,6 +251,25 @@ async function loadScoreSource(
     return result ? { midiPaths: [filePath], bytes: base64ToBytes(result.base64) } : null;
   } catch {
     return null;
+  }
+}
+
+// ── A corrected version's sheet ──────────────────────────────────────────────
+// The notation file still has the wrong notes, so the saved version gets a sheet
+// of its own, written from its notes. A failure only costs the score view.
+export async function saveVersionSheet(path: string, raw: ArrayBuffer, parsed: unknown, source: Uint8Array): Promise<void> {
+  try {
+    const at: any = await import('@coderline/alphatab');
+    const settings = new at.Settings();
+    const midi = midiToEditableCopy(raw);
+    copyHandTagsOntoEditBuffer(parsed, midi);
+    const sheet = sheetFromMidi(at, midi, { settings, played: playedBars(at, source), key: useStore.getState().detectedKey });
+    if (!sheet) return;
+    const bytes: Uint8Array = new at.exporter.Gp7Exporter().export(sheet.score, settings);
+    await (window.electronAPI as any).writeCachedImport(`${path}.sheet`, bytesToBase64(bytes));
+    useStore.getState().setScoreSource({ midiPaths: [path], bytes });
+  } catch (e) {
+    console.warn('[Pliage] Saved without a sheet:', e);
   }
 }
 

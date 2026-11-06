@@ -71,6 +71,15 @@ export function stavesToShow(part: StaffPart, left: number[], songTracks: { chan
   return right || leftOn ? [right, leftOn] : [true, true]
 }
 
+// A scanned score can hold a note tied to itself, which sends alphaTab round in
+// circles until the stack runs out. Only that tie goes; the note stays.
+export function dropSelfTies<S extends { tracks: any[] }>(score: S): S {
+  for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars) for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) {
+    if (note.tieDestination === note) { note.tieDestination = null; note.tieOrigin = null; note.isTieDestination = false }
+  }
+  return score
+}
+
 // Adds text events to a one-track MIDI file, the way Pliage's own hints travel
 export function withTextEvents(smf: Uint8Array, texts: string[]): Uint8Array {
   const bytes = texts.flatMap(t => [0, 0xFF, 0x01, t.length, ...new TextEncoder().encode(t)])
