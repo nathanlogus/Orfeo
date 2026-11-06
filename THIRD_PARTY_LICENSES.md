@@ -202,6 +202,19 @@ Curated by `scripts/arcade-assets.mjs` and `scripts/arcade-licks.mjs`. Files liv
 | Monster Hollow village, ground, clouds | KayKit Medieval Hexagon Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
 | Monster Hollow trees, rock, bush | KayKit Forest Nature Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
 | Monster Hollow monsters, converted from FBX, recoloured | Animated Monsters | [Quaternius](https://www.patreon.com/quaternius) | CC0 1.0 |
+| Kite Festival coast and town, Summit foothills | KayKit Medieval Hexagon Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Deep Song reef rocks, Summit rocks and tree | KayKit Forest Nature Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Kite Festival flags, Summit platforms | KayKit Platformer Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Orbit Station base modules and lander | KayKit Space Base Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Midnight Job furniture | KayKit Furniture Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Midnight Job manor, mirror, frame, cobweb | KayKit Mixed Bag 2 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Midnight Job candles, coins, keys, floor | KayKit Dungeon Remastered 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Midnight Job guard and burglar, Summit climber, with KayKit's own clips | KayKit Character Pack: Adventurers 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Deep Song whale and fish, converted from FBX, recoloured | Animated Fish | [Quaternius](https://www.patreon.com/quaternius) | CC0 1.0 |
+
+Kites, the submarine, kelp and coral, orbit rings, the paper planet and stars, the mansion's
+walls, window, door and vault, the paper peaks and cliff, and the Summit climbing cycle are
+original to Pliage, built from three.js shapes in `scripts/arcade-paper-kit.mjs`.
 
 Arcade riffs and some progressions come from SundayLicks. Riffs were converted to alphaTex and
 their names translated. Some progressions come from free-midi-chords.
