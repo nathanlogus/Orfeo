@@ -81,11 +81,11 @@ function Passed({ lesson, canGoOn, after }: { lesson: Lesson; canGoOn: boolean; 
             <span style={{ color: 'var(--stone)', fontSize: 'var(--text-base)' }}>{t`Next`}</span>
             <span className="lesson-next-title">{`${after.id} ${after.title}`} <span className="lesson-next-goal">{`· ${after.goal}`}</span></span>
           </span>
-          <button className="o-btn o-btn-lg" onClick={exitLesson}>{t`Back to Learn`}</button>
+          <button className="o-btn o-btn-lg" onClick={exitLesson}>{t`Back to menu`}</button>
           <button className="o-btn-primary o-btn-lg" onClick={() => void startLesson(after.id)}>{t`Next lesson`}<ArrowRight size={16} aria-hidden /></button>
         </> : <>
           <span className="o-spacer" />
-          <button className="o-btn-primary o-btn-lg" onClick={exitLesson}>{t`Back to Learn`}</button>
+          <button className="o-btn-primary o-btn-lg" onClick={exitLesson}>{t`Back to menu`}</button>
         </>}
       </div>
     </div>

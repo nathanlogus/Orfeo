@@ -41,7 +41,7 @@ export interface PracticeResult {
   next: BarRange | null
 }
 
-function barRange(firstPhrase: number, lastPhrase: number, starts: number[], barCount: number, duration: number): BarRange {
+export function barRange(firstPhrase: number, lastPhrase: number, starts: number[], barCount: number, duration: number): BarRange {
   const from = firstPhrase * BARS_PER_PHRASE + 1
   const to = Math.max(from, Math.min((lastPhrase + 1) * BARS_PER_PHRASE, barCount))
   const shortLabel = from === to ? `${from}` : `${from}–${to}`

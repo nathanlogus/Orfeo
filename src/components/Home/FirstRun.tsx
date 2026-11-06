@@ -48,7 +48,7 @@ function Welcome({ onStart, onSkip }: { onStart: () => void; onSkip: () => void 
         <p className="o-note">{t`Free. No account. Your songs never leave this device.`}</p>
         <div className="first-actions">
           <button className="o-btn-primary first-big" onClick={onStart}>{t`Get started`}</button>
-          <button className="o-btn first-big" onClick={onSkip}>{t`Skip to the library`}</button>
+          <button className="o-btn first-big" onClick={onSkip}>{t`Skip for now`}</button>
         </div>
         <span className="o-spacer" />
         <div className="first-steps" role="img" aria-label={t`Step 1 of 2`}><span data-on /><span /></div>
@@ -117,7 +117,7 @@ function Setup({ pickFolder, onBack, onDone }: { pickFolder: () => Promise<boole
       </div>
       <div className="first-foot">
         <span className="o-note">{t`Everything stays on this device.`}</span>
-        <button className="o-btn-primary first-big" onClick={() => void finish()}>{t`Open my Library`}</button>
+        <button className="o-btn-primary first-big" onClick={() => void finish()}>{t`Start playing`}</button>
       </div>
     </div>
   )
