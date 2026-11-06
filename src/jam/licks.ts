@@ -36,9 +36,10 @@ function moved(notes: LickNote[], up: number): LickNote[] | null {
   return Math.max(...pitches) + octaves * 12 > RIGHT_HAND[1] ? null : notes.map(n => ({ ...n, midi: n.midi + shift }))
 }
 
-export function licksFor(style: JamStyle, keyPc: number, count = 3): JamLick[] {
-  const scale = scalePitchClasses(style, keyPc)
-  const fits = RIFFS.filter(r => r.genre === style).flatMap(riff => {
+// The style's own lines first, then any line that sits in the chosen scale
+export function licksFor(style: JamStyle, scaleName: string, keyPc: number, count = 3): JamLick[] {
+  const scale = scalePitchClasses(scaleName, keyPc)
+  const fits = RIFFS.flatMap(riff => {
     const line = lineOf(riff.tex)
     if (!line || line.length < MIN_NOTES || line.length > MAX_NOTES) return []
     const notes = moved(line, ((keyPc - Note.chroma(riff.key)! + 18) % 12) - 6)
@@ -46,6 +47,7 @@ export function licksFor(style: JamStyle, keyPc: number, count = 3): JamLick[] {
     const share = notes.filter(n => scale.has(n.midi % 12)).length / notes.length
     return share < IN_SCALE ? [] : [{ riff, notes, share }]
   })
-  fits.sort((a, b) => a.riff.difficulty - b.riff.difficulty || b.share - a.share || a.riff.id.localeCompare(b.riff.id))
+  const own = (genre: string) => (genre === style ? 0 : 1)
+  fits.sort((a, b) => own(a.riff.genre) - own(b.riff.genre) || a.riff.difficulty - b.riff.difficulty || b.share - a.share || a.riff.id.localeCompare(b.riff.id))
   return fits.slice(0, count).map(({ riff, notes }) => ({ id: riff.id, name: riff.name, concept: riff.concept, notes }))
 }

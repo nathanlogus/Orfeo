@@ -8,9 +8,10 @@ import { t } from '../utils/i18n'
 import { localizeChord } from '../utils/chordDetection'
 import { miniKeyboardLayout } from '../utils/miniKeyboard'
 import { SettingsDropdown } from '../components/Settings/controls'
-import { BEATS_PER_BAR, noteName, scaleNotes, scalePitchClasses, type JamChord, type JamPart, type JamStyle } from './band'
+import { BEATS_PER_BAR, noteName, scaleNotes, scalePitchClasses, type JamChord, type JamStyle } from './band'
 import { licksFor } from './licks'
-import { MAX_BPM, MIN_BPM, SPLIT_NOTE, setBpm, setKey, setLeftHand, setPart, setProgram, setStyle, startJam, stopJam, useJam } from './jamSession'
+import { PRESETS, ROSTER, SLOT_COUNT, instrument } from './roster'
+import { MAX_BPM, MIN_BPM, SPLIT_NOTE, setBand, setBpm, setFeel, setKey, setLeftHand, setScale, setSlot, setStyle, startJam, stopJam, useJam } from './jamSession'
 
 const STYLE_OPTIONS: { value: JamStyle; label: string }[] = [
   { value: 'blues', label: t`Blues` },
@@ -18,32 +19,18 @@ const STYLE_OPTIONS: { value: JamStyle; label: string }[] = [
   { value: 'pop', label: t`Pop` },
   { value: 'rock', label: t`Rock` },
 ]
-const PART_OPTIONS: { value: JamPart; label: string }[] = [
-  { value: 'drums', label: t`Drums` },
-  { value: 'bass', label: t`Bass` },
-  { value: 'comp', label: t`Keys` },
-]
-const INSTRUMENTS = {
-  bass: [
-    { value: '32', label: t`Upright bass` },
-    { value: '33', label: t`Finger bass` },
-    { value: '34', label: t`Pick bass` },
-    { value: '38', label: t`Synth bass` },
-  ],
-  comp: [
-    { value: '0', label: t`Grand piano` },
-    { value: '4', label: t`Electric piano` },
-    { value: '16', label: t`Organ` },
-    { value: '11', label: t`Vibraphone` },
-    { value: '24', label: t`Nylon guitar` },
-    { value: '26', label: t`Jazz guitar` },
-    { value: '29', label: t`Overdriven guitar` },
-    { value: '48', label: t`Strings` },
-  ],
-}
 const LEVEL_WORD = [t`Calm`, t`Steady`, t`Building`]
 const KEYBOARD_ENDS = [36, 83] // C2 to B5
-const SCALE_NAME: Record<JamStyle, () => string> = { blues: () => t`blues scale`, jazz: () => t`major scale`, pop: () => t`major scale`, rock: () => t`minor pentatonic` }
+const SCALES = [
+  { value: 'blues', label: t`Blues scale` },
+  { value: 'minor pentatonic', label: t`Minor pentatonic` },
+  { value: 'major pentatonic', label: t`Major pentatonic` },
+  { value: 'major', label: t`Major scale` },
+  { value: 'minor', label: t`Natural minor` },
+  { value: 'dorian', label: t`Dorian` },
+  { value: 'mixolydian', label: t`Mixolydian` },
+]
+const scaleLabel = (scale: string) => SCALES.find(o => o.value === scale)?.label ?? scale
 
 function useChordName() {
   const naming = useStore(s => s.noteNaming)
@@ -80,30 +67,41 @@ function LeadChoice() {
   )
 }
 
-function Parts() {
-  const parts = useJam(s => s.parts)
-  const beat = useJam(s => s.beat)
-  const live = useJam(s => s.live)
+const SLOT_OPTIONS = [{ value: '', label: t`Empty` }, ...ROSTER.map(i => ({ value: i.id, label: `${i.family()}: ${i.name()}` }))]
+const PRESET_OPTIONS = PRESETS.map(p => ({ value: p.id, label: p.name() }))
+
+function ScalePicker() {
+  const scale = useJam(s => s.scale)
+  return <SettingsDropdown title={t`Scale`} value={scale} options={SCALES} onChange={setScale} />
+}
+
+function Feel() {
+  const feel = useJam(s => s.feel)
   return (
-    <div className="jam-band">
-      {PART_OPTIONS.map(p => (
-        <button key={p.value} className="jam-member" aria-pressed={parts[p.value]} onClick={() => setPart(p.value, !parts[p.value])}>
-          <span className="o-dot" data-on={parts[p.value] || undefined} />
-          <span>{p.label}</span>
-          {live && parts[p.value] && <span key={beat} className="jam-pulse" aria-hidden />}
-        </button>
-      ))}
+    <div className="o-seg jam-wide">
+      <button aria-pressed={feel === 'tight'} onClick={() => setFeel('tight')}>{t`Tight`}</button>
+      <button aria-pressed={feel === 'relaxed'} onClick={() => setFeel('relaxed')}>{t`Relaxed`}</button>
     </div>
   )
 }
 
-function Instruments() {
-  const programs = useJam(s => s.programs)
+function Slots() {
+  const slots = useJam(s => s.slots)
+  const beat = useJam(s => s.beat)
+  const live = useJam(s => s.live)
+  const preset = PRESETS.find(p => p.slots.join() === slots.join())?.id ?? ''
   return (
-    <div className="jam-controls">
-      <SettingsDropdown title={t`Bass`} value={String(programs.bass)} options={INSTRUMENTS.bass} onChange={v => setProgram('bass', Number(v))} />
-      <SettingsDropdown title={t`Keys`} value={String(programs.comp)} options={INSTRUMENTS.comp} onChange={v => setProgram('comp', Number(v))} />
-    </div>
+    <>
+      <SettingsDropdown title={t`Band`} value={preset} options={preset ? PRESET_OPTIONS : [{ value: '', label: t`Your own band` }, ...PRESET_OPTIONS]} onChange={setBand} />
+      <div className="jam-band">
+        {Array.from({ length: SLOT_COUNT }, (_, i) => (
+          <div key={i} className="jam-slot" data-on={!!slots[i] || undefined}>
+            <SettingsDropdown title={instrument(slots[i])?.family() ?? t`Open seat`} value={slots[i] ?? ''} options={SLOT_OPTIONS} onChange={v => setSlot(i, v || null)} />
+            {live && slots[i] && <span key={beat} className="jam-pulse" aria-hidden />}
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
 
@@ -135,12 +133,12 @@ function Listening() {
 }
 
 function Keys({ target }: { target: number | null }) {
-  const style = useJam(s => s.style)
+  const scaleName = useJam(s => s.scale)
   const keyPc = useJam(s => s.keyPc)
   const held = useJam(s => s.held)
   const leftHand = useJam(s => s.leftHand)
   const chord = useJam(s => s.chord)
-  const scale = useMemo(() => scalePitchClasses(style, keyPc), [style, keyPc])
+  const scale = useMemo(() => scalePitchClasses(scaleName, keyPc), [scaleName, keyPc])
   const { whites, blacks } = useMemo(() => miniKeyboardLayout(KEYBOARD_ENDS), [])
   const down = new Set(held)
   const tones = new Set(chord?.semis.map(s => (chord.rootPc + s) % 12))
@@ -157,13 +155,13 @@ function Keys({ target }: { target: number | null }) {
 }
 
 function ScaleLine() {
-  const style = useJam(s => s.style)
+  const scale = useJam(s => s.scale)
   const keyPc = useJam(s => s.keyPc)
   const chord = useJam(s => s.chord)
   const name = useChordName()
   return (
     <div className="jam-scale">
-      <span><strong>{`${name(noteName(keyPc))} ${SCALE_NAME[style]()}`}</strong>{` ${scaleNotes(style, keyPc).map(name).join(' ')}`}</span>
+      <span><strong>{`${name(noteName(keyPc))} ${scaleLabel(scale)}`}</strong>{` ${scaleNotes(scale, keyPc).map(name).join(' ')}`}</span>
       {chord && <span><strong>{t`Chord tones`}</strong>{` ${chord.semis.map(s => name(noteName((chord.rootPc + s) % 12))).join(' ')}`}</span>}
     </div>
   )
@@ -172,9 +170,10 @@ function ScaleLine() {
 // Never scored: the lit key waits for the player, and a wrong note costs nothing
 function Licks({ onTarget }: { onTarget: (midi: number | null) => void }) {
   const style = useJam(s => s.style)
+  const scale = useJam(s => s.scale)
   const keyPc = useJam(s => s.keyPc)
   const name = useChordName()
-  const licks = useMemo(() => licksFor(style, keyPc), [style, keyPc])
+  const licks = useMemo(() => licksFor(style, scale, keyPc), [style, scale, keyPc])
   const [picked, setPicked] = useState(0)
   const [step, setStep] = useState(0)
   const hearing = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -250,11 +249,11 @@ function Live() {
       <ScaleLine />
       <Keys target={target} />
       <Licks onTarget={setTarget} />
-      <Parts />
-      <Instruments />
+      <Slots />
       <Listening />
       <div className="jam-controls">
         <KeyPicker />
+        <ScalePicker />
         <Tempo />
         <button className="o-btn" onClick={stopJam}><Square size={14} fill="currentColor" aria-hidden />{t`Stop`}</button>
       </div>
@@ -276,11 +275,12 @@ function Setup() {
         </div>
         <div className="jam-controls">
           <KeyPicker />
+          <ScalePicker />
           <Tempo />
         </div>
         <LeadChoice />
-        <Parts />
-        <Instruments />
+        <Feel />
+        <Slots />
       </div>
       {!connected && <div role="alert" className="lib-alert jam-alert"><span className="o-dot o-dot-alert" />{t`Jam listens to a MIDI keyboard. Connect one to start.`}</div>}
       {notReady && <div role="alert" className="lib-alert jam-alert"><span className="o-dot o-dot-alert" />{t`The sound is still loading. Try again in a moment.`}</div>}

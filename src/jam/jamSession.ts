@@ -1,7 +1,7 @@
 // ── One jam: starts the band, keeps it listening, puts everything back ───────
-// The band borrows channels 10, 13 and 14 (9, 12 and 13 counted from zero; 14 and
-// 15 stay the preview and live channels). A song may be loaded behind Jam, so
-// those channels' instruments and volumes go back to the song's on the way out.
+// The band borrows channels 9 to 13 counted from zero (14 and 15 stay the preview
+// and live channels). A song may be loaded behind Jam, so those channels'
+// instruments and volumes go back to the song's on the way out.
 
 import { create } from 'zustand'
 import { useStore } from '../store'
@@ -9,7 +9,8 @@ import { outputLatencySec, setChannelVolume } from '../audio/engine'
 import { nativeCall } from '../audio/nativeClient'
 import { sendTrackState } from '../audio/useNativeEngine'
 import { onLiveNote } from '../hooks/useMidiInput'
-import { BAND_CHANNELS, BASS_CH, COMP_CH, DRUM_CH, STYLES, createBand, lowChord, stepSeconds, tonicChord, type JamChord, type JamPart, type JamStyle } from './band'
+import { STYLES, createBand, lowChord, stepSeconds, tonicChord, type JamChord, type JamFeel, type JamStyle } from './band'
+import { BAND_CHANNELS, DRUM_CH, STYLE_PRESET, instrument, playersOf, presetSlots, slotChannel, withSlot, type JamSlots } from './roster'
 import { openJamOutput, startPulse, PULSE_MS, type PulsedOutput } from './jamOutput'
 import { createReaction, type BandLevel } from './reaction'
 import { TICK_MS, createScheduler } from './scheduler'
@@ -21,15 +22,14 @@ const START_DELAY_SEC = 0.15
 const CHORD_SETTLE_MS = 50 // a rolled chord isn't read through its first notes
 const UI_EVERY_MS = 120
 
-export interface JamPrograms { bass: number; comp: number }
-
 export interface JamSettings {
   style: JamStyle
   keyPc: number
   bpm: number
   leftHand: boolean
-  parts: Record<JamPart, boolean>
-  programs: JamPrograms
+  scale: string
+  feel: JamFeel
+  slots: JamSlots
 }
 
 interface JamState extends JamSettings {
@@ -45,16 +45,13 @@ interface JamState extends JamSettings {
 
 export const useJam = create<JamState>(() => ({
   style: 'blues', keyPc: 0, bpm: STYLES.blues.bpm, leftHand: true,
-  parts: { drums: true, bass: true, comp: true },
-  programs: { bass: STYLES.blues.bassProgram, comp: STYLES.blues.compProgram },
+  scale: STYLES.blues.scale, feel: 'tight', slots: presetSlots(STYLE_PRESET.blues),
   live: false, chord: null, nextChord: null, beat: 0, loud: 0.5, busy: 0.25, level: 1, held: [],
 }))
 
-const PART_CHANNEL: Record<JamPart, number> = { drums: DRUM_CH, bass: BASS_CH, comp: COMP_CH }
+let session: { stop(): void; follow(chord: JamChord): void; seat(index: number, id: string | null): void } | null = null
 
-let session: { stop(): void; follow(chord: JamChord): void; release(part: JamPart): void; program(part: keyof JamPrograms, program: number): void } | null = null
-
-function borrowChannels(out: PulsedOutput, programs: JamPrograms) {
+function borrowChannels(out: PulsedOutput, slots: JamSlots) {
   const { audioEngine, playbackState } = useStore.getState()
   if (playbackState === 'playing') {
     ;(window as any).__pliagePlayer?.pause?.()
@@ -66,8 +63,7 @@ function borrowChannels(out: PulsedOutput, programs: JamPrograms) {
     if (audioEngine === 'native') setChannelVolume(ch, 1)
     else out.send([0xb0 | ch, 7, 127], now)
   }
-  out.send([0xc0 | BASS_CH, programs.bass, 0], now)
-  out.send([0xc0 | COMP_CH, programs.comp, 0], now)
+  slots.forEach((id, i) => out.send([0xc0 | slotChannel(i), instrument(id)?.program ?? 0, 0], now))
   // a muted song track must not mute the band that borrows its channel
   if (audioEngine === 'native') nativeCall('setAudibleTracks', [])
 }
@@ -97,7 +93,7 @@ export async function startJam(): Promise<boolean> {
     if (timers.length > 64) timers = timers.slice(-32)
   }
   const band = createBand({
-    settings: () => useJam.getState(),
+    settings: () => { const s = useJam.getState(); return { ...s, players: playersOf(s.slots) } },
     listening: () => reaction,
     play: n => scheduler.play(n),
     releaseAt: (chs, at) => scheduler.releaseAt(chs, at),
@@ -106,7 +102,7 @@ export async function startJam(): Promise<boolean> {
   })
   const scheduler = createScheduler(out, () => stepSeconds(useJam.getState().bpm), band.plan)
 
-  borrowChannels(out, useJam.getState().programs)
+  borrowChannels(out, useJam.getState().slots)
 
   let lastAdvance = out.now()
   let sinceTick = TICK_MS
@@ -164,8 +160,10 @@ export async function startJam(): Promise<boolean> {
       band.follow(chord)
       useJam.setState({ nextChord: band.pending })
     },
-    release(part) { scheduler.releaseAt([PART_CHANNEL[part]], out.now()) },
-    program(part, program) { out.send([0xc0 | PART_CHANNEL[part], program, 0], out.now()) },
+    seat(index, id) {
+      scheduler.releaseAt([slotChannel(index), DRUM_CH], out.now())
+      out.send([0xc0 | slotChannel(index), instrument(id)?.program ?? 0, 0], out.now())
+    },
   }
   useJam.setState({ live: true, chord: band.chord, nextChord: null, beat: 0, held: [...useStore.getState().midiHeldKeys] })
   scheduler.start(out.now() + START_DELAY_SEC)
@@ -178,11 +176,6 @@ export function stopJam() {
   useJam.setState({ live: false, chord: null, nextChord: null })
 }
 
-export function setPart(part: JamPart, on: boolean) {
-  useJam.setState(s => ({ parts: { ...s.parts, [part]: on } }))
-  if (!on) session?.release(part)
-}
-
 export function setKey(keyPc: number) {
   useJam.setState({ keyPc })
   const { style, leftHand } = useJam.getState()
@@ -190,10 +183,19 @@ export function setKey(keyPc: number) {
 }
 
 export const setBpm = (bpm: number) => useJam.setState({ bpm: Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(bpm))) })
-export const setStyle = (style: JamStyle) => useJam.setState({ style, bpm: STYLES[style].bpm, programs: { bass: STYLES[style].bassProgram, comp: STYLES[style].compProgram } })
-
-export function setProgram(part: keyof JamPrograms, program: number) {
-  useJam.setState(s => ({ programs: { ...s.programs, [part]: program } }))
-  session?.program(part, program)
+export const setStyle = (style: JamStyle) => {
+  useJam.setState({ style, bpm: STYLES[style].bpm, scale: STYLES[style].scale })
+  setBand(STYLE_PRESET[style])
 }
+
+export function setSlot(index: number, id: string | null) {
+  const { slots } = useJam.getState()
+  const next = withSlot(slots, index, id)
+  useJam.setState({ slots: next })
+  next.forEach((seated, i) => { if (seated !== slots[i]) session?.seat(i, seated) })
+}
+
+export const setBand = (preset: string) => presetSlots(preset).forEach((id, i) => setSlot(i, id))
+export const setScale = (scale: string) => useJam.setState({ scale })
+export const setFeel = (feel: JamFeel) => useJam.setState({ feel })
 export const setLeftHand = (leftHand: boolean) => useJam.setState({ leftHand })

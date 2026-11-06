@@ -1,10 +1,14 @@
 import { Note } from 'tonal'
-import { BASS_CH, COMP_CH, DRUM_CH, STYLES, createBand, lowChord, progressionChords, scalePitchClasses, stepSeconds, type JamChord, type JamPart, type JamStyle } from './band'
+import { STYLES, createBand, lowChord, progressionChords, scalePitchClasses, stepSeconds, type JamChord, type JamFeel, type JamStyle } from './band'
 import { GROOVES } from './grooves'
 import { licksFor, lineOf } from './licks'
+import { BAND_CHANNELS, DRUM_CH, PRESETS, ROSTER, STYLE_PRESET, instrument, playersOf, presetSlots, withSlot, type JamPlayer } from './roster'
 import { dueQueue } from './jamOutput'
 import { createReaction, type BandLevel } from './reaction'
 import { LOOKAHEAD_SEC, TICK_MS, createScheduler, type JamNote, type JamOutput } from './scheduler'
+
+const BASS_CH = 12
+const COMP_CH = 13
 
 type Sent = { bytes: number[]; when: number }
 
@@ -36,8 +40,8 @@ function stuckNotes(sent: Sent[]): number {
 // A band on a fake clock, with its settings open to the test
 function jam(style: JamStyle, opts: { leftHand?: boolean; level?: BandLevel } = {}) {
   const { out, sent, advance } = fakeOutput()
-  const parts: Record<JamPart, boolean> = { drums: true, bass: true, comp: true }
-  const settings = { style, keyPc: 0, leftHand: opts.leftHand ?? false, parts }
+  const players: JamPlayer[] = [{ role: 'drums', ch: DRUM_CH }, { role: 'bass', ch: BASS_CH }, { role: 'comp', ch: COMP_CH }]
+  const settings = { style, keyPc: 0, leftHand: opts.leftHand ?? false, players, feel: 'tight' as JamFeel }
   const listening = { loud: 0.5, level: (opts.level ?? 1) as BandLevel }
   const changes: { chord: JamChord; at: number }[] = []
   const notes: JamNote[] = []
@@ -133,7 +137,7 @@ export function runJamTest(): number {
   for (const style of Object.keys(STYLES) as JamStyle[]) {
     const def = STYLES[style]
     check(def.bass.concat(def.comp).every(l => l.length === 16), `${style}: patterns are one bar long`)
-    check(scalePitchClasses(style, 0).size >= 5, `${style}: has a scale`)
+    check(scalePitchClasses(STYLES[style].scale, 0).size >= 5, `${style}: has a scale`)
     check(GROOVES[style].length === 3 && GROOVES[style].every(g => g.length % 3 === 0 && g.length > 0), `${style}: three grooves`)
     check(GROOVES[style].every((g, i, all) => i === 0 || g.length >= all[i - 1].length), `${style}: grooves get busier`)
     check(progressionChords(style, 0).length === def.progression.labels.length, `${style}: every step resolves to a chord`)
@@ -164,8 +168,7 @@ export function runJamTest(): number {
     const count = (level: BandLevel) => { const j = jam('rock', { level }); j.run(20); return j.notes.length }
     check(count(0) < count(1) && count(1) < count(2), 'calm < steady < building')
     const j = jam('pop')
-    j.settings.parts.drums = false
-    j.settings.parts.comp = false
+    j.settings.players = j.settings.players.filter(p => p.role === 'bass')
     j.run(10)
     check(j.notes.filter(n => n.at > 0.2).every(n => n.ch === BASS_CH), 'parts switched off stay silent')
   }
@@ -233,14 +236,43 @@ export function runJamTest(): number {
     check(JSON.stringify(lineOf('\\clef G2\n:8 C4 D4.4 r.8 E4 | F4.2')?.map(n => [n.midi, n.at, n.beats])) === '[[60,0,0.5],[62,0.5,1],[64,2,0.5],[65,2.5,2]]', 'a line reads with sticky lengths and rests')
     check(lineOf('\\clef G2\n(C4 E4).4 D4') === null, 'a chord is not a single line')
     for (const style of Object.keys(STYLES) as (keyof typeof STYLES)[]) for (let key = 0; key < 12; key++) {
-      const licks = licksFor(style, key)
+      const licks = licksFor(style, STYLES[style].scale, key)
       check(licks.length === 3, `${style} in key ${key} has 3 licks: ${licks.length}`)
-      const scale = scalePitchClasses(style, key)
+      const scale = scalePitchClasses(STYLES[style].scale, key)
       for (const lick of licks) {
         check(lick.notes.every(n => n.midi >= 60 && n.midi <= 83), `${lick.id} stays above the split, on screen`)
         check(lick.notes.filter(n => scale.has(n.midi % 12)).length / lick.notes.length >= 0.75, `${lick.id} sits in ${style}`)
       }
     }
+  }
+
+  {
+    for (const scale of ['blues', 'minor pentatonic', 'major pentatonic', 'major', 'minor', 'dorian', 'mixolydian']) check(licksFor('blues', scale, 0).length > 0, `${scale} has licks`)
+    check(ROSTER.length >= 20 && new Set(ROSTER.map(i => i.id)).size === ROSTER.length, 'a wide roster, with no repeats')
+    for (const p of PRESETS) {
+      check(p.slots.length === 4 && p.slots.every(id => id === null || instrument(id)), `${p.id} seats known players`)
+      check(playersOf(p.slots).every(q => BAND_CHANNELS.includes(q.ch)), `${p.id} stays on the band's channels`)
+    }
+    for (const id of Object.values(STYLE_PRESET)) check(!!PRESETS.find(p => p.id === id), `${id} is a preset`)
+    check(withSlot(presetSlots('roadhouse'), 2, 'drums').filter(id => id === 'drums').length === 1, 'one drummer at a time')
+    check(withSlot(presetSlots('roadhouse'), 3, null)[3] === null, 'a seat can be left open')
+
+    const seated: JamPlayer[] = [{ role: 'stab', ch: 10 }, { role: 'pad', ch: 11 }]
+    const j = jam('rock')
+    j.settings.players = seated
+    j.listening.level = 2
+    j.run(4)
+    const stabs = j.notes.filter(n => n.ch === 10), pads = j.notes.filter(n => n.ch === 11)
+    check(stabs.length > 0 && stabs.every(n => n.note >= 60), 'horns hit, up where they cut through')
+    check(pads.length > 0 && pads[0].dur > 1, 'a pad holds the bar')
+    const late = jam('rock')
+    const tight = jam('rock')
+    late.settings.feel = 'relaxed'
+    late.run(2)
+    tight.run(2)
+    const first = (x: typeof late) => x.notes.find(n => n.ch === COMP_CH)!.at
+    check(first(late) > first(tight), 'relaxed sits behind the beat')
+    check(late.notes.find(n => n.ch === DRUM_CH)!.at === tight.notes.find(n => n.ch === DRUM_CH)!.at, 'and the drums keep it')
   }
 
   console.log(`${pass} passed, ${fail} failed`)

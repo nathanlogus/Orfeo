@@ -32,7 +32,9 @@
 .jam-lick-notes span[data-on] { border-color: var(--ink); background: var(--paint-pink); color: var(--ink); }
 .jam-split { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--paint-pink); pointer-events: none; }
 
-.jam-band { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.jam-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.jam-slot { position: relative; min-width: 0; overflow: hidden; padding: 8px; border: 1px solid var(--ui-line-soft); border-radius: 6px; }
+.jam-slot[data-on] { border-color: var(--ui-line); }
 .jam-member { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; height: 56px; padding: 0 14px; overflow: hidden; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-surface); color: var(--ui-text); font: inherit; font-size: var(--text-md); cursor: pointer; transition: var(--control-transition); }
 .jam-member[aria-pressed='false'] { border-color: var(--ui-line-soft); background: none; color: var(--ui-text-soft); }
 .jam-member .o-dot { background: none; border: 1px solid var(--ui-line); }
