@@ -156,7 +156,7 @@ export function TapTempoPad() {
           role="dialog"
           aria-labelledby="xp-tap-title"
           data-instant
-          className="app-no-drag orfeo-modal-glow theme-studio xp-tap"
+          className="app-no-drag pliage-modal-glow theme-studio xp-tap"
           style={{
             top: panelPos.y,
             left: Math.max(16, Math.min(panelPos.x - panelWidth / 2, window.innerWidth - panelWidth - 16)),
@@ -266,7 +266,7 @@ export function TapTempoPad() {
                 {!seg.map && <button className="o-btn o-btn-lg" onMouseDown={keepFocus} onClick={tapAgain}>{t`Tap again`}</button>}
                 <button className="o-btn-primary o-btn-lg" onMouseDown={keepFocus} onClick={keepTap}>{t`Keep for this song`}</button>
               </div>
-              <span className="xp-tap-note">{t`Kept tempos are remembered by Orfeo every time you open this song (your MIDI file isn't changed). Right-click TAP later to adjust or remove them.`}</span>
+              <span className="xp-tap-note">{t`Kept tempos are remembered by Pliage every time you open this song (your MIDI file isn't changed). Right-click TAP later to adjust or remove them.`}</span>
             </>
           )}
         </div>,

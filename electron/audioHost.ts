@@ -1,7 +1,7 @@
-// ── Orfeo's audio process ────────────────────────────────────────────────────
+// ── Pliage's audio process ────────────────────────────────────────────────────
 // Runs as an Electron utilityProcess (see startAudioHost in main.ts) so the
-// native engine lives outside the app: if it ever crashes, Orfeo restarts
-// the sound instead of closing. Loads the add-on (native/orfeo-audio-node)
+// native engine lives outside the app: if it ever crashes, Pliage restarts
+// the sound instead of closing. Loads the add-on (native/pliage-audio-node)
 // and talks to the renderer directly over a MessagePort — commands in,
 // status out ~30 times a second. The main process only introduces the two.
 

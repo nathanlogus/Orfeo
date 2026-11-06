@@ -1,5 +1,5 @@
 // ── Export to audio: where files go and what they're called ─────────────────
-// One Exports folder inside the Library's main Orfeo folder; a name already
+// One Exports folder inside the Library's main Pliage folder; a name already
 // there gets " (2)", " (3)"… (Windows names ignore case), so an export never
 // overwrites another. The name itself always stays inside that folder.
 import { basename, extname, isAbsolute, join, relative, resolve } from 'path'
@@ -7,7 +7,7 @@ import { basename, extname, isAbsolute, join, relative, resolve } from 'path'
 // With no Library set (the demo songs), the Music folder: somewhere you can find
 // it, never the app's own hidden data folder
 export function exportsDir(libraryFolder: string | null, musicFolder: string): string {
-  return join(libraryFolder ?? musicFolder, 'Orfeo', 'Exports')
+  return join(libraryFolder ?? musicFolder, 'Pliage', 'Exports')
 }
 
 export function nextFreeName(existing: Set<string>, fileName: string): string {
@@ -20,7 +20,7 @@ export function nextFreeName(existing: Set<string>, fileName: string): string {
   }
 }
 
-// Characters Windows refuses in a file name (and control characters). Orfeo
+// Characters Windows refuses in a file name (and control characters). Pliage
 // ships Windows binaries, so a name that is legal here and illegal there would
 // be a file the user cannot open.
 const ILLEGAL_ON_WINDOWS = /[<>:"|?*\u0000-\u001f]/g

@@ -86,7 +86,7 @@ export function useChordSequence() {
     // A single user knob (Settings › Notation & Chords), independent of the
     // tracking mode: the mode picks the track scope, this picks the detail.
     //
-    // TEMPORARILY LOCKED at the default (0.4) — see [[project-orfeo-chord-
+    // TEMPORARILY LOCKED at the default (0.4) — see [[project-pliage-chord-
     // detection-redesign]] in memory. While the underlying algorithm itself
     // is still being debugged and validated against real songs, letting this
     // vary made it unclear whether a wrong reading came from the algorithm

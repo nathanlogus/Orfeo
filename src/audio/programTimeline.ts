@@ -1,7 +1,7 @@
 // ── Which instrument each MIDI channel plays, and when it changes ────────────
 // A file track that switches instrument mid-song (Kate Bush's "Wuthering
 // Heights": nylon guitar, then oboe, then guitar again, all on one channel) is
-// split by the parser into one Orfeo track per instrument, all on the same
+// split by the parser into one Pliage track per instrument, all on the same
 // channel. A channel plays one instrument at a time, so it has to switch
 // whenever notes of another of its tracks begin. Both engines play from this
 // list, with each track's instrument as the Tracks panel has it.

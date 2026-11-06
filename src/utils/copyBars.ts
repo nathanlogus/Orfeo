@@ -1,3 +1,4 @@
+import { LEGACY_OUTPUT_FOLDER } from './legacyNames'
 import type { ParsedMidi } from '../types'
 import { fileGridOf, type GridMap, type TempoSegment } from './tempoCorrection'
 
@@ -146,7 +147,7 @@ export function copiedSegment(source: ParsedMidi, target: ParsedMidi, match: Son
 // ── Which Library files might be the same song, from their names ────────────
 // Only narrows down what to compare: the notes decide. Track numbers, years and
 // tags like "(2)" or "[k]" say nothing about the song.
-const NOISE = new Set(['the', 'and', 'mid', 'midi', 'kar', 'orfeo', 'imported', 'split', 'version', 'remix', 'piano', 'solo'])
+const NOISE = new Set(['the', 'and', 'mid', 'midi', 'kar', 'pliage', LEGACY_OUTPUT_FOLDER.toLowerCase(), 'imported', 'split', 'version', 'remix', 'piano', 'solo'])
 
 export function nameWords(name: string): Set<string> {
   const stem = name.replace(/\.[a-z0-9]+$/i, '').replace(/\[[^\]]*\]|\([^)]*\)/g, ' ').toLowerCase()

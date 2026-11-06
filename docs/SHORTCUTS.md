@@ -1,4 +1,4 @@
-# Orfeo — Keyboard & Mouse Shortcuts
+# Pliage — Keyboard & Mouse Shortcuts
 
 *Every implemented shortcut and special mouse gesture, grouped by where it
 applies.*

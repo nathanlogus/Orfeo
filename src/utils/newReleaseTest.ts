@@ -14,7 +14,7 @@ export function runNewReleaseTest(): number {
   check(!isNewerVersion('1.7.0-beta.1', '1.7.0'), 'a beta after its release')
   check(!isNewerVersion('nonsense', '1.6.0'), 'not a version')
 
-  const assets = [{ name: 'Orfeo-1.7.0-portable.exe' }, { name: 'Orfeo-1.7.0-mac-arm64.dmg' }, { name: 'Orfeo-1.7.0-mac-x64.dmg' }]
+  const assets = [{ name: 'Pliage-1.7.0-portable.exe' }, { name: 'Pliage-1.7.0-mac-arm64.dmg' }, { name: 'Pliage-1.7.0-mac-x64.dmg' }]
   const release = { tag_name: 'v1.7.0', assets }
   check(newerRelease('1.6.0', release, downloadEnding('darwin')) === '1.7.0', 'Mac has its download')
   check(newerRelease('1.6.0', release, downloadEnding('win32')) === '1.7.0', 'portable has its download')

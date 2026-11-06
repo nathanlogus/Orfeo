@@ -1,11 +1,11 @@
 # Labels each exported piano part. Songs the model is unsure of, or that come out
-# inverted, are left out so Orfeo's own engine keeps handling them.
+# inverted, are left out so Pliage's own engine keeps handling them.
 import json, os, statistics as st, sys, time
 os.environ['HF_HUB_OFFLINE'] = '1'
 # Run with the virtual environment that has torch: label_parts.py <tool-checkout> <models-folder>
 # The models are read in safe mode, so a tampered file can't run code.
 TOOL, MODELS = sys.argv[1:3]
-DATA = os.environ.get('ORFEO_DATA') or sys.exit('Set ORFEO_DATA')
+DATA = os.environ.get('PLIAGE_DATA') or sys.exit('Set PLIAGE_DATA')
 sys.path.insert(0, os.path.join(TOOL, 'src'))
 import numpy as np, torch
 _load = torch.load

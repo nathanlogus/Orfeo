@@ -1,4 +1,4 @@
-# Publishes one Orfeo version as a GitHub release.
+# Publishes one Pliage version as a GitHub release.
 #
 # Start it by hand: GitHub → Actions → Release → Run workflow (branch: main),
 # type the version, e.g. 1.5.0. The tag v1.5.0 must already be on GitHub and
@@ -120,7 +120,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh release create "v$version" --repo "$GITHUB_REPOSITORY"
-          --draft --verify-tag --title "Orfeo $version" --notes-file release-notes.md
+          --draft --verify-tag --title "Pliage $version" --notes-file release-notes.md
 
   build:
     name: 2. Build (Windows)
@@ -161,8 +161,8 @@ jobs:
         run: |
           npm run build
           npx electron-builder --win nsis portable --publish always \
-            '-c.nsis.artifactName=Orfeo-Setup-${version}.${ext}' \
-            '-c.portable.artifactName=Orfeo-${version}-portable.${ext}'
+            '-c.nsis.artifactName=Pliage-Setup-${version}.${ext}' \
+            '-c.portable.artifactName=Pliage-${version}-portable.${ext}'
 
       # The Store package is unsigned here — the Store signs it — so it is no
       # use on the GitHub release page; the Microsoft Store workflow (store.yml) picks it up. Built
@@ -208,7 +208,7 @@ jobs:
           TAG: ${{ needs.check.outputs.tag }}
         run: |
           npm run dist:mac -- --publish never
-          for app in release/mac/Orfeo.app release/mac-arm64/Orfeo.app; do
+          for app in release/mac/Pliage.app release/mac-arm64/Pliage.app; do
             codesign --verify --deep --strict "$app"
           done
           # --clobber: re-running a failed job replaces what it uploaded before
@@ -276,7 +276,7 @@ jobs:
           DRAFT: ${{ inputs.draft }}
         run: |
           set -euo pipefail
-          common=(--repo "$GITHUB_REPOSITORY" --title "Orfeo ${TAG#v}" --notes-file release-notes.md)
+          common=(--repo "$GITHUB_REPOSITORY" --title "Pliage ${TAG#v}" --notes-file release-notes.md)
           if [ "$DRAFT" = "true" ]; then
             gh release edit "$TAG" "${common[@]}" --draft=true
             echo "### Kept as a draft" >> "$GITHUB_STEP_SUMMARY"
@@ -287,7 +287,7 @@ jobs:
           else
             gh release edit "$TAG" "${common[@]}" --draft=false --prerelease=false --latest
             echo "### Published $TAG" >> "$GITHUB_STEP_SUMMARY"
-            echo "Installed copies of Orfeo will offer the update the next time they start." >> "$GITHUB_STEP_SUMMARY"
+            echo "Installed copies of Pliage will offer the update the next time they start." >> "$GITHUB_STEP_SUMMARY"
             echo "Next, the Microsoft Store: Actions → **Microsoft Store** → Run workflow, version **${TAG#v}**." >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"

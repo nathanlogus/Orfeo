@@ -190,7 +190,7 @@ export function stepEvents(dir: 1 | -1, byBar = false): boolean {
 
   if (s.audioEngine === 'gm' && _warmedFor !== s.midi) {
     _warmedFor = s.midi
-    ;(window as any).__orfeoWarmupEditChannels?.()
+    ;(window as any).__pliageWarmupEditChannels?.()
   }
 
   // Playing: stop there (the song continues from this step on Play)
@@ -200,7 +200,7 @@ export function stepEvents(dir: 1 | -1, byBar = false): boolean {
 
   const ratio = s.bpm / s.originalBpm || 1
   const transpose = s.detectedKey?.transpose ?? 0
-  const play = (window as any).__orfeoPlayNote as ((m: number, v: number, d: number, ch?: number, visual?: boolean, color?: string) => void) | undefined
+  const play = (window as any).__pliagePlayNote as ((m: number, v: number, d: number, ch?: number, visual?: boolean, color?: string) => void) | undefined
   for (const n of step.notes) {
     const durMs = Math.max(MIN_MS, Math.min(MAX_MS, (n.duration / ratio) * 1000))
     play?.(n.midi + transpose, n.velocity, durMs, n.channel, true, n.color)

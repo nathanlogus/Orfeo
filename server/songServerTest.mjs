@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const dir = mkdtempSync(join(tmpdir(), 'orfeo-songs-'))
+const dir = mkdtempSync(join(tmpdir(), 'pliage-songs-'))
 const lib = join(dir, 'lib')
 const add = (path, body = 'x') => { mkdirSync(join(lib, path, '..'), { recursive: true }); writeFileSync(join(lib, path), body) }
 add('Jazz/Doug McKenzie/AfterYou.mid', 'song')
@@ -18,7 +18,7 @@ add('Brazilian/Beatriz Kauffmann/coração.mid')
 add('Mozart - Rondo.mid')
 add('Jazz/Doug McKenzie/Have You Met - duet.mid')
 add('Jazz/Weimar Solos/JJJohnson_Blue_FINAL.mid')
-add('Orfeo/edit.mid'); add('manifest.csv')
+add('Pliage/edit.mid'); add('manifest.csv')
 writeFileSync(join(dir, 'secret.mid'), 'x')
 add('Jazz/Weimar Solos/Catalogued.mid')
 mkdirSync(join(lib, '.art')); writeFileSync(join(lib, '.art', 'c.jpg'), 'jpeg'); writeFileSync(join(lib, '.art', 'c.txt'), 'x')
@@ -111,8 +111,8 @@ try {
     const done = (v) => { clearTimeout(timer); s.close(); resolve(v) }
     const timer = setTimeout(() => done('no answer'), 1500)
     s.on('message', (m) => done(m.toString()))
-    s.send('orfeo-songs?', 8765, '127.0.0.1')
+    s.send('pliage-songs?', 8765, '127.0.0.1')
   })
-  if (reply !== 'orfeo-songs:8765') eq(reply, 'orfeo-songs:18765')
+  if (reply !== 'pliage-songs:8765') eq(reply, 'pliage-songs:18765')
   console.log('ok')
 } finally { server.kill() }

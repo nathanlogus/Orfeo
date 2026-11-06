@@ -13,7 +13,7 @@ import path from 'path';
 const REPORT_PATH = path.resolve('scripts/license-report.json');
 const OUTPUT_PATH = path.resolve('docs/THIRD_PARTY_LICENSES.md');
 
-const EXCLUDE = new Set(['orfeo@1.0.0']);
+const EXCLUDE = new Set(['pliage@1.0.0']);
 const CUSTOM_HANDLED = new Set(['gsap@3.15.0']); // hand-written section, prepended separately
 
 const GROUP_ORDER = [

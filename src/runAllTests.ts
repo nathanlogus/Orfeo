@@ -1,5 +1,5 @@
 /// <reference types="node" />
-// ── npm test: run every Orfeo test once, and be honest about the ones we skip ──
+// ── npm test: run every Pliage test once, and be honest about the ones we skip ──
 // Each test file exports a `runXTest(): number` that returns its failure count
 // (see docs/CONTRIBUTING.md → "Running the tests"). Nothing used to call them.
 // This walks src/ and electron/, runs every file, and exits non-zero if any
@@ -46,12 +46,12 @@ const walk = (dir: string, out: string[]): string[] => {
 
 // ── The smallest environment these tests need, and no more ──────────────────
 // Store modules, engines and dialogs touch `window`, `localStorage` and a
-// `document.documentElement.style` — Orfeo's own guards for a not-yet-mounted
+// `document.documentElement.style` — Pliage's own guards for a not-yet-mounted
 // page. Faking a DOM would let a broken component pass here, so this covers
 // exactly those guards; anything deeper belongs in the app, not in `npm test`.
 function installTestEnvironment(): void {
   const g = globalThis as any
-  // A real window is an EventTarget with the handful of things Orfeo reads at
+  // A real window is an EventTarget with the handful of things Pliage reads at
   // module load. Aliasing window to globalThis instead would give a module that
   // calls window.addEventListener(...) a confusing crash instead of a test run.
   if (g.window === undefined) {
@@ -85,7 +85,7 @@ function installTestEnvironment(): void {
       addEventListener() {}, removeEventListener() {},
     }
   }
-  // Node 22 has its own navigator; leave it alone. Only the pieces Orfeo reads
+  // Node 22 has its own navigator; leave it alone. Only the pieces Pliage reads
   // that a browser would provide are added when missing.
   if (g.navigator !== undefined && !('hardwareConcurrency' in g.navigator)) {
     try { Object.defineProperty(g.navigator, 'hardwareConcurrency', { value: 4 }) } catch { /* read-only in this Node */ }
@@ -102,7 +102,7 @@ async function runOne(path: string): Promise<void> {
     console.log('no run…Test…() export found — expected an exported runSomethingTest(): number')
     process.exit(2)
   }
-  // Keep the loop alive while a test runs: some Orfeo modules unref their own
+  // Keep the loop alive while a test runs: some Pliage modules unref their own
   // handles on purpose (never keep a process alive), and a test awaiting one of
   // them would otherwise be cut off mid-flight by Node leaving.
   const keepAlive = setInterval(() => {}, 1000)

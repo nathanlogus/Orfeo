@@ -55,7 +55,7 @@ jobs:
           for run in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?status=success&per_page=30" --jq '.workflow_runs[].id'); do
             rm -rf notes
             gh run download "$run" -n release-notes -D notes 2>/dev/null || continue
-            grep -qsE "Orfeo $VERSION( |$)" notes/* && runs="$runs $run"
+            grep -qsE "Pliage $VERSION( |$)" notes/* && runs="$runs $run"
           done
           for run in $runs; do
             if gh run download "$run" -n store-package -D store 2>/dev/null; then echo "Package from Release run $run"; break; fi

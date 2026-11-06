@@ -52,7 +52,7 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(function
       ref={setRef}
       role="menu"
       aria-label={ariaLabel}
-      className={className ? `orfeo-modal-glow theme-paper ${className}` : 'orfeo-modal-glow theme-paper'}
+      className={className ? `pliage-modal-glow theme-paper ${className}` : 'pliage-modal-glow theme-paper'}
       style={{
         position: 'fixed', top: pos.top, left: pos.left,
         background: 'var(--ui-surface)', border: '1px solid var(--ui-line)',

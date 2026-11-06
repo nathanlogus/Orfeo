@@ -1,7 +1,7 @@
-// Builds Orfeo's native audio engine add-on and puts everything it needs in
+// Builds Pliage's native audio engine add-on and puts everything it needs in
 // native/build/ (gitignored), which electron-builder ships as resources/native:
-//   native/build/orfeo_audio.node     the add-on (Rust, native/orfeo-audio-node)
-//   native/build/orfeo-review.exe     opens the Store's review window (native/orfeo-review)
+//   native/build/pliage_audio.node     the add-on (Rust, native/pliage-audio-node)
+//   native/build/pliage-review.exe     opens the Store's review window (native/pliage-review)
 //   native/build/fluidsynth/*.dll     FluidSynth 2.5.7 (glib build) + its DLLs
 //
 // FluidSynth's glib-free "cpp11" Windows builds crash with 8+ audio groups
@@ -42,12 +42,12 @@ const cargoBin = join(cargoHome, 'bin')
 const env = { ...process.env, Path: `${cargoBin};${process.env.Path ?? process.env.PATH ?? ''}` }
 const cargo = existsSync(join(cargoBin, 'cargo.exe')) ? join(cargoBin, 'cargo.exe') : 'cargo'
 console.log(`[native] cargo build (${debug ? 'debug' : 'release'})`)
-execFileSync(cargo, ['build', '-p', 'orfeo-audio-node', '-p', 'orfeo-review', ...(debug ? [] : ['--release'])], { cwd: native, stdio: 'inherit', env })
+execFileSync(cargo, ['build', '-p', 'pliage-audio-node', '-p', 'pliage-review', ...(debug ? [] : ['--release'])], { cwd: native, stdio: 'inherit', env })
 mkdirSync(out, { recursive: true })
 const target = join(native, 'target', debug ? 'debug' : 'release')
-copyFileSync(join(target, 'orfeo_audio_node.dll'), join(out, 'orfeo_audio.node'))
-copyFileSync(join(target, 'orfeo-review.exe'), join(out, 'orfeo-review.exe'))
-console.log('[native] native/build/orfeo_audio.node, orfeo-review.exe')
+copyFileSync(join(target, 'pliage_audio_node.dll'), join(out, 'pliage_audio.node'))
+copyFileSync(join(target, 'pliage-review.exe'), join(out, 'pliage-review.exe'))
+console.log('[native] native/build/pliage_audio.node, pliage-review.exe')
 
 // ── 2. FluidSynth, pinned and verified ─────────────────────────────────────
 const fluidDir = join(out, 'fluidsynth')
@@ -61,7 +61,7 @@ if (existsSync(stamp) && readFileSync(stamp, 'utf8').trim() === FLUID.version) {
   const zip = Buffer.from(await res.arrayBuffer())
   const hash = createHash('sha256').update(zip).digest('hex')
   if (hash !== FLUID.sha256) throw new Error(`FluidSynth checksum mismatch: ${hash}`)
-  const tmp = join(tmpdir(), `orfeo-fluidsynth-${Date.now()}`)
+  const tmp = join(tmpdir(), `pliage-fluidsynth-${Date.now()}`)
   mkdirSync(tmp, { recursive: true })
   const zipPath = join(tmp, 'fs.zip')
   writeFileSync(zipPath, zip)

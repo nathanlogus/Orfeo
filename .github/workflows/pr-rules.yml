@@ -48,7 +48,7 @@ jobs:
 
           # ── 1. Target branch: a reminder, never a failure ─────────────────
           if [ "$BASE" = "main" ] && ! { [ "$HEAD_REPO" = "$REPO" ] && [ "$HEAD_REF" = "dev" ]; }; then
-            note "Orfeo collects changes on the dev branch first. When you get a moment, switch this pull request's base to dev (Edit, next to the title) - or leave it, and it'll be switched at review."
+            note "Pliage collects changes on the dev branch first. When you get a moment, switch this pull request's base to dev (Edit, next to the title) - or leave it, and it'll be switched at review."
           fi
 
           # ── 2. Authorship ─────────────────────────────────────────────────
@@ -66,7 +66,7 @@ jobs:
             [ -z "$sha" ] && continue
             who="$an <$ae> / $cn <$ce> / $login"
             if echo "$who" | grep -qiE "$AUTHORS"; then
-              problem "Commit $sha is signed by $an <$ae>. Orfeo's history only carries people's names - using AI tools is fine, but please commit under your own name and e-mail."
+              problem "Commit $sha is signed by $an <$ae>. Pliage's history only carries people's names - using AI tools is fine, but please commit under your own name and e-mail."
             fi
             hits=$(echo "$msg" | base64 -d | grep -iE "$LINES" | grep -iE "$TOOLS" || true)
             if [ -n "$hits" ]; then

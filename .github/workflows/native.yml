@@ -4,7 +4,7 @@
 #     and runs the engine's tests — including the one proving the live mix equals
 #     the export mix (renderer.rs → live_mix_matches_the_export_mix).
 #   • macOS and Linux: the engine and add-on must compile (CPAL driver), and the
-#     engine's self-test (orfeo-selftest: timing, levels, mute, compressor, preview
+#     engine's self-test (pliage-selftest: timing, levels, mute, compressor, preview
 #     notes, count-in, metronome, seek, tempo, Low latency ↔ normal, buffer
 #     step-up) must pass playing a demo song into a virtual sound card —
 #     PulseAudio's null sink on Linux (reached through ALSA, as desktop Linux
@@ -54,8 +54,8 @@ jobs:
         working-directory: native
         shell: bash
         run: |
-          for i in 1 2 3 4 5; do cargo test --release -p orfeo-audio --lib concurrent_first_start; done
-          cargo test --release -p orfeo-audio
+          for i in 1 2 3 4 5; do cargo test --release -p pliage-audio --lib concurrent_first_start; done
+          cargo test --release -p pliage-audio
 
   compile:
     name: ${{ matrix.os }} — compiles
@@ -82,8 +82,8 @@ jobs:
       - name: Build engine + add-on, compile the tests
         working-directory: native
         run: |
-          cargo build --release -p orfeo-audio -p orfeo-audio-node
-          cargo test --release -p orfeo-audio --no-run
+          cargo build --release -p pliage-audio -p pliage-audio-node
+          cargo test --release -p pliage-audio --no-run
 
   plays:
     name: ${{ matrix.os }} — plays (virtual sound card)
@@ -146,7 +146,7 @@ jobs:
         run: |
           ls -la native/build native/build/fluidsynth
           if [ "$RUNNER_OS" = macOS ]; then
-            lipo -info native/build/orfeo_audio.node native/build/fluidsynth/libfluidsynth.3.dylib
+            lipo -info native/build/pliage_audio.node native/build/fluidsynth/libfluidsynth.3.dylib
             otool -L native/build/fluidsynth/libfluidsynth.3.dylib
           else
             ldd native/build/fluidsynth/libfluidsynth.so.3
@@ -155,21 +155,21 @@ jobs:
       - name: Self-test
         working-directory: native
         run: |
-          cargo build --release -p orfeo-audio --bin orfeo-selftest
-          ./target/release/orfeo-selftest --virtual --fluid build/fluidsynth --sf2 ../public/GeneralUser-GS.sf2 "../public/Demo/Vivaldi 4 stagioni - Estate.mid"
+          cargo build --release -p pliage-audio --bin pliage-selftest
+          ./target/release/pliage-selftest --virtual --fluid build/fluidsynth --sf2 ../public/GeneralUser-GS.sf2 "../public/Demo/Vivaldi 4 stagioni - Estate.mid"
 
-      # a compressed sound set, the one Orfeo offers to download: needs libsndfile's codecs
+      # a compressed sound set, the one Pliage offers to download: needs libsndfile's codecs
       - name: Self-test with a compressed sound set (.sf3)
         if: ${{ !cancelled() }}
         working-directory: native
         run: |
           curl -sSL --fail -o "$RUNNER_TEMP/MuseScore_General.sf3" https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General.sf3
-          ./target/release/orfeo-selftest --virtual --fluid build/fluidsynth --sf2 "$RUNNER_TEMP/MuseScore_General.sf3" "../public/Demo/Vivaldi 4 stagioni - Estate.mid"
+          ./target/release/pliage-selftest --virtual --fluid build/fluidsynth --sf2 "$RUNNER_TEMP/MuseScore_General.sf3" "../public/Demo/Vivaldi 4 stagioni - Estate.mid"
 
       # ALSA is the route when no sound server runs (ALSA-only systems): same self-test
       - name: Self-test through ALSA
         if: ${{ !cancelled() && runner.os == 'Linux' }}
         working-directory: native
         env:
-          ORFEO_AUDIO_HOST: alsa
-        run: ./target/release/orfeo-selftest --virtual --fluid build/fluidsynth --sf2 ../public/GeneralUser-GS.sf2 "../public/Demo/Vivaldi 4 stagioni - Estate.mid"
+          PLIAGE_AUDIO_HOST: alsa
+        run: ./target/release/pliage-selftest --virtual --fluid build/fluidsynth --sf2 ../public/GeneralUser-GS.sf2 "../public/Demo/Vivaldi 4 stagioni - Estate.mid"

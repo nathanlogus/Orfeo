@@ -68,7 +68,7 @@ export function detectKeyFromTracks(tracks: any[]): DetectedKey {
 // Reverse of KEY_NAME_TO_SEMITONE — canonical name per semitone (one pick
 // per pitch class, matching whichever of the enharmonic spellings
 // @tonejs/midi's own keySignatureKeys table also recognizes). Used by
-// midiParser.ts to turn an ORFEO_KEY meta event's raw semitone back into
+// midiParser.ts to turn an PLIAGE_KEY meta event's raw semitone back into
 // the string shape parseKeySignature already expects. ─────────────────────
 export const SEMITONE_TO_KEY_NAME = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 

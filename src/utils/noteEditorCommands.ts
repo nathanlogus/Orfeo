@@ -1,5 +1,6 @@
 import { Midi } from '@tonejs/midi'
 import type { Track } from '@tonejs/midi'
+import { upgradeMarkers } from './legacyNames'
 
 // ── Local alias for the Note class from @tonejs/midi ──────────────────────────
 // Note is not re-exported from the main barrel, so we derive the type from Track.
@@ -162,7 +163,7 @@ export function cmdSetRangeVelocity(notes: ToneNote[], newVelocity: number): Not
 // ParsedMidi object by parseMidiBuffer(). This is the editing copy — separate
 // from the @tonejs/midi model used for playback, which should not be mutated.
 export function midiToEditableCopy(rawBuffer: ArrayBuffer): Midi {
-  const midi = new Midi(rawBuffer)
+  const midi = upgradeMarkers(new Midi(rawBuffer))
   // @tonejs/midi's Track class has no `index` field — midiParser.ts's
   // ParsedMidi tracks carry a custom `.index` that both audio engines match
   // against store track state (mute/solo/program) via
@@ -246,7 +247,7 @@ export function cmdRemoveNotes(track: Track, notes: ToneNote[]): NoteCommand {
 
 // ── editableCopyToBuffer ──────────────────────────────────────────────────────
 // Encodes a mutable Midi instance back to an ArrayBuffer suitable for passing
-// to parseMidiBuffer() or Orfeo's reloadFile() path.
+// to parseMidiBuffer() or Pliage's reloadFile() path.
 export function editableCopyToBuffer(midi: Midi): ArrayBuffer {
   const encoded = midi.toArray()
   // Slice to get an independent ArrayBuffer (safe even if byteOffset !== 0).

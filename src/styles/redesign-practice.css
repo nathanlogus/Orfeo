@@ -20,7 +20,7 @@
 .pr-rail { flex-shrink: 0; width: var(--pr-rail-w); height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 0 16px; overflow-y: auto; overflow-x: hidden; background: #000000; color: #ffffff; scrollbar-width: none; }
 .pr-rail::-webkit-scrollbar { display: none; }
 .pr-rail-home { flex-shrink: 0; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent); cursor: pointer; }
-.pr-rail-home path { fill: #000000; }
+
 .pr-rail-play { flex-shrink: 0; width: 64px; height: 64px; margin-top: 6px; padding: 0; border: 0; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent); cursor: pointer; }
 .pr-rail-play:disabled { opacity: 0.45; cursor: default; }
 .pr-tile { position: relative; flex-shrink: 0; width: 68px; height: 58px; padding: 0; border: 0; border-radius: var(--radius-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; color: var(--stone); font: inherit; font-size: var(--text-sm); cursor: pointer; }

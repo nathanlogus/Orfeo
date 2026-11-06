@@ -1,3 +1,4 @@
+import { isOutputFolder } from '../../utils/legacyNames'
 import { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Fuse from 'fuse.js'
@@ -27,10 +28,10 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { openFolders, useFoldersPage } from './foldersPage'
 
 // ── Spin keyframe for transcript loading animation ────────────────────────────
-if (typeof document !== 'undefined' && !document.getElementById('orfeo-transcript-anim')) {
+if (typeof document !== 'undefined' && !document.getElementById('pliage-transcript-anim')) {
   const s = document.createElement('style')
-  s.id = 'orfeo-transcript-anim'
-  s.textContent = '@keyframes orfeo-transcript-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }'
+  s.id = 'pliage-transcript-anim'
+  s.textContent = '@keyframes pliage-transcript-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }'
   document.head.appendChild(s)
 }
 
@@ -75,7 +76,7 @@ function TranscriptIcon({ filePath, noteNaming, accidentals, addTranscriptEntry,
   // while the pointer is over this icon — same pattern as FavouriteStar. ──
   onHoverChange?: (hovering: boolean) => void
 }) {
-  const IDLE_TOOLTIP = 'Click to create a chord transcript PDF in Orfeo folder.'
+  const IDLE_TOOLTIP = 'Click to create a chord transcript PDF in Pliage folder.'
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [tooltip, setTooltip] = useState(IDLE_TOOLTIP)
   const revertRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -126,7 +127,7 @@ function TranscriptIcon({ filePath, noteNaming, accidentals, addTranscriptEntry,
         color: iconColor,
         display: 'flex', alignItems: 'center', flexShrink: 0,
         transition: 'color 0.2s',
-        animation: state === 'loading' ? 'orfeo-transcript-spin 1s linear infinite' : 'none',
+        animation: state === 'loading' ? 'pliage-transcript-spin 1s linear infinite' : 'none',
       }}
       onMouseEnter={e => { onHoverChange?.(true); if (state === 'idle') (e.currentTarget as HTMLElement).style.color = 'var(--text-amber)' }}
       onMouseLeave={e => { onHoverChange?.(false); if (state === 'idle') (e.currentTarget as HTMLElement).style.color = 'var(--text-dimmest)' }}
@@ -216,14 +217,13 @@ function LibraryPanel() {
   useEffect(() => { if (pageOpen) pageRef.current?.focus() }, [pageOpen])
 
   // ── Multi-select + folder organization state ──────────────────────────────
-  const PROTECTED_FOLDERS = ['demo', 'orfeo']
-  const isProtectedFolder = (name: string | null | undefined) => !!name && PROTECTED_FOLDERS.includes(name.toLowerCase())
+  const isProtectedFolder = (name: string | null | undefined) => !!name && (name.toLowerCase() === 'demo' || isOutputFolder(name))
   // ── Narrower than isProtectedFolder — for FILES, not the folder itself.
-  // "Orfeo" isn't one well-known folder: every saved version lands in an
-  // "Orfeo" folder next to its source (see electron/main.ts getOrfeoOutputDir),
+  // "Pliage" isn't one well-known folder: every saved version lands in an
+  // "Pliage" folder next to its source (see electron/main.ts getPliageOutputDir),
   // so using the folder-level check here blocked organizing any saved version
   // ever created. Demo is genuinely read-only bundled content and stays
-  // blocked; Orfeo is the user's own output and shouldn't be. ────────────────
+  // blocked; Pliage is the user's own output and shouldn't be. ────────────────
   const isReadOnlyFolder = (name: string | null | undefined) => !!name && name.toLowerCase() === 'demo'
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null)
@@ -283,7 +283,7 @@ function LibraryPanel() {
     if (!file) return
 
     if (!/\.(mid|midi|kar|musicxml|xml|mxl|gp|gp3|gp4|gp5|gpx|cap)$/i.test(file.name)) {
-      showDropError('Unsupported file type. Orfeo accepts .mid, .musicxml, .mxl, .gp/.gp5, .cap, and .kar files.')
+      showDropError('Unsupported file type. Pliage accepts .mid, .musicxml, .mxl, .gp/.gp5, .cap, and .kar files.')
       return
     }
 
@@ -305,7 +305,7 @@ function LibraryPanel() {
       const files = await window.electronAPI.scanMidiFolder(currentLibraryFolder)
       setLibraryFiles(files)
     } catch (err) {
-      console.error('[Orfeo] library sidebar drop failed:', err)
+      console.error('[Pliage] library sidebar drop failed:', err)
       showDropError('Could not copy file into library.')
     }
   }
@@ -366,7 +366,7 @@ function LibraryPanel() {
 
   const handleFolderContextMenu = (e: React.MouseEvent, folder: string, anchor?: HTMLElement) => {
     e.preventDefault()
-    // Protected folders (Orfeo) still get the menu — just Show in explorer,
+    // Protected folders (Pliage) still get the menu — just Show in explorer,
     // not Rename/Move/Delete (guarded inside the menu render below).
     setFolderContextMenu({ folder, ...menuSpot(e, anchor) })
   }
@@ -508,7 +508,7 @@ function LibraryPanel() {
   }
 
   // ── After a save auto-refreshes the library, show the folder holding the new
-  // version. It's almost always a just-created Orfeo/ — without this the
+  // version. It's almost always a just-created Pliage/ — without this the
   // highlighted file (and its File-info history) is invisible until the user
   // finds and opens that folder by hand. ────────────────────────────────────
   useEffect(() => {
@@ -625,7 +625,7 @@ function LibraryPanel() {
         resolvedFilePath = resolved.filePath
         parseName = resolved.fileName
       } catch (e: any) {
-        console.error('[Orfeo] Foreign format conversion failed:', e)
+        console.error('[Pliage] Foreign format conversion failed:', e)
         didntOpen()
         return
       }
@@ -727,11 +727,10 @@ function LibraryPanel() {
     // Starred-first grouping only applies inside the dedicated "starred" filter tab.
     const result: FileGroup[] = []
 
-    // ── Sort folders: Orfeo always topmost, Demo pinned next, rest alphabetical ──
+    // ── Sort folders: Pliage always topmost, Demo pinned next, rest alphabetical ──
     Array.from(folderMap.entries())
       .sort((a, b) => {
-        if (a[0].toLowerCase() === 'orfeo') return -1
-        if (b[0].toLowerCase() === 'orfeo') return 1
+        if (isOutputFolder(a[0]) !== isOutputFolder(b[0])) return isOutputFolder(a[0]) ? -1 : 1
         if (a[0].toLowerCase() === 'demo') return -1
         if (b[0].toLowerCase() === 'demo') return 1
         return a[0].localeCompare(b[0])
@@ -1066,7 +1065,7 @@ function LibraryPanel() {
         </ContextMenu>
       )}
 
-      {moveTarget && <div ref={moveRef} role="dialog" aria-labelledby="lib-move-title" className="orfeo-modal-glow theme-studio lib-move">
+      {moveTarget && <div ref={moveRef} role="dialog" aria-labelledby="lib-move-title" className="pliage-modal-glow theme-studio lib-move">
         <div className="lib-move-head">
           <span id="lib-move-title" className="lib-ellipsis">{moveName ? t`Move “${moveName}” to` : t`Move ${moveTarget.length} songs to`}</span>
           <button className="o-close" aria-label={t`Close`} onClick={() => setMoveTarget(null)}><X size={18} /></button>
@@ -1155,7 +1154,7 @@ export default function SettingsPanel() {
 
         {newVersion && (
           <div role="status" className="pr-update-card">
-            <span><span className="pr-update-title">{t`Orfeo ${newVersion} is out`}</span>{t`Your songs and settings stay as they are.`}</span>
+            <span><span className="pr-update-title">{t`Pliage ${newVersion} is out`}</span>{t`Your songs and settings stay as they are.`}</span>
             <button className="pr-setup-black" onClick={pressUpdateButton}>{t`Get it`}</button>
           </div>
         )}

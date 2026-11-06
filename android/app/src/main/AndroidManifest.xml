@@ -5,8 +5,9 @@
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
     <application
-        android:label="Orfeo"
+        android:label="Pliage"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:largeHeap="true"
         android:hardwareAccelerated="true"
         android:allowBackup="false"

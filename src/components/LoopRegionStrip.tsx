@@ -515,7 +515,7 @@ export default function LoopRegionStrip() {
           ref={popupRef}
           role="group"
           aria-label="Loop bars"
-          className="pr-loop-pill orfeo-modal-glow app-no-drag"
+          className="pr-loop-pill pliage-modal-glow app-no-drag"
           style={{
             left: (roll ? roll.left + roll.width / 2 : window.innerWidth / 2),
             top: Math.max(8, (roll ? roll.top : 0) + 16),

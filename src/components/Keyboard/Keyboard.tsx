@@ -571,7 +571,7 @@ export default function Keyboard() {
       } else {
         next.add(midi)
         nextColors.set(midi, 'var(--lock-chord-color)')
-        const playNote = (window as any).__orfeoPlayNote
+        const playNote = (window as any).__pliagePlayNote
         if (playNote) playNote(midi, 0.7, 600, undefined, false)
       }
       setLockedKeysStore(next, nextColors)
@@ -585,7 +585,7 @@ export default function Keyboard() {
       useStore.getState().setLockedChordNoteCount(next.size)
     } else {
       if (lockedKeys.size > 0) clearLockedKeys()
-      const playNote = (window as any).__orfeoPlayNote
+      const playNote = (window as any).__pliagePlayNote
       if (isGlissando) {
         lightGlissandoKey(midi)
         if (playNote) playNote(midi, 0.7, 60, undefined, false)

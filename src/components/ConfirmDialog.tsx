@@ -48,7 +48,7 @@ export function ConfirmDialogHost() {
         role="dialog"
         aria-modal="true"
         aria-label={state.title || 'Confirm'}
-        className="orfeo-modal-glow theme-paper o-window"
+        className="pliage-modal-glow theme-paper o-window"
         style={{ width: 'min(480px, calc(100vw - 32px))', ...dialogFitsScreen, ...placed }}
         onMouseDown={(e) => e.stopPropagation()}
       >

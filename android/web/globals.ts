@@ -1,5 +1,5 @@
 // ── What main.ts expects from Node: runs before any other module ─────────────
-const { files, resources } = JSON.parse((window as any).OrfeoBridge.dirs())
+const { files, resources } = JSON.parse((window as any).PliageBridge.dirs())
 
 class AndroidBuffer extends Uint8Array {
   static from(v: any, enc?: any): any {
@@ -18,7 +18,7 @@ class AndroidBuffer extends Uint8Array {
 const g = globalThis as any
 g.Buffer = AndroidBuffer
 g.process = { platform: 'android', env: {}, resourcesPath: resources, windowsStore: false }
-g.__orfeoFilesDir = files
+g.__pliageFilesDir = files
 
 // The desktop layout needs ~1100 px; a phone lays it out at that width and scales it down
 const BASE_WIDTH = Math.max(1100, window.innerWidth)

@@ -1,6 +1,6 @@
 // ── Node's fs on top of the Android bridge (MainActivity.Bridge) ─────────────
 // Sync on purpose: main.ts is written against the sync API and files are small.
-const B = (window as any).OrfeoBridge
+const B = (window as any).PliageBridge
 
 export function statSync(p: string) {
   const s = B.stat(p)
@@ -13,6 +13,7 @@ export const existsSync = (p: string) => !!B.stat(p)
 export const mkdirSync = (p: string, _o?: unknown) => B.mkdir(p)
 export const unlinkSync = (p: string) => B.remove(p)
 export const renameSync = (a: string, b: string) => B.rename(a, b)
+export const copyFileSync = (a: string, b: string) => B.copy(a, b)
 
 export function readdirSync(p: string, o?: { withFileTypes?: boolean }): any[] {
   const list = JSON.parse(B.list(p)) as { name: string; dir: boolean }[]
@@ -57,4 +58,4 @@ class WriteStream {
 }
 export const createWriteStream = (p: string) => new WriteStream(p)
 
-export default { statSync, existsSync, mkdirSync, unlinkSync, renameSync, readdirSync, readFileSync, writeFileSync, createWriteStream }
+export default { statSync, existsSync, mkdirSync, unlinkSync, renameSync, copyFileSync, readdirSync, readFileSync, writeFileSync, createWriteStream }

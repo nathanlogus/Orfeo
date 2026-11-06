@@ -4,10 +4,10 @@ def pkg = new groovy.json.JsonSlurper().parse(file('../../package.json'))
 def (major, minor, patch) = pkg.version.tokenize('.').collect { it.toInteger() }
 
 android {
-    namespace 'com.squarebow.orfeo'
+    namespace 'com.squarebow.pliage'
     compileSdk 36
     defaultConfig {
-        applicationId 'com.squarebow.orfeo'
+        applicationId 'com.squarebow.pliage'
         minSdk 26
         targetSdk 36
         versionCode major * 10000 + minor * 100 + patch

@@ -6,9 +6,9 @@ import Tooltip from './Tooltip'
 import { t } from '../utils/i18n'
 import '../styles/redesign-settings.css'
 
-// ── "Enjoying Orfeo?" — a small note in the corner every 5th launch (see
+// ── "Enjoying Pliage?" — a small note in the corner every 5th launch (see
 // hooks/useSupportNote.ts), switchable in Settings › Appearance.
-//   Store build: offers the Store's own review window — Rate Orfeo · Later ·
+//   Store build: offers the Store's own review window — Rate Pliage · Later ·
 //     Don't show again; rating or "Don't show again" ends it for good.
 //   Every other build: Review · Join the community · Sponsor, and "Disable
 //     for 30 days"; the × waits for the next 5th launch. ─────────────────────
@@ -33,19 +33,19 @@ export function SupportNote() {
   if (!open) return null
   const visit = (url: string) => { closeSupportNote('later'); window.electronAPI.openExternal(url) }
   return (
-    <div ref={panelRef} role="dialog" aria-label={t`Enjoying Orfeo?`} className="orfeo-modal-glow theme-studio note-panel" style={{ ...dialogFitsScreen, ...placed }}>
+    <div ref={panelRef} role="dialog" aria-label={t`Enjoying Pliage?`} className="pliage-modal-glow theme-studio note-panel" style={{ ...dialogFitsScreen, ...placed }}>
       <div className="o-disc" style={{ right: -40, top: -40, width: 140, height: 140 }} aria-hidden="true" />
       <div className="o-triangle" style={{ right: 70, top: 30, width: 40, height: 36 }} aria-hidden="true" />
       <Tooltip title={t`Close`} oneLine placement="top" wrapperStyle={{ position: 'absolute', right: 12, top: 12 }}>
         <button onClick={() => closeSupportNote('later')} aria-label={t`Close`} className="note-close"><X size={16} strokeWidth={2} /></button>
       </Tooltip>
       <div onPointerDown={onDragStart} className="o-window-head" style={{ paddingTop: 56 }}>
-        <h2 className="o-title">{t`Enjoying Orfeo?`}</h2>
+        <h2 className="o-title">{t`Enjoying Pliage?`}</h2>
       </div>
       {store ? (
         <>
-          <p className="note-text">{t`Orfeo is here to make your musical journey a little more enjoyable, one note at a time. A rating in the Microsoft Store helps other musicians find it, and it only takes a moment.`}</p>
-          <button className="o-btn-primary o-btn-lg" onClick={() => void requestStoreReview()}>{t`Rate Orfeo`}</button>
+          <p className="note-text">{t`Pliage is here to make your musical journey a little more enjoyable, one note at a time. A rating in the Microsoft Store helps other musicians find it, and it only takes a moment.`}</p>
+          <button className="o-btn-primary o-btn-lg" onClick={() => void requestStoreReview()}>{t`Rate Pliage`}</button>
           <div className="note-links">
             <button className="o-link" onClick={() => closeSupportNote('later')}>{t`Later`}</button>
             <button className="o-link" onClick={() => closeSupportNote('never')}>{t`Don't show again`}</button>
@@ -53,7 +53,7 @@ export function SupportNote() {
         </>
       ) : (
         <>
-          <p className="note-text">{t`Orfeo is here to make your musical journey a little more enjoyable, one note at a time. It's free and made by one musician. Here's how you can help it grow.`}</p>
+          <p className="note-text">{t`Pliage is here to make your musical journey a little more enjoyable, one note at a time. It's free and made by one musician. Here's how you can help it grow.`}</p>
           <button className="o-btn-primary o-btn-lg" onClick={() => visit(REVIEW_URL)}>{t`Review`}</button>
           <div className="note-pair">
             <button className="o-btn" onClick={() => visit(SPONSOR_URL)}><Heart size={16} strokeWidth={1.75} />{t`Sponsor`}</button>

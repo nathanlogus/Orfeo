@@ -33,7 +33,7 @@ const KEYBOARD_DISPLAY_GROUPS = new Set(['piano', 'chromatic', 'organ'])
 
 export interface SongCoverInfo { art: string | null; people: string[] }
 
-interface OrfeoStore {
+interface PliageStore {
   midi: ParsedMidi | null
   setMidi: (midi: ParsedMidi | null) => void
   barStarts: number[]
@@ -519,10 +519,10 @@ interface OrfeoStore {
   handColorLH: string
   handColorRH: string
   setHandColors: (lh: string, rh: string) => void
-  // Orfeo's own tooltips (hints on hover); live value readouts while dragging stay
+  // Pliage's own tooltips (hints on hover); live value readouts while dragging stay
   tooltipsEnabled: boolean
   setTooltipsEnabled: (v: boolean) => void
-  // The "Enjoying Orfeo?" note every 5th launch (components/SupportNote.tsx)
+  // The "Enjoying Pliage?" note every 5th launch (components/SupportNote.tsx)
   supportNoteEnabled: boolean
   setSupportNoteEnabled: (v: boolean) => void
   // Opening the Chords or Scales Explorer pauses the song (Settings › Playback)
@@ -572,7 +572,7 @@ function makeTrackState(track: ParsedTrack): TrackState {
     index: track.index,
     name: track.name,
     gmName: track.gmName,
-    trackName: track.gmName,  // user label — defaults to GM name, overridden on load if file has ORFEO_TRACK_NAME
+    trackName: track.gmName,  // user label — defaults to GM name, overridden on load if file has PLIAGE_TRACK_NAME
     program: track.program,
     group: track.group,
     isDrum: track.isDrum,
@@ -589,7 +589,7 @@ function makeTrackState(track: ParsedTrack): TrackState {
   }
 }
 
-export const useStore = create<OrfeoStore>((set, get) => ({
+export const useStore = create<PliageStore>((set, get) => ({
   midi: null,
   barStarts: [],
   setMidi: (midi) => {
@@ -607,25 +607,25 @@ export const useStore = create<OrfeoStore>((set, get) => ({
     const corr = key ? get().tempoCorrections[key] : undefined
     midi = prepareSong(midi, { skip: get().skipEmptyBars, keepCountIn: get().keepDrumCountIn, correction: corr ?? null })
     if (corr) midi = applyTempoCorrection(midi, correctionToSong(corr, midi._leadSec ?? 0))
-    // ── Apply ORFEO_TRACK_NAME / ORFEO_TRACK_COLOR overrides from header meta ──
-    const orfeoNames = (midi as any)._orfeoTrackNames as Record<number, string> | undefined
-    const orfeoColors = (midi as any)._orfeoTrackColors as Record<number, string> | undefined
-    const orfeoVisible = (midi as any)._orfeoTrackVisible as Record<number, boolean> | undefined
-    const orfeoKeyboard = (midi as any)._orfeoTrackKeyboard as Record<number, boolean> | undefined
+    // ── Apply PLIAGE_TRACK_NAME / PLIAGE_TRACK_COLOR overrides from header meta ──
+    const pliageNames = (midi as any)._pliageTrackNames as Record<number, string> | undefined
+    const pliageColors = (midi as any)._pliageTrackColors as Record<number, string> | undefined
+    const pliageVisible = (midi as any)._pliageTrackVisible as Record<number, boolean> | undefined
+    const pliageKeyboard = (midi as any)._pliageTrackKeyboard as Record<number, boolean> | undefined
     const shownByDefault = tracksShownByDefault(midi.tracks)
     const newTracks = midi.tracks.map((t, i) => {
       const ts = makeTrackState(t)
       ts.visible = shownByDefault.has(t)
-      if (orfeoNames?.[i]) ts.trackName = orfeoNames[i]
-      if (orfeoColors?.[i]) { ts.color = orfeoColors[i]; ts.colorSource = 'custom' }
-      if (orfeoVisible?.[i] !== undefined) ts.visible = orfeoVisible[i]
-      if (orfeoKeyboard?.[i] !== undefined) ts.showOnKeyboard = orfeoKeyboard[i]
-      // A piano still on Orfeo's default blue/pink (older saved versions store
+      if (pliageNames?.[i]) ts.trackName = pliageNames[i]
+      if (pliageColors?.[i]) { ts.color = pliageColors[i]; ts.colorSource = 'custom' }
+      if (pliageVisible?.[i] !== undefined) ts.visible = pliageVisible[i]
+      if (pliageKeyboard?.[i] !== undefined) ts.showOnKeyboard = pliageKeyboard[i]
+      // A piano still on Pliage's default blue/pink (older saved versions store
       // it) takes the user's hand colours
       if (HAND_ASSIGN_GROUPS.has(ts.group ?? '')) ts.color = followedHandColor(ts.color, handHex(), handHex()) ?? ts.color
       return ts
     })
-    const mixerBaseline: OrfeoStore['mixerBaseline'] = {}
+    const mixerBaseline: PliageStore['mixerBaseline'] = {}
     for (const ts of newTracks) {
       mixerBaseline[ts.index] = { volume: ts.volume, pan: ts.pan, chorus: ts.chorus, reverb: ts.reverb }
     }
@@ -851,7 +851,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
   setAutoLevelOnLoad: (autoLevelOnLoad) => set({ autoLevelOnLoad }),
 
   resetAll: () => {
-    ;(window as any).__orfeoPlayer?.stop?.()
+    ;(window as any).__pliagePlayer?.stop?.()
     set({
       midi: null, tracks: [], barStarts: [],
       bpm: 120, originalBpm: 120, detectedKey: null,
@@ -1023,7 +1023,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
       const files = await window.electronAPI.scanMidiFolder(libraryFolder)
       // Highlight the actual scanned row, not the path the save handler returned —
       // those can differ by drive-letter case or separator style (the file lands
-      // in a pre-existing differently-cased Orfeo/ folder, say), and an exact
+      // in a pre-existing differently-cased Pliage/ folder, say), and an exact
       // string compare in the list renderer would then match no row at all,
       // leaving the just-saved version with no amber flash and no pinned bar.
       const norm = (p: string) => p.replace(/\\/g, '/').toLowerCase()
@@ -1072,7 +1072,7 @@ export const useStore = create<OrfeoStore>((set, get) => ({
 
   // ── Settings group collapse state — keyed by group id; true = collapsed.
   // All expanded by default so a fresh install's first Settings open shows
-  // everything — persists per-user from there via orfeo-prefs.json, so this
+  // everything — persists per-user from there via pliage-prefs.json, so this
   // only affects the very first open, never overrides what a returning user
   // left collapsed. ───────────────────────────────────────────────────────
   settingsGroupsCollapsed: {
@@ -1369,9 +1369,9 @@ async function restoreLibraryPrefs() {
     if (typeof prefs.hitEffectBloomSpread === 'number') store.setHitEffectBloomSpread(prefs.hitEffectBloomSpread)
     if (prefs.hitEffectScope === 'keyboard' || prefs.hitEffectScope === 'all') store.setHitEffectScope(prefs.hitEffectScope)
     if (typeof prefs.hitEffectColor === 'string' || prefs.hitEffectColor === null) store.setHitEffectColor(prefs.hitEffectColor)
-    if (prefs.selectedSoundfont === 'fluidr3-gm' || prefs.selectedSoundfont === 'musescore-general') store.setSelectedSoundfont(prefs.selectedSoundfont)
+    if (prefs.selectedSoundfont === 'fluidr3-gm' || prefs.selectedSoundfont === 'musescore-general' || String(prefs.selectedSoundfont).startsWith('custom:')) store.setSelectedSoundfont(prefs.selectedSoundfont)
   } catch (e) {
-    console.error('[Orfeo] restoreLibraryPrefs:', e)
+    console.error('[Pliage] restoreLibraryPrefs:', e)
   }
 }
 setTimeout(restoreLibraryPrefs, 500)
@@ -1850,7 +1850,7 @@ export type AppTheme = 'dark' | 'warm'
 
 /** The open song's Tap Tempo correction in song time (stored in the file's own
  *  seconds; a song opened with its empty bars skipped runs earlier) */
-export function currentCorrection(s: Pick<OrfeoStore, 'songKey' | 'tempoCorrections' | 'midi'>): SongTempoCorrection | null {
+export function currentCorrection(s: Pick<PliageStore, 'songKey' | 'tempoCorrections' | 'midi'>): SongTempoCorrection | null {
   const c = s.songKey ? s.tempoCorrections[s.songKey] : undefined
   if (!c) return null
   const lead = s.midi?._leadSec ?? 0
@@ -1860,7 +1860,7 @@ export function currentCorrection(s: Pick<OrfeoStore, 'songKey' | 'tempoCorrecti
 // ── The keys on screen: the size picked, or just the ones the song's shown notes
 // need. The Note Editor and the Explorers can reach keys the song doesn't use.
 let fitted: { midi: unknown; tracks: unknown; transpose: number; range: { min: number; max: number } | null } | null = null
-export function activeKeyRange(s: OrfeoStore): { min: number; max: number } {
+export function activeKeyRange(s: PliageStore): { min: number; max: number } {
   const full = PIANO_RANGES[s.keyboardSize] ?? PIANO_RANGES[88]
   if (!s.fitKeys || !s.midi || s.noteEditorActive || s.chordExplorerOpen || s.scaleExplorerOpen) return full
   const transpose = s.detectedKey?.transpose ?? 0

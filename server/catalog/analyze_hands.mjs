@@ -1,4 +1,4 @@
-// Classifies how each file lays out the two hands, and checks Orfeo's own hand
+// Classifies how each file lays out the two hands, and checks Pliage's own hand
 // engine against tracks the file itself names. Reads files only, never writes them.
 // Run from the repo: node --import ./scripts/ts-esbuild-hooks.mjs analyze_hands.mjs <library> [out]
 import { createRequire } from 'node:module'
@@ -8,8 +8,8 @@ import { pathToFileURL } from 'node:url'
 import assert from 'node:assert'
 
 const REPO = resolve(import.meta.dirname, '../..')
-const DATA = process.env.ORFEO_DATA
-if (!DATA) { console.error('Set ORFEO_DATA to the private folder that holds the catalog data'); process.exit(1) }
+const DATA = process.env.PLIAGE_DATA
+if (!DATA) { console.error('Set PLIAGE_DATA to the private folder that holds the catalog data'); process.exit(1) }
 const { Midi } = createRequire(join(REPO, 'package.json'))('@tonejs/midi')
 const { assignHands } = await import(pathToFileURL(join(REPO, 'src/utils/handAssignment.ts')).href)
 
@@ -30,7 +30,7 @@ const mean = t => t.notes.reduce((s, n) => s + n.midi, 0) / t.notes.length
 
 // 'named': the file says which track is which. 'split': two piano tracks that sit
 // clearly apart, so they are almost certainly hands. 'one-stream': one piano part,
-// which Orfeo splits itself. 'none': no piano part at all.
+// which Pliage splits itself. 'none': no piano part at all.
 export function layout(tracks) {
   const notes = tracks.filter(t => t.channel !== 9 && t.notes.length > 0)
   const named = notes.filter(t => isPiano(t) && namedHand(t.name))

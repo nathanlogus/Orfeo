@@ -47,7 +47,7 @@ function Slider({ label, value, min, max, step, onChange, digits }: {
         <input
           type="range" min={min} max={max} step={step} value={value}
           onChange={e => onChange(Number(e.target.value))}
-          className="orfeo-slider-amber"
+          className="pliage-slider-amber"
           style={{ '--fill': `${((value - min) / (max - min)) * 100}%` } as CSSProperties}
         />
       </Tooltip>

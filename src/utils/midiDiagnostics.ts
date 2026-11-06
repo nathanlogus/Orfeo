@@ -1,10 +1,10 @@
 // ── MIDI keyboard timing diagnostics + exportable performance log ────────────
 // Per key press, two numbers measured on the real machine:
-//  • input  — the system/Chromium received the key → Orfeo's handler started
+//  • input  — the system/Chromium received the key → Pliage's handler started
 //             (the MIDI event's own timestamp vs. performance.now(); this is
 //             where a busy screen redraw would show up)
 //  • handle — handler start → the note was handed to the synth
-// The fixed parts (synth block, Orfeo's own chain, the output device) come
+// The fixed parts (synth block, Pliage's own chain, the output device) come
 // from the engines. Nothing here is persisted; the log is for bug reports.
 
 import { useStore } from '../store'
@@ -79,14 +79,14 @@ export function getStats(): TimingStats {
 export interface DelayBreakdown {
   engine: 'gm' | 'samples' | 'native'
   synthBlockMs: number      // waiting for the synth's next 128-sample block (worst case)
-  chainMs: number           // Orfeo's own processing (Samples: 0 on the live path, 12 through the compressors)
+  chainMs: number           // Pliage's own processing (Samples: 0 on the live path, 12 through the compressors)
   outputMs: number | null   // the sound card / system output; null = can't be measured for this output
-  externalOutput: string    // GM sent to a MIDI device instead of Orfeo's synth
+  externalOutput: string    // GM sent to a MIDI device instead of Pliage's synth
 }
 export function getDelayBreakdown(): DelayBreakdown {
   const engine = useStore.getState().audioEngine
   if (engine === 'native') {
-    // a key waits at most one engine period for its turn; nothing in Orfeo's chain delays it
+    // a key waits at most one engine period for its turn; nothing in Pliage's chain delays it
     const s = useNativeAudio.getState().status
     const out = nativeMeasuredLatencySec()
     return { engine, synthBlockMs: s?.rate ? s.periodFrames * 1000 / s.rate : 0, chainMs: 0, outputMs: out > 0 ? out * 1000 : null, externalOutput: '' }
@@ -105,7 +105,7 @@ export function buildPerformanceLog() {
   const m = useMidiSettings.getState()
   const prefs = Object.fromEntries(Object.entries(m).filter(([k, v]) => typeof v !== 'function' && !['activity', 'diagVersion', 'devices', 'outputs', 'detected'].includes(k)))
   return {
-    kind: 'orfeo-midi-performance-log',
+    kind: 'pliage-midi-performance-log',
     version: 1,
     appVersion: __APP_VERSION__,
     createdAt: new Date().toISOString(),
@@ -139,7 +139,7 @@ export function exportPerformanceLog() {
   const a = document.createElement('a')
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
   a.href = url
-  a.download = `orfeo-midi-log-${stamp}.json`
+  a.download = `pliage-midi-log-${stamp}.json`
   document.body.appendChild(a)
   a.click()
   a.remove()

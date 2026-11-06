@@ -822,7 +822,7 @@ export default function PianoRoll() {
 
       // ── Live Windows-scaling / DPR change ───────────────────────────────
       // `resolution` is fixed at app.init() time — without this, changing
-      // Windows display scaling while Orfeo is already open would leave the
+      // Windows display scaling while Pliage is already open would leave the
       // roll drawn at the old ratio until something else forces a resize
       // (previously: a restart). A matchMedia resolution query only ever
       // matches once for a given dppx value, so it's re-armed after every
@@ -901,7 +901,7 @@ export default function PianoRoll() {
           NES.needsFlatRebuild = true
           // Prime GM channel programs via a silent SMF player so notes preview
           // on the correct instrument before the user presses Play for the first time.
-          ;(window as any).__orfeoWarmupEditChannels?.()
+          ;(window as any).__pliageWarmupEditChannels?.()
         }
         if (!noteEditorActive && prevNoteEditorActive) {
           NES.editMidi = null
@@ -1338,7 +1338,7 @@ export default function PianoRoll() {
 
         if (ef) {
           const { note, track, key, topY, noteH } = ef
-          ;(window as any).__orfeoPlayNote?.(note.midi, 90, 500, getTrackChannel(ef.trackIndex), true, getNoteColorHex(note, ef.trackIndex))
+          ;(window as any).__pliagePlayNote?.(note.midi, 90, 500, getTrackChannel(ef.trackIndex), true, getNoteColorHex(note, ef.trackIndex))
 
           if (tool !== 'select') {
             // ── Pen/Marquee/Lasso on a note: select only, never drag/resize —
@@ -1436,7 +1436,7 @@ export default function PianoRoll() {
           if (!editTrack) return
 
           const midiNum = xToMidi(cx, keyLayoutRef.current, midiMin, midiMax)
-          ;(window as any).__orfeoPlayNote?.(midiNum)
+          ;(window as any).__pliagePlayNote?.(midiNum)
 
           const beforeSet = new Set(editTrack.notes)
           const cmd = cmdAddNote(editTrack as any, { midi: midiNum, ticks: startTick, durationTicks: dur, velocity: 0.8 })
@@ -1544,7 +1544,7 @@ export default function PianoRoll() {
           const newMidi = Math.max(midiMin, Math.min(midiMax,
             xToMidi(editDrag.origNoteX + dx, keyLayoutRef.current, midiMin, midiMax)))
           if (newMidi !== lastGlissandoMidi) {
-            ;(window as any).__orfeoPlayNote?.(newMidi, 90, 500, getTrackChannel(editDrag.trackIndex), true, getNoteColorHex(editDrag.note, editDrag.trackIndex))
+            ;(window as any).__pliagePlayNote?.(newMidi, 90, 500, getTrackChannel(editDrag.trackIndex), true, getNoteColorHex(editDrag.note, editDrag.trackIndex))
             lastGlissandoMidi = newMidi
           }
           editDrag.note.midi = newMidi

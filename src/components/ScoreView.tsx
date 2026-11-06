@@ -10,7 +10,7 @@ import { leftHandChannels, partsToShow, staffHands, stavesToShow, transposeKeySi
 // ── Score view ────────────────────────────────────────────────────────────
 // Engraves the notation file a song was imported from. alphaTab has no sound
 // of its own here: EnabledExternalMedia makes its player a time axis that
-// follows Orfeo's clock. Orfeo's MIDI for these files comes from the same
+// follows Pliage's clock. Pliage's MIDI for these files comes from the same
 // alphaTab generator (foreignFormatImport.ts), so the two share one timeline.
 // The Track Panel's eye picks the parts, and each hand of a piano's two staves.
 export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: React.CSSProperties }) {
@@ -40,7 +40,7 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
     }
     const syncCursor = () => {
       const { currentTime, midi } = useStore.getState()
-      // Skip empty bars cuts the song Orfeo plays, never the score
+      // Skip empty bars cuts the song Pliage plays, never the score
       api.timePosition = (currentTime + (midi?._leadSec ?? 0)) * 1000
     }
     // Written pitch and key signature, on the score itself so a file's own
@@ -136,7 +136,7 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
           scrollMode: at.ScrollMode.Off,
         },
       } as any)
-      api.error.on((e: unknown) => { console.error('[Orfeo] Score view failed:', e); setFailed(true) })
+      api.error.on((e: unknown) => { console.error('[Pliage] Score view failed:', e); setFailed(true) })
       api.postRenderFinished.on(syncCursor)
       api.beatMouseDown.on((beat: unknown) => {
         api.tickPosition = api.tickCache.getBeatStart(beat)
@@ -151,7 +151,7 @@ export default function ScoreView({ bytes, style }: { bytes: Uint8Array; style: 
       // api.load would draw the first part alone
       score = (at as any).importer.ScoreLoader.loadScoreFromBytes(bytes, api.settings)
       redrawIfChanged()
-    })().catch((e) => { console.error('[Orfeo] Score view failed:', e); setFailed(true) })
+    })().catch((e) => { console.error('[Pliage] Score view failed:', e); setFailed(true) })
 
     return () => {
       cancelled = true

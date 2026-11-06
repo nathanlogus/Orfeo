@@ -6,7 +6,7 @@ import {
 
 // ── runHandMetadataTest ────────────────────────────────────────────────────
 // Stage 2 self-check for hand-tag export/reimport. Exposed as
-// window.__orfeoHandMetadataTest in development mode (see App.tsx).
+// window.__pliageHandMetadataTest in development mode (see App.tsx).
 export function runHandMetadataTest(): void {
   console.group('[HandMetadata] Stage 2 export/reimport self-check')
 
@@ -46,7 +46,7 @@ function testMixedTrackUsesTextMeta(): void {
   const notes = [{ hand: 'L' as const }, { hand: 'R' as const }, { hand: 'R' as const }]
   const hint = buildHandExportHint(2, 'Piano', notes)
   console.assert(hint.name === 'Piano', 'mixed track name should be untouched')
-  console.assert(hint.meta?.text === `ORFEO_HAND_MAP:${HAND_ENGINE_VERSION}:2:L1R2`, `unexpected meta: ${hint.meta?.text}`)
+  console.assert(hint.meta?.text === `PLIAGE_HAND_MAP:${HAND_ENGINE_VERSION}:2:L1R2`, `unexpected meta: ${hint.meta?.text}`)
 }
 
 function makeTrack(overrides: Partial<ParsedTrack>): ParsedTrack {
@@ -71,7 +71,7 @@ function testReimportWithNameHint(): void {
 }
 
 // ── Reimport scenario 2: file has valid hand tags only via the exported
-// ORFEO_HAND_MAP text hint (keep-one-track/hand-colored round trip). ────────
+// PLIAGE_HAND_MAP text hint (keep-one-track/hand-colored round trip). ────────
 function testReimportWithTextMetaHint(): void {
   const track = makeTrack({
     index: 3,
@@ -81,7 +81,7 @@ function testReimportWithTextMetaHint(): void {
       { midi: 40, time: 1.0, duration: 0.5, velocity: 0.8, trackIndex: 3 },
     ],
   })
-  const meta = [{ text: `ORFEO_HAND_MAP:${HAND_ENGINE_VERSION}:3:R2L1` }]
+  const meta = [{ text: `PLIAGE_HAND_MAP:${HAND_ENGINE_VERSION}:3:R2L1` }]
   const restored = restoreHandTagsFromHints([track], meta)
   console.assert(restored, 'expected text-meta restore to succeed')
   console.assert(
@@ -115,7 +115,7 @@ function testStaleHintIsIgnored(): void {
     ],
   })
   // Hint describes 3 notes; track only has 2 — a note was added/removed since export.
-  const meta = [{ text: `ORFEO_HAND_MAP:${HAND_ENGINE_VERSION}:5:L1R1L1` }]
+  const meta = [{ text: `PLIAGE_HAND_MAP:${HAND_ENGINE_VERSION}:5:L1R1L1` }]
   const restored = restoreHandTagsFromHints([track], meta)
   console.assert(!restored, 'stale (length-mismatched) hint should be skipped, not applied')
   console.assert(track.notes.every(n => n.hand === undefined), 'stale hint must not tag notes')
@@ -134,7 +134,7 @@ function testUnversionedHintIsIgnored(): void {
       { midi: 64, time: 0.5, duration: 0.5, velocity: 0.8, trackIndex: 6 },
     ],
   })
-  const meta = [{ text: 'ORFEO_HAND_MAP:6:L1R1' }] // pre-versioning format, lengths would otherwise match
+  const meta = [{ text: 'PLIAGE_HAND_MAP:6:L1R1' }] // pre-versioning format, lengths would otherwise match
   const restored = restoreHandTagsFromHints([track], meta)
   console.assert(!restored, 'unversioned hint should be treated as stale, not applied')
   console.assert(track.notes.every(n => n.hand === undefined), 'unversioned hint must not tag notes')

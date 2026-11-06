@@ -29,7 +29,7 @@ export function usePlayback() {
       const { playbackState, midi } = useStore.getState()
       if (playbackState !== 'playing') { stopRaf(); return }
 
-      const player = (window as any).__orfeoPlayer
+      const player = (window as any).__pliagePlayer
       if (player) {
         // Sync from JZZ player clock
         try {

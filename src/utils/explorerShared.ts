@@ -162,7 +162,7 @@ export function prevInversionSet(notes: Set<number>): Set<number> {
 const CLICK_RING_MS = 2600
 const CLICK_VELOCITY = 0.72
 export function ringChord(notes: number[]): void {
-  const playNote = (window as any).__orfeoPlayNote
+  const playNote = (window as any).__pliagePlayNote
   if (playNote) notes.forEach(m => playNote(m, CLICK_VELOCITY, CLICK_RING_MS, undefined, false))
 }
 
@@ -192,7 +192,7 @@ export function restoreStruckShape(shape: StruckShape, octaveNow: number): numbe
 // rolled bottom-up with a slight velocity spread, ringing a touch past the
 // next step for legato. Notes still queued are dropped if playback stops. ──
 export function strikeStep(notes: number[], durMs: number, stillRunning: () => boolean): void {
-  const playNote = (window as any).__orfeoPlayNote
+  const playNote = (window as any).__pliagePlayNote
   if (!playNote) return
   for (const h of humanizeChord(notes)) {
     setTimeout(() => { if (stillRunning()) playNote(h.midi, h.vel, durMs, undefined, false) }, h.delayMs)

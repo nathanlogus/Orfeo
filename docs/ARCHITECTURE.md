@@ -1,6 +1,6 @@
-# Orfeo — Architecture
+# Pliage — Architecture
 
-*Why Orfeo is built the way it is — the decisions, trade-offs, and reasoning a
+*Why Pliage is built the way it is — the decisions, trade-offs, and reasoning a
 new contributor needs before changing anything structural.*
 
 This document explains **how the pieces fit together and why**. For build and
@@ -64,7 +64,7 @@ feature list see the [README](../README.md).
 
 ## Process model
 
-Electron splits the app into three contexts. Orfeo keeps a strict boundary
+Electron splits the app into three contexts. Pliage keeps a strict boundary
 between them:
 
 ```text
@@ -88,7 +88,7 @@ between them:
 - Web MIDI and Web Audio are built into Chromium — no platform audio drivers to
   ship or maintain.
 - WebGL (PixiJS) is available in the renderer with no extra tooling.
-- The MIDI, soundfont, and music-theory libraries Orfeo depends on are all
+- The MIDI, soundfont, and music-theory libraries Pliage depends on are all
   JavaScript, and the mature ones have no C++/.NET equivalent.
 - One language (TypeScript) across the whole codebase lowers the barrier for
   contributors.
@@ -107,7 +107,7 @@ electron/          Main process only — Node.js APIs, filesystem, dialogs, auto
 src/               Renderer process — everything the user sees
   components/       UI, organised by feature area (Keyboard/, PianoRoll/, Mixer/, MidiEditor/, …)
   hooks/            React hooks that own the runtime logic (useAudioEngine, useSamplesEngine, useChordSequence, …)
-  store/            Zustand global store (index.ts) — one OrfeoStore interface
+  store/            Zustand global store (index.ts) — one PliageStore interface
   utils/            Pure functions, no React (chordDetection, chordVocabulary, chordSequenceBuilder, trackChordRole, beatGrid, handAssignment, midiParser, …)
   types/            Shared TypeScript interfaces
 
@@ -159,7 +159,7 @@ Zustand store and a small set of refs, never by React re-rendering the canvas.
 
 ## State — Zustand
 
-A single store (`src/store/index.ts`, one `OrfeoStore` interface) holds all
+A single store (`src/store/index.ts`, one `PliageStore` interface) holds all
 app state: loaded MIDI, playback position, per-track settings, keyboard config,
 chord-tracking mode, every panel's open/closed flag, note-editor state, and so
 on. Feature areas read and write it independently — they are otherwise
@@ -179,7 +179,7 @@ decoupled from each other.
 
 ## Audio — three engines
 
-Orfeo ships **three independent playback engines**. The user picks one in
+Pliage ships **three independent playback engines**. The user picks one in
 **Settings → Audio**; the choice and master volume persist across sessions.
 The rest of the app reaches the active one only through `src/audio/engine.ts`
 (output delay, mixer, master section), so no code ever assumes "not Samples
@@ -189,7 +189,7 @@ means General MIDI".
 |---|---|---|---|---|
 | **GM Synth** | `useAudioEngine.ts` — lazy-loads `jzz`, `jzz-midi-smf`, `jzz-synth-tiny` | General-MIDI wavetable | Instant, nothing to download | Quick playback, low resource use |
 | **Samples** | `useSamplesEngine.ts` — `spessasynth_lib` `WorkletSynthesizer` running `spessasynth_processor.min.js` as an AudioWorklet | SF2 / SF3 soundfonts | One-time download (~31 MB for GeneralUser GS) | Musical, expressive listening |
-| **Native (beta)**, Windows | `src/audio/useNativeEngine.ts` → `electron/audioHost.ts` (utility process) → `native/orfeo-audio` (Rust: FluidSynth + WASAPI) | Same SF2 / SF3 sets | Built with the app (`npm run native:build`) | Playing a MIDI keyboard: ~10 ms key → speaker |
+| **Native (beta)**, Windows | `src/audio/useNativeEngine.ts` → `electron/audioHost.ts` (utility process) → `native/pliage-audio` (Rust: FluidSynth + WASAPI) | Same SF2 / SF3 sets | Built with the app (`npm run native:build`) | Playing a MIDI keyboard: ~10 ms key → speaker |
 
 **GM Synth** plays through JZZ's built-in `Tiny` synth. It opens a hardware
 MIDI-out port only when the user picks one in *Settings → MIDI Keyboard →
@@ -218,10 +218,10 @@ channel set to the wrong instrument for the rest of the session.
 
 ### Native engine
 
-- **Where it runs:** a Rust engine (`native/orfeo-audio`) wrapped as a Node
-  add-on (`native/orfeo-audio-node`, napi-rs), loaded only inside an Electron
+- **Where it runs:** a Rust engine (`native/pliage-audio`) wrapped as a Node
+  add-on (`native/pliage-audio-node`, napi-rs), loaded only inside an Electron
   **utility process** (`electron/audioHost.ts`). A crash there restarts the
-  sound (`nativeClient.ts` re-starts it and re-sends the song); Orfeo itself
+  sound (`nativeClient.ts` re-starts it and re-sends the song); Pliage itself
   keeps running. Main only introduces the renderer and the host through a
   `MessageChannelMain`; commands and ~30 Hz status flow over that port. One
   connection is live at a time (`electron/hostConnection.ts`): a reload or a new
@@ -274,8 +274,8 @@ channel set to the wrong instrument for the rest of the session.
   keeps Web MIDI (all MIDI Keyboard settings apply) and forwards live keys.
 - **Switching away** awaits `stopNative()` — an exclusive stream must be
   released before a Web Audio engine can open the device.
-- **Tests:** `native/orfeo-audio` has `orfeo-selftest` (21 numeric checks on
-  the real device) and `orfeo-engine` (plays a file, prints the device every
+- **Tests:** `native/pliage-audio` has `pliage-selftest` (21 numeric checks on
+  the real device) and `pliage-engine` (plays a file, prints the device every
   2 s — the unplug test).
 
 ---
@@ -285,7 +285,7 @@ channel set to the wrong instrument for the rest of the session.
 `src/hooks/useMidiInput.ts` owns the one Web MIDI connection
 (`navigator.requestMIDIAccess`). Settings and live device state live in their
 own small store, `src/store/midiSettings.ts`, persisted under the
-`midiSettings` key of `orfeo-prefs.json`. It's a separate store so that
+`midiSettings` key of `pliage-prefs.json`. It's a separate store so that
 activity lights and pedal detection don't wake every main-store subscriber on
 each key press.
 
@@ -336,11 +336,11 @@ each key press.
 |---|---|---|
 | Read a `.mid` / `.midi` file into a note model | `@tonejs/midi` | Handles all format types; wrapped by `src/utils/midiParser.ts` |
 | Write edited files, inject custom meta events | `midi-file` | Byte-level control the high-level parser does not give |
-| Import MusicXML / Guitar Pro / Capella / KAR | `@coderline/alphatab` | `src/utils/foreignFormatImport.ts` converts to MIDI, cached next to the source as `<name>_ORFEO_IMPORTED.mid` |
-| Score view | `@coderline/alphatab` | `src/components/ScoreView.tsx` engraves the notation file; its player is `EnabledExternalMedia`, so the cursor follows Orfeo's clock. `src/utils/scoreSource.ts` ties the file to the song, including its `_ORFEO_IMPORTED.mid` copy. Transpose rewrites the loaded score's pitch and key signature, and parts are matched to Orfeo's tracks by MIDI channel. A keyboard part on two staves imports as two tracks: `leftHandChannels` gives the left hand its own channels and `ORFEO_TRACK_HAND` text events name each hand for the parser. `src/utils/fingering.ts` suggests the fingers shown on the score |
+| Import MusicXML / Guitar Pro / Capella / KAR | `@coderline/alphatab` | `src/utils/foreignFormatImport.ts` converts to MIDI, cached next to the source as `<name>_PLIAGE_IMPORTED.mid` |
+| Score view | `@coderline/alphatab` | `src/components/ScoreView.tsx` engraves the notation file; its player is `EnabledExternalMedia`, so the cursor follows Pliage's clock. `src/utils/scoreSource.ts` ties the file to the song, including its `_PLIAGE_IMPORTED.mid` copy. Transpose rewrites the loaded score's pitch and key signature, and parts are matched to Pliage's tracks by MIDI channel. A keyboard part on two staves imports as two tracks: `leftHandChannels` gives the left hand its own channels and `PLIAGE_TRACK_HAND` text events name each hand for the parser. `src/utils/fingering.ts` suggests the fingers shown on the score |
 
-`midiParser.ts` also reads Orfeo's own meta events (see next section) so a file
-re-opened in Orfeo restores its key, track names, colours, and edit history.
+`midiParser.ts` also reads Pliage's own meta events (see next section) so a file
+re-opened in Pliage restores its key, track names, colours, and edit history.
 
 ---
 
@@ -419,15 +419,15 @@ voicing to it.
 
 ## Metadata embedded in the MIDI file
 
-Orfeo writes its own state **into the `.mid` file** as MIDI text meta events,
+Pliage writes its own state **into the `.mid` file** as MIDI text meta events,
 rather than into a sidecar file in app-data.
 
 | Meta event | Holds |
 |---|---|
-| `ORFEO_KEY:` | Detected / user-set key signature |
-| `ORFEO_TRACK_NAME:N:` | Per-track rename from the Playback Editor |
-| `ORFEO_TRACK_COLOR:N:#hex` | Per-track colour |
-| `ORFEO_HISTORY` | Full edit history — every editor / mixer / tempo-key save |
+| `PLIAGE_KEY:` | Detected / user-set key signature |
+| `PLIAGE_TRACK_NAME:N:` | Per-track rename from the Playback Editor |
+| `PLIAGE_TRACK_COLOR:N:#hex` | Per-track colour |
+| `PLIAGE_HISTORY` | Full edit history — every editor / mixer / tempo-key save |
 
 <details>
 <summary><b>Why embed instead of a sidecar file</b></summary>
@@ -440,8 +440,8 @@ because unknown text meta events are preserved by every conformant MIDI parser.
 
 </details>
 
-Edited files are saved as **`<name>_ORFEO_v{N}.mid`** (first edit is `v1`) inside
-the library folder's `Orfeo/` subfolder — the original is never modified.
+Edited files are saved as **`<name>_PLIAGE_v{N}.mid`** (first edit is `v1`) inside
+the library folder's `Pliage/` subfolder — the original is never modified.
 
 ---
 
@@ -547,7 +547,7 @@ control's ratio) are never touched.
 
 Corrections are stored in the app prefs (`tempoCorrections`), keyed by a hash
 of the file's bytes (`src/utils/songIdentity.ts`), so they follow a file
-through renames and moves without modifying it; saving a new `_ORFEO_vN`
+through renames and moves without modifying it; saving a new `_PLIAGE_vN`
 version carries the correction over (rescaled when a speed change is baked
 in). `store.setMidi` applies a song's correction on load; `setBeatGrid` swaps
 the grid live during a preview without restarting playback, and the
@@ -570,7 +570,7 @@ path → size/mtime index so unchanged files are never re-read.
 extended backwards (empty lead-in skipped, pickups respected, mid-song starts
 counted into the bar), schedules them on the metronome's shared AudioContext,
 and has the sound engine prepare itself during the clicks (the GM engine
-pre-builds its JZZ player via `__orfeoPrepareStart`). Playback is started
+pre-builds its JZZ player via `__pliagePrepareStart`). Playback is started
 early by the engine's learned start-up time so the first note lands one beat
 after the last click; the metronome is handed the same audio-clock anchor
 (`setMetronomeAnchor`) so song clicks continue seamlessly. Only user-started
@@ -602,14 +602,14 @@ split sensitivity.
 
 **Hand colours** (Settings › Appearance, `store.handColorLH` / `handColorRH`,
 persisted). `src/utils/handPalette.ts` holds the defaults, the ready-made pairs
-(`HAND_PRESETS`; all but Orfeo's own checked with a colour-blindness
+(`HAND_PRESETS`; all but Pliage's own checked with a colour-blindness
 simulation) and `applyHandColors`, which overrides `--hand-lh` / `--hand-rh` on
 `:root` so everything drawn with `var()` follows at once. Canvas code reads
 `handHex()` instead: the piano roll refreshes its cached numbers from the store,
 and `hitEffectQueue.ts` drops its resolved-colour cache when
 `handPaletteVersion()` changes. Amber (tools), the Explorers' root accent
 (`--accent-root`) and the compressor knob have their own tokens and never
-follow. A piano or organ track on a hand colour, or on Orfeo's default blue or
+follow. A piano or organ track on a hand colour, or on Pliage's default blue or
 pink (which older saved versions store), switches with the pair: on load
 (`setMidi`) and live (`setHandColors`), via `followedHandColor`.
 
@@ -675,7 +675,7 @@ behind the `exportAudioEnabled` setting.
   **Notes outside 0–127 differ per sound, and have always done so live**: the
   Studio synth drops them (spessasynth_core returns for `midiNote > 127 ||
   midiNote < 0`), the Native engine moves them to the nearest end
-  (`transpose_note`, `native/orfeo-audio/src/engine.rs`). Export follows whichever
+  (`transpose_note`, `native/pliage-audio/src/engine.rs`). Export follows whichever
   sound it is about to play with (`OutOfRange`, chosen in `exportAudio.build`),
   because "as I hear it" promises that sound. One shared rule for both engines
   would change live playback, so it is a separate decision.
@@ -702,7 +702,7 @@ behind the `exportAudioEnabled` setting.
   `exportStudioWorkerCtor.ts`, the only place Vite's `?worker&inline` syntax
   appears, so the renderer itself is loadable by `npm test`. Imported on demand to keep spessasynth out of the
   startup bundle.
-- **Native** — `render_offline` (`native/orfeo-audio/src/offline.rs`): a fresh
+- **Native** — `render_offline` (`native/pliage-audio/src/offline.rs`): a fresh
   FluidSynth through the same parts as the live audio thread (CC7 × strip,
   per-preset reverb/chorus sends, plate reverb, chorus, master gain ×
   `NATIVE_BOOST` → compressor → safety → tone; no auto-level, clicks or live
@@ -717,8 +717,8 @@ behind the `exportAudioEnabled` setting.
   noise floor, and the two answers need different sentences in the dialog. WAV 44.1 kHz/16-bit/stereo PCM;
   MP3 320 kbps CBR 44.1 kHz stereo (LAME compiled to WebAssembly, `wasm-media-encoders`),
   encoded a second of audio at a time so the page keeps breathing.
-- **Saving** — IPC `export:save` writes `<library>/Orfeo/Exports/<name>`
-  (`exportsDir`; no library → the Music folder, `Orfeo/Exports`) with `wx`, the next
+- **Saving** — IPC `export:save` writes `<library>/Pliage/Exports/<name>`
+  (`exportsDir`; no library → the Music folder, `Pliage/Exports`) with `wx`, the next
   free `… (2)` name on a clash (`nextFreeName`). The name is always one plain file
   name inside that folder: `safeExportName`/`safeExportPath` (`electron/exportName.ts`)
   cut either separator away, drop characters Windows refuses, prefix reserved
@@ -751,7 +751,7 @@ frame. Scope (which tracks spawn effects) and colour are user settings.
 
 `electron-updater` assumes the running app was built and published through the
 **same** pipeline as the update feed it checks. Community-built macOS/Linux
-binaries are not — pointing their updater at Orfeo's official GitHub release
+binaries are not — pointing their updater at Pliage's official GitHub release
 feed would either offer an "update" that does not match how the binary was
 built, or silently never fire. On those platforms the Settings "Check for
 updates" button opens the Releases page instead. Full detail in

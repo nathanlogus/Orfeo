@@ -3,7 +3,7 @@
 # with regexes in build_catalog.py.
 import os, re, sys, time, urllib.error, urllib.request as ur
 
-DATA = os.environ.get('ORFEO_DATA') or sys.exit('Set ORFEO_DATA to the private folder that holds the catalog data')
+DATA = os.environ.get('PLIAGE_DATA') or sys.exit('Set PLIAGE_DATA to the private folder that holds the catalog data')
 RAW = os.path.join(DATA, 'raw')
 BASE = 'https://www.beakauffmann.com/'
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}

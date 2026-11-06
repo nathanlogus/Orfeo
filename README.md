@@ -1,4 +1,4 @@
-# Orfeo
+# Pliage
 
 **From MIDI to mastery.** Turn any MIDI file into an interactive piano-learning
 experience.
@@ -7,15 +7,15 @@ experience.
 
 📖 **User manual: [orfeo.cc/docs](https://orfeo.cc/docs)**
 
-Orfeo is free and always will be. If it helps your playing, you can support it on [Ko-fi](https://ko-fi.com/squarebow) or [GitHub Sponsors](https://github.com/sponsors/Squarebow).
+Pliage is free and always will be. If it helps your playing, you can support it on [Ko-fi](https://ko-fi.com/squarebow) or [GitHub Sponsors](https://github.com/sponsors/Squarebow).
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/X5T32931V0)
 
-![Orfeo mid-playback: falling notes on the keyboard, keys lit in track colours, the live chord name above](.github/images/orfeo-hero.webp)
+![Pliage mid-playback: falling notes on the keyboard, keys lit in track colours, the live chord name above](.github/images/pliage-hero.webp)
 
 ---
 
-Orfeo is a free, open-source, cross-platform desktop app that turns MIDI files into an
+Pliage is a free, open-source, cross-platform desktop app that turns MIDI files into an
 interactive piano lesson: notes fall onto a virtual keyboard in real time, keys
 light up as they play, and you can slow down, loop, transpose, and explore any
 passage at your own pace. Real-time chord detection, hand-coloured keys,
@@ -32,7 +32,7 @@ telemetry; MIDI files are processed entirely on your device.
 - [Documentation](#documentation)
 - [Building from source](#building-from-source)
 - [FAQ](#faq)
-- [Why Orfeo](#why-orfeo)
+- [Why Pliage](#why-pliage)
 - [License](#license)
 
 ---
@@ -61,7 +61,7 @@ telemetry; MIDI files are processed entirely on your device.
 - **Skip empty bars** — songs open where the music starts, with silent lead-in
   bars left out (a drum count-in can stay); the file itself is never changed
 - **Tap Tempo** — fix songs whose bar lines and metronome don't match the music:
-  tap along on Space or a MIDI key, and Orfeo lines your beat up with the song's
+  tap along on Space or a MIDI key, and Pliage lines your beat up with the song's
   own drums and bass, remembers it for that song, and never touches the file
 - **Tempo warnings** — optional marks in the Library and the top bar for songs
   whose bar lines and metronome don't match the music's beat
@@ -113,7 +113,7 @@ telemetry; MIDI files are processed entirely on your device.
 ### MIDI Editing
 
 - **MIDI Playback Editor** — exclude, rename, recolour, reassign instrument,
-  merge, and split-hands tracks; saves as a new `_ORFEO_vN.mid` without touching
+  merge, and split-hands tracks; saves as a new `_PLIAGE_vN.mid` without touching
   the original
 - **Note Editor** — move, resize, add, delete, and re-velocity individual notes
   on the roll, with marquee / lasso / pen tools and full undo/redo
@@ -163,17 +163,17 @@ page:
 <colgroup><col width="14%"><col width="40%"><col width="46%"></colgroup>
 <thead><tr><th>System</th><th>File</th><th>Use</th></tr></thead>
 <tbody>
-<tr><td>Windows</td><td><code>Orfeo-Setup-&lt;version&gt;.exe</code></td><td>Installer — Start Menu shortcut, automatic updates</td></tr>
-<tr><td>Windows</td><td><code>Orfeo-&lt;version&gt;-portable.exe</code></td><td>Portable — no installation, runs from anywhere, manual updates</td></tr>
-<tr><td>macOS</td><td><code>Orfeo-&lt;version&gt;-mac-arm64.dmg</code></td><td>Apple Silicon (M1 and newer)</td></tr>
-<tr><td>macOS</td><td><code>Orfeo-&lt;version&gt;-mac-x64.dmg</code></td><td>Intel Macs</td></tr>
-<tr><td>Linux (experimental)</td><td><code>Orfeo-&lt;version&gt;-linux-amd64.deb</code></td><td>Ubuntu, Debian, Mint, Pop!_OS…</td></tr>
-<tr><td>Linux (experimental)</td><td><code>Orfeo-&lt;version&gt;-linux-x86_64.rpm</code></td><td>Fedora, openSUSE…</td></tr>
-<tr><td>Linux (experimental)</td><td><code>Orfeo-&lt;version&gt;-linux-x86_64.AppImage</code></td><td>Any other distribution, no installation</td></tr>
+<tr><td>Windows</td><td><code>Pliage-Setup-&lt;version&gt;.exe</code></td><td>Installer — Start Menu shortcut, automatic updates</td></tr>
+<tr><td>Windows</td><td><code>Pliage-&lt;version&gt;-portable.exe</code></td><td>Portable — no installation, runs from anywhere, manual updates</td></tr>
+<tr><td>macOS</td><td><code>Pliage-&lt;version&gt;-mac-arm64.dmg</code></td><td>Apple Silicon (M1 and newer)</td></tr>
+<tr><td>macOS</td><td><code>Pliage-&lt;version&gt;-mac-x64.dmg</code></td><td>Intel Macs</td></tr>
+<tr><td>Linux (experimental)</td><td><code>Pliage-&lt;version&gt;-linux-amd64.deb</code></td><td>Ubuntu, Debian, Mint, Pop!_OS…</td></tr>
+<tr><td>Linux (experimental)</td><td><code>Pliage-&lt;version&gt;-linux-x86_64.rpm</code></td><td>Fedora, openSUSE…</td></tr>
+<tr><td>Linux (experimental)</td><td><code>Pliage-&lt;version&gt;-linux-x86_64.AppImage</code></td><td>Any other distribution, no installation</td></tr>
 </tbody>
 </table>
 
-On Windows, Orfeo is also in the
+On Windows, Pliage is also in the
 [Microsoft Store](https://apps.microsoft.com/detail/9NJ9Q01P8JQD), which keeps it
 up to date for you.
 
@@ -192,7 +192,7 @@ live)? See **[docs/INSTALLATION.md](docs/INSTALLATION.md)**.
 <tr><td><a href="https://orfeo.cc/docs/support/roadmap">Roadmap</a></td><td>What is being built next</td></tr>
 <tr><td><a href="docs/SHORTCUTS.md">Shortcuts</a></td><td>Every keyboard and mouse gesture</td></tr>
 <tr><td><a href="docs/INSTALLATION.md">Installation</a></td><td>Downloads for each system, updates, where data lives</td></tr>
-<tr><td><a href="docs/ARCHITECTURE.md">Architecture</a></td><td>How Orfeo is built and why</td></tr>
+<tr><td><a href="docs/ARCHITECTURE.md">Architecture</a></td><td>How Pliage is built and why</td></tr>
 <tr><td><a href="docs/CHANGELOG.md">Changelog</a></td><td>Technical release history</td></tr>
 <tr><td><a href="docs/CONTRIBUTING.md">Contributing</a></td><td>Build from source, cut a release</td></tr>
 </tbody>
@@ -204,7 +204,7 @@ live)? See **[docs/INSTALLATION.md](docs/INSTALLATION.md)**.
 
 ```bash
 git clone https://github.com/Squarebow/Orfeo.git
-cd Orfeo
+cd Pliage
 npm install
 npm run dev
 ```
@@ -218,7 +218,7 @@ instructions, including macOS/Linux, are in
 ## FAQ
 
 <details>
-<summary><b>Is Orfeo free?</b></summary>
+<summary><b>Is Pliage free?</b></summary>
 
 Yes — completely free and open source. No subscription, no paywalled features,
 no account.
@@ -233,23 +233,23 @@ play, practise or edit. MIDI files are processed entirely on your device, and
 every sound engine works offline: the default sound set (GeneralUser GS)
 ships inside the installer.
 
-Orfeo only goes online when you ask it to, or to check for updates:
+Pliage only goes online when you ask it to, or to check for updates:
 
 - **Extra sound sets** (FluidR3 GM ~142 MB, MuseScore General ~38 MB) are not
   in the installer; each is downloaded once, only when you press its download
-  button in Settings → Audio, and kept in `%APPDATA%\Orfeo\soundfonts\`
+  button in Settings → Audio, and kept in `%APPDATA%\Pliage\soundfonts\`
   (your own imported `.sf2` / `.sf3` files go there too).
 - **Updates:** the Windows installer, portable, Mac and Linux versions check
   GitHub for a new release when they start. The installer version then updates
   itself; the others show a dot on the update button that opens the download
-  page. *Check for updates* in the Microsoft Store version opens Orfeo's Store
+  page. *Check for updates* in the Microsoft Store version opens Pliage's Store
   page. Offline, this simply doesn't happen.
 - **Links** (user manual, GitHub) open in your web browser.
 
 </details>
 
 <details>
-<summary><b>What platforms does Orfeo run on?</b></summary>
+<summary><b>What platforms does Pliage run on?</b></summary>
 
 Windows 10/11, with an installer and a portable build; macOS on Apple
 Silicon and Intel Macs ([INSTALLATION.md → macOS](docs/INSTALLATION.md#macos));
@@ -262,9 +262,9 @@ keyboard.
 </details>
 
 <details>
-<summary><b>Does Orfeo support Finale, Sibelius, or MuseScore files?</b></summary>
+<summary><b>Does Pliage support Finale, Sibelius, or MuseScore files?</b></summary>
 
-Not their native formats directly — but all three export MusicXML, which Orfeo
+Not their native formats directly — but all three export MusicXML, which Pliage
 imports and converts to MIDI automatically. Guitar Pro, Capella, and karaoke
 `.kar` files are supported natively too.
 
@@ -274,7 +274,7 @@ imports and converts to MIDI automatically. Guitar Pro, Capella, and karaoke
 <summary><b>What MIDI files work best?</b></summary>
 
 Real, human-performed files with natural rubato and mid-song tempo changes —
-Orfeo tracks the tempo map properly instead of assuming a flat click. Cleanly
+Pliage tracks the tempo map properly instead of assuming a flat click. Cleanly
 quantized files work great too. Messy downloads can be cleaned up with the
 Playback and Note editors without touching the original.
 
@@ -282,7 +282,7 @@ Playback and Note editors without touching the original.
 
 ---
 
-## Why Orfeo
+## Why Pliage
 
 Before Synthesia there was [Rondo](https://macsim.app/rondo/) — a lovely,
 Mac-only MIDI learning app with a scrolling piano roll, tempo slowdown, and
@@ -290,7 +290,7 @@ track filtering. Development stopped and it no longer runs on modern macOS. The
 alternative that filled the gap became expensive and gamified, and hasn't
 meaningfully modernized in years.
 
-Orfeo picks up Rondo's idea, rebuilt from scratch as an actively maintained,
+Pliage picks up Rondo's idea, rebuilt from scratch as an actively maintained,
 cross-platform app with one goal: **make the music itself — not the app
 around it — the focus.** Free forever, no gamification, real rubato support,
 open source, and a modern interface.
@@ -304,3 +304,7 @@ open source, and a modern interface.
 GPL-3.0-or-later © [SquareBow](https://github.com/Squarebow) — see
 [LICENSE.md](LICENSE.md). Bundles GSAP under a separate additional-permission
 grant; see the license file and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+Pliage is a modified version of [Orfeo](https://github.com/Squarebow/Orfeo) by
+SquareBow. It was renamed, given a new logo and changed further from
+6 November 2026.

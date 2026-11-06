@@ -7,6 +7,7 @@
 // restoreLeadForSave is the way back for the Note Editor's save: the original
 // lead-in, with the edited notes moved forward again (saves never lose it).
 import { Midi } from '@tonejs/midi'
+import { upgradeMarkers } from './legacyNames'
 
 const u32 = (b: Uint8Array, p: number) => ((b[p] << 24) | (b[p + 1] << 16) | (b[p + 2] << 8) | b[p + 3]) >>> 0
 const u16 = (b: Uint8Array, p: number) => (b[p] << 8) | b[p + 1]
@@ -94,7 +95,7 @@ export function trimSmfLead(bytes: ArrayBuffer, cutTick: number): ArrayBuffer {
     if (e.note) return false
     if (e.meta === TEMPO || e.meta === METRE || e.meta === KEY) return inForce.get(e.meta) === e
     // words placed in the skipped bars (text, lyrics, markers, cues) go;
-    // the song's own at its very start (title, Orfeo's notes) stay
+    // the song's own at its very start (title, Pliage's notes) stay
     if (WORDS.has(e.meta)) return e.tick === 0
     return true
   }
@@ -123,7 +124,7 @@ export function trimSmfLead(bytes: ArrayBuffer, cutTick: number): ArrayBuffer {
  *  by `cutTick`, the edited track names and the edited song notes (meta). The
  *  Note Editor changes only notes, names and meta; tracks keep their order. */
 export function restoreLeadForSave(edited: Midi, originalRaw: ArrayBuffer, cutTick: number): Midi {
-  const out = new Midi(originalRaw)
+  const out = upgradeMarkers(new Midi(originalRaw))
   out.tracks.forEach((t, i) => {
     const e = edited.tracks[i]
     if (!e) return
@@ -135,17 +136,17 @@ export function restoreLeadForSave(edited: Midi, originalRaw: ArrayBuffer, cutTi
     t.name = e.name
   })
   // Song words (meta): the original's in the skipped bars, the edited copy's
-  // from the cut on, moved back into place. Orfeo's own notes (ORFEO_…) come
+  // from the cut on, moved back into place. Pliage's own notes (PLIAGE_…) come
   // only from the edited copy — that's where the save just rewrote them — and
   // stay at the start; the song's own words at its very start were kept on
   // the shortened song too, so they're taken once, from the original.
-  const orfeo = (m: any) => typeof m.text === 'string' && m.text.startsWith('ORFEO_')
+  const pliage = (m: any) => typeof m.text === 'string' && m.text.startsWith('PLIAGE_')
   const origMeta: any[] = (out.header as any).meta ?? []
-  const atStart = new Set(origMeta.filter(m => m.ticks === 0 && !orfeo(m)).map(m => m.type + '\u0000' + m.text))
+  const atStart = new Set(origMeta.filter(m => m.ticks === 0 && !pliage(m)).map(m => m.type + '\u0000' + m.text))
   ;(out.header as any).meta = [
-    ...origMeta.filter(m => m.ticks < cutTick && !orfeo(m)),
+    ...origMeta.filter(m => m.ticks < cutTick && !pliage(m)),
     ...((edited.header as any).meta ?? []).flatMap((m: any) => {
-      if (orfeo(m)) return [{ ...m, ticks: m.ticks > 0 ? m.ticks + cutTick : 0 }]
+      if (pliage(m)) return [{ ...m, ticks: m.ticks > 0 ? m.ticks + cutTick : 0 }]
       if (m.ticks === 0 && atStart.has(m.type + '\u0000' + m.text)) return []
       return [{ ...m, ticks: m.ticks + cutTick }]
     }),

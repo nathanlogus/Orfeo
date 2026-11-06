@@ -73,7 +73,7 @@ export default function MixerConsole() {
 
   // ── Close — diffs live channel values against the file-load baseline; if any
   // channel's volume/pan/reverb/chorus changed, offers to save before closing.
-  // Save writes a new _ORFEO_vN file (same versioning as editor:save) and
+  // Save writes a new _PLIAGE_vN file (same versioning as editor:save) and
   // switches the app to it; Discard drops the changes; Cancel keeps the mixer
   // open. Nothing to diff (Master strip, mute/solo/etc.) — those stay session-only. ──
   const requestClose = useCallback(async () => {
@@ -249,7 +249,7 @@ export default function MixerConsole() {
       role="dialog"
       aria-modal="true"
       aria-label="Console Mixer"
-      className="orfeo-modal-glow app-no-drag touch-hit pr-mixer"
+      className="pliage-modal-glow app-no-drag touch-hit pr-mixer"
       data-instant
       onMouseDown={() => setZIndex(bringToFront())}
       style={{ display: mixerOpen ? 'flex' : 'none', zIndex } as CSSProperties}

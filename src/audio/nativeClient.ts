@@ -1,5 +1,5 @@
 // ── Renderer side of the native audio engine ─────────────────────────────────
-// One MessagePort to Orfeo's audio process (electron/audioHost.ts): commands
+// One MessagePort to Pliage's audio process (electron/audioHost.ts): commands
 // go out as { t: 'call', m, a }, the engine's status comes back ~30×/s into a
 // small zustand store. If the audio process ever exits, it is restarted and
 // the engine started again with the same options; the caller re-sends the
@@ -49,7 +49,7 @@ let stoppedWaiters: Array<() => void> = []
 const restartListeners = new Set<() => void>()
 
 window.addEventListener('message', (e) => {
-  if (e.data !== 'orfeo-audio-port' || !e.ports[0]) return
+  if (e.data !== 'pliage-audio-port' || !e.ports[0]) return
   port = e.ports[0]
   port.onmessage = onHostMessage
   portWaiter?.(port)
@@ -67,7 +67,7 @@ function onHostMessage(e: MessageEvent) {
     useNativeAudio.setState({ phase: 'running', status: m.status, error: null })
     startedWaiters.forEach(w => w(true)); startedWaiters = []
   } else if (m.t === 'error') {
-    console.error('[Orfeo Native]', m.during, m.message)
+    console.error('[Pliage Native]', m.during, m.message)
     if (m.during === 'start') {
       useNativeAudio.setState({ phase: 'failed', error: m.message })
       startedWaiters.forEach(w => w(false)); startedWaiters = []
@@ -146,7 +146,7 @@ export const isNativeRunning = () => useNativeAudio.getState().phase === 'runnin
 export function onNativeRestart(fn: () => void) { restartListeners.add(fn); return () => restartListeners.delete(fn) }
 
 window.electronAPI?.onNativeAudioHostExit?.(async (code) => {
-  console.warn('[Orfeo Native] audio process exited', code)
+  console.warn('[Pliage Native] audio process exited', code)
   port = null
   _renders.failAll('the audio process stopped')
   if (!startOpts || useNativeAudio.getState().phase === 'off') return

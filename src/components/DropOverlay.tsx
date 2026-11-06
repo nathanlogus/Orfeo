@@ -2,7 +2,7 @@ import { Download } from 'lucide-react'
 import { t } from '../utils/i18n'
 import '../styles/redesign-settings.css'
 
-// ── Shown while a file is dragged over Orfeo. Pointer-events none, so it never
+// ── Shown while a file is dragged over Pliage. Pointer-events none, so it never
 // blocks the drop underneath. ────────────────────────────────────────────────
 export default function DropOverlay() {
   return (

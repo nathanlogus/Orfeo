@@ -198,7 +198,7 @@ export default function App() {
   const loadDroppedFilePath = useCallback(async (filePath: string) => {
     stop()
 
-    // Cast needed: library fields are implemented but not declared in OrfeoStore interface
+    // Cast needed: library fields are implemented but not declared in PliageStore interface
     const store         = useStore.getState() as any
     const libraryFolder = store.libraryFolder as string | null
 
@@ -224,7 +224,7 @@ export default function App() {
       store.setLibraryFiles(files)
       await loadFileIntoPlayer(destPath)
     } catch (err) {
-      console.error('[Orfeo] copyMidiToLibrary failed:', err)
+      console.error('[Pliage] copyMidiToLibrary failed:', err)
       showDropError('Could not copy file into library.')
     }
   }, [stop, showDropError, loadFileIntoPlayer])
@@ -266,7 +266,7 @@ export default function App() {
     if (!file) return
 
     if (!isSupportedFile(file)) {
-      showDropError('Unsupported file type. Orfeo accepts .mid, .musicxml, .mxl, .gp/.gp5, .cap, and .kar files.')
+      showDropError('Unsupported file type. Pliage accepts .mid, .musicxml, .mxl, .gp/.gp5, .cap, and .kar files.')
       return
     }
 
@@ -290,14 +290,14 @@ export default function App() {
   // ── Dev-only: expose Phase 0 round-trip test on window ───────────────────
   useEffect(() => {
     if (import.meta.env.DEV) {
-      (window as any).__orfeoNoteEditorRoundTripTest = runNoteEditorRoundTripTest
-      ;(window as any).__orfeoHandAssignmentTest = runHandAssignmentTest
-      ;(window as any).__orfeoHandMetadataTest = runHandMetadataTest
-      ;(window as any).__orfeoChordVocabularyTest = runChordVocabularyTest
-      ;(window as any).__orfeoBeatGridTest = runBeatGridTest
-      ;(window as any).__orfeoTrackChordRoleTest = runTrackChordRoleTest
-      ;(window as any).__orfeoChordSequenceBuilderTest = runChordSequenceBuilderTest
-      ;(window as any).__orfeoMidiDiagnosticsTest = runMidiDiagnosticsTest
+      (window as any).__pliageNoteEditorRoundTripTest = runNoteEditorRoundTripTest
+      ;(window as any).__pliageHandAssignmentTest = runHandAssignmentTest
+      ;(window as any).__pliageHandMetadataTest = runHandMetadataTest
+      ;(window as any).__pliageChordVocabularyTest = runChordVocabularyTest
+      ;(window as any).__pliageBeatGridTest = runBeatGridTest
+      ;(window as any).__pliageTrackChordRoleTest = runTrackChordRoleTest
+      ;(window as any).__pliageChordSequenceBuilderTest = runChordSequenceBuilderTest
+      ;(window as any).__pliageMidiDiagnosticsTest = runMidiDiagnosticsTest
     }
   }, [])
 
@@ -661,7 +661,7 @@ export default function App() {
       {midiError && !midiErrorSeen && (
         <div role="alert" className="o-toast">
           <span className="o-dot o-dot-alert" />
-          {/Android/.test(navigator.userAgent) ? t`MIDI isn’t available: the tablet didn’t allow it. Check Orfeo’s permissions in Android settings.` : t`MIDI isn’t available: ${midiError}`}
+          {/Android/.test(navigator.userAgent) ? t`MIDI isn’t available: the tablet didn’t allow it. Check Pliage’s permissions in Android settings.` : t`MIDI isn’t available: ${midiError}`}
           <button className="o-btn" onClick={() => setMidiErrorSeen(true)}>{t`Dismiss`}</button>
         </div>
       )}

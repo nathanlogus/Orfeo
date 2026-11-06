@@ -309,9 +309,8 @@ button, input, select, textarea {
      hunting every call site. Canvas2D `ctx.font` strings can't resolve
      var() — see PianoRoll.tsx's resolvePianoRollColorsFromCSS, which reads
      these same custom properties at runtime instead of duplicating the
-     values as separate JS literals. --font-logo is the ORFEO wordmark's own
-     stack (OrfeoLogo.tsx) — deliberately separate so the brand mark can keep
-     its own typographic identity independent of the UI font.
+     values as separate JS literals. --font-logo is a second stack for display
+     text, kept separate from the UI font.
      */
   --font-ui:   'Inter Tight', system-ui, sans-serif;
   /* The design has no mono face: numbers use the UI font with tabular figures
@@ -420,7 +419,7 @@ button, input, select, textarea {
   --knob-chorus:     #2dd4bf;
   --knob-reverb:     #a78bfa;
   --knob-tone:       #5ba0c8;
-  --knob-compressor: #CB636C;  /* Orfeo's default right-hand pink — fixed, doesn't follow the user's hand colours */
+  --knob-compressor: #CB636C;  /* Pliage's default right-hand pink — fixed, doesn't follow the user's hand colours */
 
   /* VU meter levels — unchanged */
   --meter-green:  #c1f32b;
@@ -629,23 +628,23 @@ button, input, select, textarea {
 /* ── Floating panel chrome — the design has no glow. The class name stays:
    every modal has it, and touch rules hang off it. Pass a --elevation-* token
    through --_modal-shadow in inline style for a different lift. */
-.orfeo-modal-glow {
+.pliage-modal-glow {
   box-shadow: var(--_modal-shadow, var(--elevation-modal));
-  animation: orfeo-rise-in var(--motion-base) var(--ease-out) backwards;
+  animation: pliage-rise-in var(--motion-base) var(--ease-out) backwards;
 }
 
 /* ── Amber range slider — transparent-amber fill over a gray track, solid
    (opaque) thumb. `accent-color` alone can't give the fill its own opacity
    independent of the thumb, so this restyles the WebKit track/thumb
    directly. Caller sets --fill (0%-100%) inline per render from its value. */
-.orfeo-slider-amber {
+.pliage-slider-amber {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   background: transparent;
   cursor: pointer;
 }
-.orfeo-slider-amber::-webkit-slider-runnable-track {
+.pliage-slider-amber::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
   background: linear-gradient(
@@ -654,7 +653,7 @@ button, input, select, textarea {
     var(--border) var(--fill, 50%)
   );
 }
-.orfeo-slider-amber::-webkit-slider-thumb {
+.pliage-slider-amber::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
@@ -666,7 +665,7 @@ button, input, select, textarea {
 }
 
 /* Standard modal/panel row — use for any horizontal row of controls */
-.orfeo-row {
+.pliage-row {
   display: flex;
   align-items: center;
   height: var(--row-height);
@@ -675,7 +674,7 @@ button, input, select, textarea {
 }
 
 /* Standard label text — dim, uppercase, small — matches existing label pattern */
-.orfeo-label {
+.pliage-label {
   font-size: var(--text-xs);
   color: var(--text-dimmest);
   text-transform: uppercase;
@@ -684,7 +683,7 @@ button, input, select, textarea {
 }
 
 /* Standard button — consistent padding, radius, height across the app */
-.orfeo-button {
+.pliage-button {
   height: var(--button-height);
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
@@ -698,16 +697,16 @@ button, input, select, textarea {
   transition: var(--control-transition);
 }
 @media (hover: hover) {
-  .orfeo-button:hover {
+  .pliage-button:hover {
     color: var(--text-amber);
   }
 }
-.orfeo-button.active {
+.pliage-button.active {
   color: var(--text-amber);
 }
 
 /* Standard value/number display — var(--font-mono), consistent across BPM, bar counter, etc */
-.orfeo-value {
+.pliage-value {
   font-family: var(--font-mono);
   font-size: var(--text-base);
   color: var(--text-primary);
@@ -980,10 +979,10 @@ body {
 .theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
 
 /* Overlays keep their own scrolling to themselves */
-.orfeo-modal-glow, .orfeo-modal-glow * { overscroll-behavior: contain; }
+.pliage-modal-glow, .pliage-modal-glow * { overscroll-behavior: contain; }
 
 /* Numbers that change while you watch them don't jitter sideways */
-.orfeo-value { font-variant-numeric: tabular-nums; }
+.pliage-value { font-variant-numeric: tabular-nums; }
 
 /* ── Press feedback. A pressed button gives way a little, through the scale
    property so it adds to a button's own transform instead of replacing it.
@@ -1112,31 +1111,31 @@ textarea:focus-visible,
    true. Keyframes use translate and scale, not transform: those add to the
    translateX(-50%) a toast or a warning is centred with. Whatever opens is
    measured by its size at most, so windows rise, and only menus scale. */
-@keyframes orfeo-fade-in { from { opacity: 0; } }
-@keyframes orfeo-rise-in { from { opacity: 0; translate: 0 6px; } }
-@keyframes orfeo-settle-in { from { opacity: 0; scale: 0.98; } }
-@keyframes orfeo-slide-in { from { opacity: 0; translate: var(--slide-from, -12px) 0; } }
-@keyframes orfeo-tick { from { opacity: 0.55; } }
-:root .orfeo-settle-in { animation: orfeo-settle-in var(--motion-base) var(--ease-out) backwards; }
-.orfeo-rise-in { animation: orfeo-rise-in var(--motion-slow) var(--ease-out) backwards; }
-.orfeo-rise-in-2 { animation-delay: 40ms; }
-.orfeo-rise-in-3 { animation-delay: 80ms; }
-.orfeo-modal-glow[data-instant], .orfeo-modal-glow.pr-float { animation-name: orfeo-fade-in; }
-.o-tip { animation: orfeo-fade-in var(--motion-fast) var(--ease-out) backwards; }
-.o-tick { animation: orfeo-tick var(--motion-base) var(--ease-out); }
-.o-scrim, .pr-setup-scrim, .pr-result-floor, .lib-browser, .lib-folders, .lesson-page, .lesson-work, .drop-overlay, .set-page, .lib-alert, .lesson-alert, .lib-connect-alert, .set-alert, .pr-update-card, .set-update { animation: orfeo-fade-in var(--motion-base) var(--ease-out) backwards; }
-.o-select-list, .xp-menu, .xp-pop, .pr-metro, .xp-rite, [role='menu'], .lesson-result, .lesson-answer[data-answer] { animation: orfeo-settle-in var(--motion-base) var(--ease-out) backwards; }
+@keyframes pliage-fade-in { from { opacity: 0; } }
+@keyframes pliage-rise-in { from { opacity: 0; translate: 0 6px; } }
+@keyframes pliage-settle-in { from { opacity: 0; scale: 0.98; } }
+@keyframes pliage-slide-in { from { opacity: 0; translate: var(--slide-from, -12px) 0; } }
+@keyframes pliage-tick { from { opacity: 0.55; } }
+:root .pliage-settle-in { animation: pliage-settle-in var(--motion-base) var(--ease-out) backwards; }
+.pliage-rise-in { animation: pliage-rise-in var(--motion-slow) var(--ease-out) backwards; }
+.pliage-rise-in-2 { animation-delay: 40ms; }
+.pliage-rise-in-3 { animation-delay: 80ms; }
+.pliage-modal-glow[data-instant], .pliage-modal-glow.pr-float { animation-name: pliage-fade-in; }
+.o-tip { animation: pliage-fade-in var(--motion-fast) var(--ease-out) backwards; }
+.o-tick { animation: pliage-tick var(--motion-base) var(--ease-out); }
+.o-scrim, .pr-setup-scrim, .pr-result-floor, .lib-browser, .lib-folders, .lesson-page, .lesson-work, .drop-overlay, .set-page, .lib-alert, .lesson-alert, .lib-connect-alert, .set-alert, .pr-update-card, .set-update { animation: pliage-fade-in var(--motion-base) var(--ease-out) backwards; }
+.o-select-list, .xp-menu, .xp-pop, .pr-metro, .xp-rite, [role='menu'], .lesson-result, .lesson-answer[data-answer] { animation: pliage-settle-in var(--motion-base) var(--ease-out) backwards; }
 .o-select-list { transform-origin: top; }
-.o-toast, .lesson-passed-text { animation: orfeo-rise-in var(--motion-base) var(--ease-out) backwards; }
-.pr-result { animation: orfeo-rise-in var(--motion-slow) var(--ease-out) backwards; }
-.pr-result-disc { animation: orfeo-settle-in var(--motion-slow) var(--ease-out) backwards; }
-.pr-setup { animation: orfeo-slide-in var(--motion-base) var(--ease-out) backwards; }
+.o-toast, .lesson-passed-text { animation: pliage-rise-in var(--motion-base) var(--ease-out) backwards; }
+.pr-result { animation: pliage-rise-in var(--motion-slow) var(--ease-out) backwards; }
+.pr-result-disc { animation: pliage-settle-in var(--motion-slow) var(--ease-out) backwards; }
+.pr-setup { animation: pliage-slide-in var(--motion-base) var(--ease-out) backwards; }
 /* The panel's width stays instant: animating it would resize the roll every frame */
-.pr-tracks[data-open='true'] .pr-tracks-inner { --slide-from: 12px; animation: orfeo-slide-in var(--motion-base) var(--ease-out) backwards; }
+.pr-tracks[data-open='true'] .pr-tracks-inner { --slide-from: 12px; animation: pliage-slide-in var(--motion-base) var(--ease-out) backwards; }
 
 /* Short, steady lists arrive in a small wave. Not the Library's cards: a search
    crossing this limit would replay it over every card still on screen */
-:is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > * { animation: orfeo-rise-in var(--motion-base) var(--ease-out) backwards; }
+:is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > * { animation: pliage-rise-in var(--motion-base) var(--ease-out) backwards; }
 :is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > :nth-child(n + 3) { animation-delay: 30ms; }
 :is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > :nth-child(n + 6) { animation-delay: 60ms; }
 :is(.learn-rows, .learn-pieces, .pr-result-rows):not(:has(> :nth-child(13))) > :nth-child(n + 9) { animation-delay: 90ms; }
@@ -1148,36 +1147,36 @@ textarea:focus-visible,
 }
 
 /* Loop nudge blink — pulses via filter so inline color styles are unaffected */
-@keyframes orfeo-loop-blink {
+@keyframes pliage-loop-blink {
   0%, 100% { filter: brightness(1); }
   50%       { filter: brightness(0.3); }
 }
-.loop-nudge-blink { animation: orfeo-loop-blink 1.4s ease-in-out infinite; }
+.loop-nudge-blink { animation: pliage-loop-blink 1.4s ease-in-out infinite; }
 
 /* Console Mixer header description marquee — only engages on hover, and only
    for text wider than its available space (--marquee-distance is set by JS
    per current layout); a description that already fits never animates. */
-@keyframes orfeo-marquee {
+@keyframes pliage-marquee {
   0%, 15%   { transform: translateX(0); }
   85%, 100% { transform: translateX(var(--marquee-distance, 0)); }
 }
 @media (hover: hover) {
-  .orfeo-marquee-track:hover .orfeo-marquee-text.is-overflowing {
-    animation: orfeo-marquee 6s ease-in-out infinite;
+  .pliage-marquee-track:hover .pliage-marquee-text.is-overflowing {
+    animation: pliage-marquee 6s ease-in-out infinite;
   }
 }
 
 /* Tap Tempo pad — brief pop on each tap (re-triggered via React key) */
-@keyframes orfeo-tap-pulse { from { transform: scale(1.18) } to { transform: scale(1) } }
-.orfeo-tap-pulse { animation: orfeo-tap-pulse 0.12s ease-out }
+@keyframes pliage-tap-pulse { from { transform: scale(1.18) } to { transform: scale(1) } }
+.pliage-tap-pulse { animation: pliage-tap-pulse 0.12s ease-out }
 
 /* Tempo warning — slow amber pulse (Settings → Tempo warnings) */
-@keyframes orfeo-warn-pulse { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: 0.35; transform: scale(0.75) } }
-.orfeo-warn-pulse { animation: orfeo-warn-pulse 1.6s ease-in-out infinite }
+@keyframes pliage-warn-pulse { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: 0.35; transform: scale(0.75) } }
+.pliage-warn-pulse { animation: pliage-warn-pulse 1.6s ease-in-out infinite }
 
 /* Count-in — each beat number pops in (see CountInOverlay) */
-@keyframes orfeo-countin-pop { from { transform: scale(1.25); opacity: 0.2 } to { transform: scale(1); opacity: 0.85 } }
-.orfeo-countin-pop { animation: orfeo-countin-pop 0.15s ease-out }
+@keyframes pliage-countin-pop { from { transform: scale(1.25); opacity: 0.2 } to { transform: scale(1); opacity: 0.85 } }
+.pliage-countin-pop { animation: pliage-countin-pop 0.15s ease-out }
 
 /* ── Top bar ──────────────────────────────────────────────────────────────
    A readout is a small inset tile. Its corners wrap the --radius-sm steppers
@@ -1198,9 +1197,9 @@ textarea:focus-visible,
 .touch-volume-pop { position: fixed; padding: 14px 20px 10px; box-sizing: border-box; border: 1px solid var(--accent-amber-strong); border-radius: var(--radius-lg); background: var(--bg-modal); }
 .touch-volume-head { display: flex; align-items: baseline; justify-content: space-between; color: var(--text-muted); font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.1em; }
 .touch-volume-head strong { color: var(--text-amber); font-family: var(--font-mono); font-size: 24px; font-weight: 700; letter-spacing: 0; font-variant-numeric: tabular-nums; }
-:root .orfeo-slider-big { display: block; height: 56px; }
-:root .orfeo-slider-big::-webkit-slider-runnable-track { height: 10px; border-radius: 5px; background: linear-gradient(to right, var(--text-amber) var(--fill, 50%), var(--state-disabled) var(--fill, 50%)); }
-:root .orfeo-slider-big::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -11px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+:root .pliage-slider-big { display: block; height: 56px; }
+:root .pliage-slider-big::-webkit-slider-runnable-track { height: 10px; border-radius: 5px; background: linear-gradient(to right, var(--text-amber) var(--fill, 50%), var(--state-disabled) var(--fill, 50%)); }
+:root .pliage-slider-big::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -11px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
 
 /* ── Home page ─────────────────────────────────────────────────────────────
    Rows and filters stay at least 44px tall on touch screens (Android). */
@@ -1254,9 +1253,9 @@ textarea:focus-visible,
    there's room. A parent with overflow:hidden clips ::after, so those parents
    need the room themselves. The piano keys stay out of this. */
 @media (pointer: coarse) {
-  .touch-hit button, .touch-hit [role='button'], .orfeo-modal-glow button { position: relative; }
-  .touch-hit button::after, .touch-hit [role='button']::after, .orfeo-modal-glow button::after { content: ''; position: absolute; inset: -8px; }
-  .orfeo-modal-glow [role='menuitem']::after { content: none; }
+  .touch-hit button, .touch-hit [role='button'], .pliage-modal-glow button { position: relative; }
+  .touch-hit button::after, .touch-hit [role='button']::after, .pliage-modal-glow button::after { content: ''; position: absolute; inset: -8px; }
+  .pliage-modal-glow [role='menuitem']::after { content: none; }
   .touch-big button, .touch-big [role='button'] { min-width: 44px; min-height: 44px; justify-content: center; }
   /* A label on a coloured pill: stays a pill, its tap area does the growing */
   .touch-big button.touch-pill, button.touch-pill { min-height: 32px; min-width: 0; }

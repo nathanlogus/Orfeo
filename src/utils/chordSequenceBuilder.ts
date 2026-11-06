@@ -74,7 +74,7 @@ export interface BuildChordSequenceOpts {
   accidentals: Accidentals
   namingStyle: ChordNamingStyle
   transpose: number
-  /** 0..1 — how eager Orfeo is to call something a new chord. Higher surfaces
+  /** 0..1 — how eager Pliage is to call something a new chord. Higher surfaces
    *  faster changes and embellishing chords. User-set via the Chord
    *  sensitivity slider (Settings › Notation & Chords); defaults to 0.4. */
   sensitivity?: number

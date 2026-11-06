@@ -88,7 +88,7 @@ export default function TrackPanel() {
 
   // ── Open editor — sets store flag; MidiEditor floating modal reads from store ─
   // Gated on confirmPendingImportBeforeEdit: an imported foreign-format file
-  // must be saved as a real .mid before any Orfeo editing tool can touch it.
+  // must be saved as a real .mid before any Pliage editing tool can touch it.
   const handleOpenEditor = async () => {
     if (!midi) return
     const { confirmPendingImportBeforeEdit } = await import('../../utils/foreignFormatImport')

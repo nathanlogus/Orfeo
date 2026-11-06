@@ -30,11 +30,11 @@ export function computeTempoKeyPayload(): {
   }
 
   // Final key (base + transpose already folded in), sent so main.ts can
-  // stamp it as an ORFEO_KEY meta event — @tonejs/midi's own key-
+  // stamp it as an PLIAGE_KEY meta event — @tonejs/midi's own key-
   // signature ENCODER silently drops the value on any re-save (verified
   // directly: round-tripping an unchanged file through .toArray() alone
   // already loses it, nothing to do with transpose math being wrong).
-  // Bypasses that entirely, same pattern as ORFEO_TRACK_NAME/COLOR.
+  // Bypasses that entirely, same pattern as PLIAGE_TRACK_NAME/COLOR.
   const finalKey = state.detectedKey
     ? { semitone: ((state.detectedKey.semitone + state.detectedKey.transpose) % 12 + 12) % 12, isMinor: state.detectedKey.isMinor }
     : undefined
@@ -43,7 +43,7 @@ export function computeTempoKeyPayload(): {
 }
 
 // ── Tempo/Key save — bakes the session's BPM and transpose changes into a
-// new _ORFEO_vN file (see electron/main.ts's tempoKey:save), same
+// new _PLIAGE_vN file (see electron/main.ts's tempoKey:save), same
 // versioning convention as every other save tool. Called only from the
 // confirm-before-discard guard below (Reset/new-file-load/drag-drop/close);
 // the Playback Editor's own Save & Reload folds the same math directly into
@@ -86,7 +86,7 @@ export async function saveTempoKeyChanges(): Promise<boolean> {
     if (result.filePath) useStore.getState().notifyLibrarySaved(result.filePath)
     return true
   } catch (err) {
-    console.error('[Orfeo] saveTempoKeyChanges failed:', err)
+    console.error('[Pliage] saveTempoKeyChanges failed:', err)
     await confirmDialog({ title: 'Save Failed', message: 'Could not save tempo/key changes.', detail: String(err), buttons: ['OK'] })
     return false
   }

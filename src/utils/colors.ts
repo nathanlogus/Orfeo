@@ -50,7 +50,7 @@ export const PITCH_CLASS_COLORS = [
 export const PIANO_FAMILY_COLORS = [TRACK_COLOR_PALETTE[2], TRACK_COLOR_PALETTE[7], TRACK_COLOR_PALETTE[0]]
 
 // ── Starting colours for every other instrument (and a 4th+ piano). Nine muted
-// tones, each clearly apart (OKLab ≥ 0.087) from the others, from Orfeo's
+// tones, each clearly apart (OKLab ≥ 0.087) from the others, from Pliage's
 // default blue/pink hands and from amber, which stays the tools' colour. The
 // user's picker palette above is separate and unchanged. ─────────────────
 const AUTO_TRACK_COLORS = [

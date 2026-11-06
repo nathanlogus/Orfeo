@@ -2,7 +2,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import Tooltip from '../Tooltip'
-import OrfeoMark from '../OrfeoMark'
+import PliageMark from '../PliageMark'
 import { GROUPS, QUICK_LAYOUT, type SettingId } from './catalog'
 import { GROUP_ICONS } from './groupIcons'
 import { CollapsibleSection } from './controls'
@@ -19,7 +19,7 @@ function MetronomeVolumeRow() {
           <div className="pr-setup-name">{t`Metronome volume`}</div>
           <div className="pr-setup-sub">{t`How loud the clicks are`} · {pct}%</div>
         </span>
-        <input type="range" min={0} max={150} step={5} value={pct} aria-label={t`Metronome volume`} className="orfeo-slider-amber"
+        <input type="range" min={0} max={150} step={5} value={pct} aria-label={t`Metronome volume`} className="pliage-slider-amber"
           onChange={e => useStore.getState().setMetronomeVolume(Number(e.target.value) / 100)}
           style={{ width: 150, height: 44, '--fill': `${pct / 1.5}%` } as React.CSSProperties} />
       </div>
@@ -91,11 +91,11 @@ export default function QuickSettings() {
       })}
       {/* ── About ── */}
       <div className="pr-setup-meta" style={{ padding: '12px 14px' }}>
-        <Tooltip title="Open Orfeo on GitHub" oneLine>
+        <Tooltip title="Open Pliage on GitHub" oneLine>
           <button onClick={() => window.electronAPI.openExternal('https://github.com/Squarebow/Orfeo')}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', font: 'inherit' }}>
-            <OrfeoMark height={16} />
-            <span>Orfeo · v{__APP_VERSION__}</span>
+            <PliageMark height={16} />
+            <span>Pliage · v{__APP_VERSION__}</span>
           </button>
         </Tooltip>
         <span>· © SquareBow</span>

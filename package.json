@@ -1,5 +1,5 @@
 {
-  "name": "orfeo",
+  "name": "pliage",
   "version": "1.6.0",
   "description": "Modern piano learning app with MIDI visualization",
   "author": "SquareBow",
@@ -26,8 +26,8 @@
     "i18n:extract": "node scripts/i18n-extract.mjs"
   },
   "build": {
-    "appId": "com.squarebow.orfeo",
-    "productName": "Orfeo",
+    "appId": "com.squarebow.pliage",
+    "productName": "Pliage",
     "directories": {
       "output": "release"
     },
@@ -80,7 +80,7 @@
         "from": "native/build",
         "to": "native",
         "filter": [
-          "orfeo_audio.node",
+          "pliage_audio.node",
           "fluidsynth/*.dll"
         ]
       }
@@ -114,15 +114,15 @@
     },
     "appx": {
       "minVersion": "10.0.17763.0",
-      "applicationId": "Orfeo",
+      "applicationId": "Pliage",
       "identityName": "Squarebow.Orfeo",
       "publisher": "CN=0D175E82-5309-4021-B6EE-10D4D85601F5",
       "publisherDisplayName": "Squarebow",
-      "artifactName": "Orfeo-${version}.${ext}",
+      "artifactName": "Pliage-${version}.${ext}",
       "showNameOnTiles": true
     },
     "nsis": {
-      "artifactName": "Orfeo-Setup-${version}.${ext}",
+      "artifactName": "Pliage-Setup-${version}.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

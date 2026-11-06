@@ -85,7 +85,7 @@ export function TempoWarning({ anchor }: { anchor: 'pad' | 'key' }) {
       {panel && createPortal(
         <div
           ref={panelRef}
-          className="app-no-drag orfeo-modal-glow theme-paper xp-warn"
+          className="app-no-drag pliage-modal-glow theme-paper xp-warn"
           role="dialog"
           aria-labelledby="xp-warn-title"
           style={{ top: panel.y, left: panel.x, maxHeight: `calc(100vh - ${panel.y + 12}px)`, '--_modal-shadow': 'none' } as React.CSSProperties}

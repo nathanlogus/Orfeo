@@ -84,13 +84,13 @@ jobs:
             local pid=$! found=""
             for i in $(seq 1 60); do
               kill -0 "$pid" 2>/dev/null || break
-              if xdotool search --name "Orfeo" > /dev/null 2>&1; then found=yes; break; fi
+              if xdotool search --name "Pliage" > /dev/null 2>&1; then found=yes; break; fi
               sleep 1
             done
             [ -n "$found" ] && sleep 8            # let the page draw, then keep a picture
             import -window root "$shot" || true
             local alive=no; kill -0 "$pid" 2>/dev/null && alive=yes
-            pkill -f orfeo 2>/dev/null; kill "$pid" 2>/dev/null; sleep 2
+            pkill -f pliage 2>/dev/null; kill "$pid" 2>/dev/null; sleep 2
             if [ -n "$found" ] && [ "$alive" = yes ]; then
               echo "- **$label:** opened its window ✓ ($shot)" >> "$GITHUB_STEP_SUMMARY"; return 0
             fi
@@ -100,10 +100,10 @@ jobs:
           echo "### Linux start-up check" >> "$GITHUB_STEP_SUMMARY"
           echo "Ubuntu $(lsb_release -rs), unprivileged user namespaces restricted: $(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo n/a)" >> "$GITHUB_STEP_SUMMARY"
 
-          app=release/linux-unpacked/orfeo
+          app=release/linux-unpacked/pliage
           test -x "$app" || { echo "::error::$app not found"; ls release; exit 1; }
           if ! try_start "Unpacked app" app.log opened.png "$app" --no-sandbox; then
-            echo "::error::Orfeo did not open its window"; exit 1
+            echo "::error::Pliage did not open its window"; exit 1
           fi
 
           appimage=$(ls release/*.AppImage | head -1)

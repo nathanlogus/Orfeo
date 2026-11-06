@@ -1,0 +1,17 @@
+[package]
+name = "pliage-audio-node"
+version = "0.1.0"
+edition = "2021"
+description = "Node add-on wrapping Pliage's native audio engine (loaded by electron/audioHost.ts)"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+pliage-audio = { path = "../pliage-audio" }
+napi = "3"
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"

@@ -1,6 +1,6 @@
 # Prints what the catalog covers, source by source.
 import os, sqlite3, sys
-d = sqlite3.connect(os.path.join(os.environ.get('ORFEO_DATA') or sys.exit('Set ORFEO_DATA'), 'catalog.sqlite'))
+d = sqlite3.connect(os.path.join(os.environ.get('PLIAGE_DATA') or sys.exit('Set PLIAGE_DATA'), 'catalog.sqlite'))
 q=lambda s:d.execute(s).fetchall()
 print('songs/listed/parse_err',q('select count(*),sum(listed),sum(parse_error is not null) from songs'))
 print('source,n,key,year,lyrics,composer');[print(' ',r) for r in q('select source,count(*),sum(key_name is not null),sum(year is not null),sum(lyrics is not null),sum(id in (select song_id from composers)) from songs group by source')]

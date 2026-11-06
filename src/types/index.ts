@@ -234,7 +234,7 @@ declare global {
       songServerDiscover:  () => Promise<string | null>
       onSongServerProgress:  (fn: (data: { path: string; percent: number }) => void) => void
       offSongServerProgress: () => void
-      // Export to audio: writes to <library>/Orfeo/Exports, returns the saved path
+      // Export to audio: writes to <library>/Pliage/Exports, returns the saved path
       saveExport:          (songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => Promise<string>
       statFiles:           (paths: string[]) => Promise<{ path: string; size: number; mtime: number }[]>
       windowMinimize:      () => Promise<void>
@@ -290,7 +290,7 @@ declare global {
       installUpdate:       () => Promise<void>
       onUpdateStatus:      (fn: (data: UpdateStatus) => void) => void
       offUpdateStatus:     () => void
-      // "Enjoying Orfeo?" note + Rate Orfeo (Store build)
+      // "Enjoying Pliage?" note + Rate Pliage (Store build)
       getSupportNoteInfo:  () => Promise<SupportNoteInfo>
       requestReview:       () => Promise<'succeeded' | 'canceled' | 'network-error' | 'error'>
       neverShowSupportNote: () => Promise<void>
@@ -314,7 +314,7 @@ export type UpdateInfo = {
   downloadUrl: string
 }
 
-// ── "Enjoying Orfeo?" note — decided in electron/main.ts: `store` = the
+// ── "Enjoying Pliage?" note — decided in electron/main.ts: `store` = the
 // Microsoft Store build (its note and star offer the Store's review window);
 // `prompt` = show the note this launch (every 5th, unless paused or done)
 export type SupportNoteInfo = { store: boolean; prompt: boolean }

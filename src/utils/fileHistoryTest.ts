@@ -20,7 +20,7 @@ export function runFileHistoryTest(): number {
 
   check(versionLabel(0) === 'Original' && versionLabel(3) === 'v3', 'labels')
 
-  // Scrapbook is a ready-made pair; the default stays Orfeo's and is a preset too
+  // Scrapbook is a ready-made pair; the default stays Pliage's and is a preset too
   const scrapbook = HAND_PRESETS.find(p => p.id === 'scrapbook')
   check(scrapbook?.lh === '#6483FF' && scrapbook.rh === '#FFDE3B', 'Scrapbook pair')
   check(DEFAULT_HAND_LH === '#6270A5' && DEFAULT_HAND_RH === '#CB636C', 'default hand colours unchanged')

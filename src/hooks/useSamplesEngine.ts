@@ -7,6 +7,7 @@
 // optimisation reload when spessasynth_core is encountered for the first time).
 
 import { useEffect } from 'react'
+import { Midi } from '@tonejs/midi'
 import type { WorkletSynthesizer } from 'spessasynth_lib'
 import { useStore } from '../store'
 import { pushHitEffect, amberHex } from '../utils/hitEffectQueue'
@@ -209,7 +210,7 @@ export function applyLiveRouting(): void {
   _liveRoutedDirect = direct
 }
 
-// Extra delay Orfeo itself adds to a live key right now (0 or 12 ms) — Settings
+// Extra delay Pliage itself adds to a live key right now (0 or 12 ms) — Settings
 export function getLiveChainDelaySec(): number {
   return _liveRoutedDirect === false ? 0.012 : 0
 }
@@ -420,6 +421,7 @@ function applyChannelVolumes() {
 // onProgress receives 0..1 as the SF2 fetch progresses.
 // WorkletSynthesizer is imported dynamically here to prevent Vite from bundling
 // spessasynth_lib at startup, which triggered a dep-optimisation page reload.
+let _chosenSetLoading: Promise<void> | null = null
 export async function initSamplesEngine(onProgress: (p: number) => void): Promise<void> {
   if (_synthReady) return
   if (_synthInitP) return _synthInitP
@@ -442,7 +444,7 @@ export async function initSamplesEngine(onProgress: (p: number) => void): Promis
       // The file must also be in asarUnpack — AudioWorklet.addModule() bypasses
       // Electron's asar protocol handler and needs the real filesystem path.
       const workletUrl = new URL('./spessasynth_processor.min.js', location.href).href
-      console.log('[Orfeo Samples] loading worklet from:', workletUrl)
+      console.log('[Pliage Samples] loading worklet from:', workletUrl)
       await _ctx.audioWorklet.addModule(workletUrl)
 
       // Dynamic import keeps spessasynth_lib out of the initial bundle
@@ -452,12 +454,12 @@ export async function initSamplesEngine(onProgress: (p: number) => void): Promis
       // Diagnostic for the audio/visual sync fix — see getOutputLatencySec()
       // below. Logged once so it's visible in DevTools on any machine,
       // packaged build included, without needing a remote-debugging setup.
-      console.log('[Orfeo Samples] measured output latency:', _ctx.outputLatency, 's (base latency:', _ctx.baseLatency, 's)')
+      console.log('[Pliage Samples] measured output latency:', _ctx.outputLatency, 's (base latency:', _ctx.baseLatency, 's)')
 
       // ── SF2: same relative-path fix; fetch() goes through Electron's file://
       // protocol handler which supports asar, so no asarUnpack needed here.
       const sf2Url = new URL('./GeneralUser-GS.sf2', location.href).href
-      console.log('[Orfeo Samples] fetching SF2 from:', sf2Url)
+      console.log('[Pliage Samples] fetching SF2 from:', sf2Url)
       const response = await fetch(sf2Url)
       if (!response.ok) throw new Error(`SF2 fetch failed: ${response.status} (url: ${sf2Url})`)
       const total = Number(response.headers.get('content-length') ?? 0)
@@ -576,13 +578,13 @@ export async function initSamplesEngine(onProgress: (p: number) => void): Promis
 
       _synthReady = true
       onProgress(1)
-      console.log('[Orfeo Samples] spessasynth ready')
+      console.log('[Pliage Samples] spessasynth ready')
 
       const wanted = useStore.getState().selectedSoundfont
-      if (wanted !== 'generaluser-gs') loadSelectedSoundfont(wanted).catch(() => {})
+      if (wanted !== 'generaluser-gs') _chosenSetLoading = loadSelectedSoundfont(wanted).catch(() => {})
     } catch (e: any) {
       _synthInitP = null
-      console.error('[Orfeo Samples] init error:', e?.message ?? e)
+      console.error('[Pliage Samples] init error:', e?.message ?? e)
       throw e
     }
   })()
@@ -604,7 +606,7 @@ export async function loadSelectedSoundfont(id: string): Promise<void> {
   if (id === 'generaluser-gs') return
 
   const raw = await window.electronAPI.readSoundfont(id as any)
-  if (!raw) { console.warn('[Orfeo Samples] soundfont not downloaded:', id); return }
+  if (!raw) { console.warn('[Pliage Samples] soundfont not downloaded:', id); return }
   const bytes = new Uint8Array(raw)
   await _synth.soundBankManager.addSoundBank(bytes.buffer, id)
   _synth.soundBankManager.priorityOrder = [id, 'GeneralUser-GS']
@@ -620,7 +622,7 @@ export async function loadSelectedSoundfont(id: string): Promise<void> {
 // topping that window up for as long as this playback run lasts — see the
 // rolling-lookahead comment above _refillTimer for why, instead of scheduling
 // every note in the file in one go here.
-// ── When Orfeo's Native engine (or any other app) takes the sound card for
+// ── When Pliage's Native engine (or any other app) takes the sound card for
 // itself, the browser suspends this context and never resumes it on its own:
 // switching back to Samples played nothing until a restart. Woken whenever
 // Samples is chosen again or starts playing. ───────────────────────────────
@@ -645,7 +647,7 @@ function buildSamplesPlayer(startSec: number) {
   _epochHasSolo = tracks.some(t => t.solo)
   _epochHitEffectScope = hitEffectScope
   _epochStartPerf = performance.now()
-  ;(window as any).__orfeoEngineStartedAt = _epochStartPerf
+  ;(window as any).__pliageEngineStartedAt = _epochStartPerf
   _epochStartFileSec = startSec
 
   // Program changes, and each track's starting cursor position — cheap,
@@ -754,7 +756,7 @@ function refillSchedule() {
           const offT = setTimeout(() => { try { _synth?.noteOff(ch, midiNum) } catch {} }, durMs)
           _schedule.push(offT)
         } catch (e) {
-          console.error('[Orfeo Samples] noteOn error:', e)
+          console.error('[Pliage Samples] noteOn error:', e)
         }
       }, delay))
 
@@ -981,7 +983,7 @@ export function useSamplesEngine() {
     // channel: MIDI channel 0-based. Undefined = dedicated preview channel (15).
     // visual = false skips the timed key-light — glissando drives the keyboard
     // light itself (instant swap, no fade timer) instead of this note-duration ring.
-    ;(window as any).__orfeoPlayNoteSamples = (midiNum: number, vel: number, durMs: number, channel?: number, visual = true, color?: string) => {
+    ;(window as any).__pliagePlayNoteSamples = (midiNum: number, vel: number, durMs: number, channel?: number, visual = true, color?: string) => {
       if (!_synth || !_synthReady) return
       const ch = channel ?? 15
       if (ch === 15) {
@@ -1005,7 +1007,7 @@ export function useSamplesEngine() {
       if (visual) lightKey(midiNum, color ?? amberHex(), durMs + 100)
     }
     return () => {
-      delete (window as any).__orfeoPlayNoteSamples
+      delete (window as any).__pliagePlayNoteSamples
     }
   }, [])
 
@@ -1135,4 +1137,53 @@ export function useSamplesEngine() {
     })
     return () => unsub()
   }, [])
+}
+
+// ── Library preview: half a minute of a song that isn't open, from its first
+// note, on the sound set. Works whichever engine is chosen: nothing here reads
+// the open song, and the next play sets its own programs and volumes. ───────
+const PREVIEW_SEC = 30
+export async function playSamplesPreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
+  await initSamplesEngine(() => {})
+  await _chosenSetLoading
+  const synth = _synth as any
+  if (!synth || !_gainNode) throw new Error('No sound set for the preview')
+  wakeContext()
+  _gainNode.gain.value = useStore.getState().masterVolume * SAMPLES_BOOST
+  const tracks = new Midi(bytes).tracks.filter(t => t.notes.length)
+  if (!tracks.length) throw new Error('Nothing to preview')
+  const from = Math.min(...tracks.map(t => t.notes[0].time))
+  const until = from + PREVIEW_SEC
+  const events: { at: number; off: boolean; play: () => void }[] = []
+  for (const t of tracks) {
+    const ch = t.channel
+    if (!t.instrument.percussion) synth.programChange(ch, t.instrument.number)
+    synth.controllerChange(ch, 7, Math.round((t.controlChanges[7]?.[0]?.value ?? 1) * 127))
+    for (const n of t.notes) {
+      if (n.time >= until) break
+      const velocity = Math.max(1, Math.round(n.velocity * 127))
+      events.push({ at: n.time - from, off: false, play: () => synth.noteOn(ch, n.midi, velocity) })
+      events.push({ at: Math.min(n.time + n.duration, until) - from, off: true, play: () => synth.noteOff(ch, n.midi) })
+    }
+    for (const c of t.controlChanges[64] ?? []) {
+      if (c.time < until) events.push({ at: Math.max(0, c.time - from), off: false, play: () => synth.controllerChange(ch, 64, c.value >= 0.5 ? 127 : 0) })
+    }
+  }
+  // Off before on: a repeated note must not be cut by its own earlier release
+  events.sort((a, b) => a.at - b.at || Number(b.off) - Number(a.off))
+  const startedAt = performance.now()
+  let next = 0, timer: ReturnType<typeof setInterval> | null = null
+  const stop = () => {
+    if (timer === null) return
+    clearInterval(timer)
+    timer = null
+    try { synth.stopAll(true) } catch {}
+    resetSustainPedals()
+  }
+  timer = setInterval(() => {
+    const now = (performance.now() - startedAt) / 1000
+    while (next < events.length && events[next].at <= now) { try { events[next].play() } catch {} next++ }
+    if (now >= PREVIEW_SEC) { stop(); onEnd() }
+  }, 10)
+  return stop
 }

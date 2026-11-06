@@ -1,5 +1,5 @@
-// Writes Orfeo's ORFEO_HAND_MAP hint. Only a text event is added: a file is replaced
-// only if Orfeo's real parser, reading the result, keeps every note and restores every
+// Writes Pliage's PLIAGE_HAND_MAP hint. Only a text event is added: a file is replaced
+// only if Pliage's real parser, reading the result, keeps every note and restores every
 // hand. Originals are backed up first. Without --apply it writes nothing.
 // Run from the repo: node --import ./scripts/ts-esbuild-hooks.mjs apply_hand_map.mjs <library> <backup-dir> [--apply] [--limit N]
 import { createRequire } from 'node:module'
@@ -9,10 +9,10 @@ import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const REPO = resolve(import.meta.dirname, '../..')
-const DATA = process.env.ORFEO_DATA
-if (!DATA) { console.error('Set ORFEO_DATA to the private folder that holds the catalog data'); process.exit(1) }
+const DATA = process.env.PLIAGE_DATA
+if (!DATA) { console.error('Set PLIAGE_DATA to the private folder that holds the catalog data'); process.exit(1) }
 
-// The minimum Orfeo's store modules read at load time, as in src/runAllTests.ts.
+// The minimum Pliage's store modules read at load time, as in src/runAllTests.ts.
 const g = globalThis
 const mem = new Map()
 g.localStorage ??= { getItem: k => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, String(v)), removeItem: k => mem.delete(k), clear: () => mem.clear(), key: () => null, length: 0 }
@@ -75,7 +75,7 @@ for (const job of jobs) {
     if (edits.some(x => x.index < 0)) { problem('track not found', job.rel); continue }
   }
   const parsed = parseMidi(new Uint8Array(buf(before)))
-  parsed.tracks[0] = parsed.tracks[0].filter(e => !(e.type === 'text' && String(e.text).startsWith('ORFEO_HAND_MAP:')))
+  parsed.tracks[0] = parsed.tracks[0].filter(e => !(e.type === 'text' && /^(PLIAGE|ORFEO)_HAND_MAP:/.test(String(e.text))))
   for (const x of [...edits].reverse()) parsed.tracks[0].unshift({ deltaTime: 0, meta: true, type: 'text', text: encodeHandMapMeta(x.index, x.hands).text })
   const after = Buffer.from(writeMidi(parsed))
   let check

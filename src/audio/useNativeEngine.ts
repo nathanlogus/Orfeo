@@ -290,7 +290,7 @@ async function startEngine() {
   const paths = await window.electronAPI.nativeSoundfontPaths(useStore.getState().selectedSoundfont)
   const ok = await startNative({ soundfonts: paths, exclusive: useMidiSettings.getState().nativeExclusive })
   if (!ok) {
-    console.error('[Orfeo Native] could not start — falling back to the Samples engine:', useNativeAudio.getState().error)
+    console.error('[Pliage Native] could not start — falling back to the Samples engine:', useNativeAudio.getState().error)
     if (useStore.getState().audioEngine === 'native') useStore.getState().setAudioEngine('samples')
     return
   }

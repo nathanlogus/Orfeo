@@ -1,5 +1,5 @@
 // Reads every MIDI file and writes one JSON line per file. Key, tempo and meter
-// come from Orfeo's own parseMidiMetadata, so they match what the app shows.
+// come from Pliage's own parseMidiMetadata, so they match what the app shows.
 // Run: node --import <repo>/scripts/ts-esbuild-hooks.mjs analyze.mjs <library> [out]
 // Safe to re-run: files whose size and mtime are unchanged are skipped.
 import { createRequire } from 'node:module'
@@ -9,8 +9,8 @@ import { pathToFileURL } from 'node:url'
 import assert from 'node:assert'
 
 const REPO = resolve(import.meta.dirname, '../..')
-const DATA = process.env.ORFEO_DATA
-if (!DATA) { console.error('Set ORFEO_DATA to the private folder that holds the catalog data'); process.exit(1) }
+const DATA = process.env.PLIAGE_DATA
+if (!DATA) { console.error('Set PLIAGE_DATA to the private folder that holds the catalog data'); process.exit(1) }
 const { Midi } = createRequire(join(REPO, 'package.json'))('@tonejs/midi')
 const { parseMidiMetadata } = await import(pathToFileURL(join(REPO, 'src/utils/midiMetadata.ts')).href)
 const { detectKeyFromTracks } = await import(pathToFileURL(join(REPO, 'src/utils/keyDetection.ts')).href)

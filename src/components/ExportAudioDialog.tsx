@@ -1,7 +1,7 @@
 // ── Export to audio window — opened from a Library song's right-click menu ──
 // Version (As I hear it / Original / Focus), sound (Studio / Native + sound
 // set), format (MP3 / WAV) as radio tiles, then a progress bar and Show in
-// folder. Draggable by its title row, like every Orfeo window. The work itself
+// folder. Draggable by its title row, like every Pliage window. The work itself
 // is exportToAudio (src/audio/exportAudio.ts).
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -86,7 +86,7 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
       else setPhase({ k: 'choose' })
     } catch (e: any) {
       // words for the musician; the technical detail goes to the log
-      console.error('[Orfeo] export failed:', e)
+      console.error('[Pliage] export failed:', e)
       const kind = e instanceof ExportError ? e.kind : 'failed'
       const message = kind === 'unreadable' ? t`Couldn't read this song.`
         : kind === 'empty' ? t`Nothing to export — the chosen version has no notes.`
@@ -110,7 +110,7 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
   return createPortal(
     <div className="o-scrim" style={{ zIndex: 99999 }}
       onMouseDown={e => { if (e.target === e.currentTarget && !working) close() }}>
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="orfeo-modal-glow app-no-drag theme-paper o-window x-window"
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="pliage-modal-glow app-no-drag theme-paper o-window x-window"
         style={{ width: 'min(820px, calc(100vw - 32px))', ...dialogFitsScreen, ...placed }}
         onMouseDown={e => e.stopPropagation()}>
         <div onPointerDown={onDragStart} className="o-window-head">
@@ -126,7 +126,7 @@ export default function ExportAudioDialog({ path, name, onClose }: { path: strin
             <div className="x-label">{t`Version to export`}</div>
             <div className="x-tiles x-tiles-3">
               <Radio name="version" active={version === 'heard'} disabled={!open} title={t`As I hear it`} onPick={() => setVersion('heard')}>
-                {open ? t`Everything you've changed: tempo, key, muted parts, Mixer, loop.` : t`Only the song open in Orfeo can be exported as you hear it — open this one first.`}
+                {open ? t`Everything you've changed: tempo, key, muted parts, Mixer, loop.` : t`Only the song open in Pliage can be exported as you hear it — open this one first.`}
               </Radio>
               <Radio name="version" active={version === 'original'} title={t`Original`} onPick={() => setVersion('original')}>{t`The song as written: every instrument, its own tempo and key.`}</Radio>
               <Radio name="version" active={version === 'focus'} title={t`Focus`} onPick={() => setVersion('focus')}>{t`Keys, bass and drums only.`}</Radio>

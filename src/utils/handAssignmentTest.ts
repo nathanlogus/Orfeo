@@ -3,7 +3,7 @@ import { assignHands, type HandInput } from './handAssignment'
 // ── runHandAssignmentTest ─────────────────────────────────────────────────────
 // Stage 1 self-check for the standalone hand-assignment engine — no UI wiring
 // yet, so this runs against synthetic note data rather than a loaded file.
-// Exposed as window.__orfeoHandAssignmentTest in development mode.
+// Exposed as window.__pliageHandAssignmentTest in development mode.
 export function runHandAssignmentTest(): void {
   console.group('[HandAssignment] Stage 1 engine self-check')
 

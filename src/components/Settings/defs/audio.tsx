@@ -85,7 +85,7 @@ const kHz = (rate: number) => `${Math.round(rate / 100) / 10} kHz`
 const msOf = (sec: number) => `${Math.round(sec * 1000 * 10) / 10} ms`
 
 // Four rows under the engine buttons, Setup and window, framed like a small
-// display: the sound card, how Orfeo uses it, the delay from "play" to
+// display: the sound card, how Pliage uses it, the delay from "play" to
 // "heard", and the sound set playing
 const glanceBox = { marginTop: 10, background: 'var(--ui-sunken)', borderRadius: 'var(--radius-sm)', padding: '6px 12px 10px' } as const
 function SoundEngineGlance() {
@@ -116,7 +116,7 @@ function SoundEngineGlance() {
     if (native.mode === 'none') return (
       <div role="status" className="set-state">
         <span className="set-state-title">{t`Native · waiting for a sound card…`}</span>
-        <span className="o-note">{t`Another app may have the sound card, or it's unplugged. Orfeo will pick it up when it's free.`}</span>
+        <span className="o-note">{t`Another app may have the sound card, or it's unplugged. Pliage will pick it up when it's free.`}</span>
         {wantsExclusive && <button className="o-link" style={{ alignSelf: 'flex-start' }} onClick={() => setLowLatency(false)}>{t`Switch to Shared`}</button>}
       </div>
     )
@@ -150,8 +150,8 @@ function SoundEngineGlance() {
 // What the chosen engine is — only that one
 function SoundEngineDescription() {
   const audioEngine = useStore((s) => s.audioEngine)
-  if (audioEngine === 'gm') return <>{t`The simple synth built into Orfeo: light, always ready, no sound set needed. It sounds basic — good for slow computers, or for playing through an external instrument (MIDI Keyboard › General MIDI sound).`}</>
-  if (audioEngine === 'native') return <>{t`The same sound sets as Studio, played by Orfeo's own engine straight to your sound card: the shortest delay from key to sound. Windows only.`}</>
+  if (audioEngine === 'gm') return <>{t`The simple synth built into Pliage: light, always ready, no sound set needed. It sounds basic — good for slow computers, or for playing through an external instrument (MIDI Keyboard › General MIDI sound).`}</>
+  if (audioEngine === 'native') return <>{t`The same sound sets as Studio, played by Pliage's own engine straight to your sound card: the shortest delay from key to sound. Windows only.`}</>
   return <>{t`Real recorded instruments from a sound set (choose it under Sound Fonts). Plays through the system's mixer like any other app, with its usual delay.`}</>
 }
 
@@ -177,9 +177,9 @@ function LowLatencyMode() {
     <div className="theme-studio set-strip">
       <div style={{ flex: 1, minWidth: 220 }}>
       <HelpText>{exclusive
-        ? t`Orfeo talks to your sound card directly, past Windows' mixer: the shortest delay from key to sound. Recommended when the delay between pressing a key and hearing it feels uncomfortable.`
-        : t`Orfeo shares the sound card with everything else, so you still hear YouTube, video calls and other apps alongside it. Windows adds its usual delay between key and sound.`}</HelpText>
-      {exclusive && <HelpText>{t`Orfeo takes over the whole sound card: other apps stay silent while Orfeo is open.`}</HelpText>}
+        ? t`Pliage talks to your sound card directly, past Windows' mixer: the shortest delay from key to sound. Recommended when the delay between pressing a key and hearing it feels uncomfortable.`
+        : t`Pliage shares the sound card with everything else, so you still hear YouTube, video calls and other apps alongside it. Windows adds its usual delay between key and sound.`}</HelpText>
+      {exclusive && <HelpText>{t`Pliage takes over the whole sound card: other apps stay silent while Pliage is open.`}</HelpText>}
       {autoLow && <HelpText>{t`Switches to Exclusive by itself when you plug in a keyboard — change that under MIDI Keyboard › Sound & Latency.`}</HelpText>}
       </div>
       <div><LowLatencyButtons /></div>
@@ -241,7 +241,7 @@ function SoundFontRow({ sf }: { sf: ReturnType<typeof allSoundfonts>[number] }) 
         <span className="set-font-meta">{progress !== undefined ? t`Downloading… ${percent}%` : `${sf.sizeMB} MB`}</span>
         {progress !== undefined && <span className="o-progress" style={{ maxWidth: 260, marginTop: 4 }}><span style={{ width: `${percent}%` }} /></span>}
       </span>
-      {bundled ? <span className="o-tag">{t`Comes with Orfeo`}</span>
+      {bundled ? <span className="o-tag">{t`Comes with Pliage`}</span>
         : sf.custom ? <span className="o-tag" style={{ background: 'var(--paint-blue)' }}>{t`Imported`}</span>
         : sf.downloaded ? <span className="o-tag">{t`Downloaded`}</span>
         : progress === undefined ? <button className="o-btn" onClick={() => void downloadSoundfont(sf.id)}>{t`Download`}</button> : null}

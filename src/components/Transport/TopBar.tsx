@@ -389,7 +389,7 @@ function SoundStatus() {
       <span className="pr-label">{t`Sound`}</span>
       <Tooltip
         title={loading ? t`Loading sound font… ${percent}%` : t`Native · waiting for a sound card…`}
-        description={loading ? t`${fontName ?? ''} · the GM sound plays until it’s ready` : t`Another app has the sound card. Orfeo will pick it up when it’s free, or switch to Shared.`}
+        description={loading ? t`${fontName ?? ''} · the GM sound plays until it’s ready` : t`Another app has the sound card. Pliage will pick it up when it’s free, or switch to Shared.`}
         placement="bottom"
       >
         <button className="pr-midi pr-sound" onClick={() => useStore.getState().openSettingsWindow('audio')} aria-label={loading ? t`Loading sound font ${percent}%` : t`Waiting for a sound card`}>

@@ -1,6 +1,6 @@
-# Contributing to Orfeo
+# Contributing to Pliage
 
-*Everything you need to build Orfeo from source, run it in development, and cut
+*Everything you need to build Pliage from source, run it in development, and cut
 a release.*
 
 Contributions are welcome. **Please open an issue before starting a PR** so the
@@ -88,7 +88,7 @@ FluidSynth build into `native/build/`. `dist` runs it for you.
 
 ```bash
 git clone https://github.com/Squarebow/Orfeo.git
-cd Orfeo
+cd Pliage
 npm install
 npm run dev
 ```
@@ -232,7 +232,7 @@ Full rationale for each boundary is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Releases and auto-update
 
-Orfeo officially builds **Windows**, **macOS** and **Linux** (experimental)
+Pliage officially builds **Windows**, **macOS** and **Linux** (experimental)
 binaries, all from the same release pipeline. Only the installed Windows build auto-updates
 (`electron-updater`, in `electron/main.ts`).
 
@@ -256,7 +256,7 @@ for the installed Windows build, `'store'` for the Microsoft Store build,
 `update:info`; in `'manual'` mode the Settings "Check for updates" button just
 opens orfeo.cc/download in the browser (also the fallback when an automatic
 update fails) — it never enters a checking/downloading state. In `'store'` mode
-(`process.windowsStore`) the Store updates the app and the button opens Orfeo's
+(`process.windowsStore`) the Store updates the app and the button opens Pliage's
 page in the Store app, with its *Update* button; `electron-updater` never runs
 there, and the website is never offered, since either would install a second,
 non-Store copy.
@@ -278,17 +278,17 @@ it.
 | 4. Microsoft Store | GitHub → Actions → **Microsoft Store** → **Run workflow** | Once the release is out: version `X.Y.Z`, `submit` (default) or `draft`. Not for pre-releases. See below. |
 
 The workflow checks that the tag, `package.json` and the changelog agree,
-builds the installer (`Orfeo-Setup-X.Y.Z.exe`) and the portable app
-(`Orfeo-X.Y.Z-portable.exe`) on Windows from the tag, uploads them with
+builds the installer (`Pliage-Setup-X.Y.Z.exe`) and the portable app
+(`Pliage-X.Y.Z-portable.exe`) on Windows from the tag, uploads them with
 `latest.yml` and the blockmap, and — at the same time, on macOS — builds
-`Orfeo-X.Y.Z-mac-arm64.dmg`/`.zip` (Apple Silicon) and
-`Orfeo-X.Y.Z-mac-x64.dmg`/`.zip` (Intel), and on Linux the AppImage, `.deb` and
+`Pliage-X.Y.Z-mac-arm64.dmg`/`.zip` (Apple Silicon) and
+`Pliage-X.Y.Z-mac-x64.dmg`/`.zip` (Intel), and on Linux the AppImage, `.deb` and
 `.rpm`, into the same draft. Windows goes first: once the Windows build is done,
 macOS and Linux get up to 30 minutes, then it writes the release notes from the
 changelog and publishes the release as *Latest*, with or without them. Their
 files join the published release when they finish; if one failed or GitHub had no
 machine for it, the run's summary says so and *Re-run failed jobs* adds them. It also builds the Microsoft Store package
-(`Orfeo-X.Y.Z.appx`, from the same app folder) and keeps it with the run, for
+(`Pliage-X.Y.Z.appx`, from the same app folder) and keeps it with the run, for
 step 4.
 
 > [!IMPORTANT]
@@ -303,12 +303,12 @@ from before the public release.
 
 Fallback, if GitHub Actions is unavailable: `GH_TOKEN=<token> npm run dist`
 on a Windows machine uploads the same files to a draft release; publish it by
-hand on the Releases page. `npm run dist` also builds `release/Orfeo-X.Y.Z.appx`
+hand on the Releases page. `npm run dist` also builds `release/Pliage-X.Y.Z.appx`
 for a manual upload in Partner Center.
 
 ### Microsoft Store
 
-Orfeo is in the Microsoft Store as an MSIX package (`appx` in `package.json`,
+Pliage is in the Microsoft Store as an MSIX package (`appx` in `package.json`,
 identity `Squarebow.Orfeo`; tile logos in `build/appx/`). Sending a version to
 the Store is its own workflow, run after the release: **Actions → Microsoft
 Store → Run workflow**, with the version (`1.5.1`) and `submit` or `draft`.
@@ -330,11 +330,11 @@ business days).
   started by hand in Partner Center has to be submitted or deleted there first.
 - Without the one-time setup below it stops and says what's missing; the
   `.appx` is in the Release run's `store-package` artifact for a manual upload.
-- **Rate Orfeo** (Store build only): a star beside the update check, plus the
-  "Enjoying Orfeo?" note every 5th launch (other builds get review, Reddit and
+- **Rate Pliage** (Store build only): a star beside the update check, plus the
+  "Enjoying Pliage?" note every 5th launch (other builds get review, Reddit and
   Ko-fi links there instead), opens the Store's review window. A small helper,
-  `native/orfeo-review` (built by `npm run native:build`), opens it, so a
-  failure there can never close Orfeo. It only works with the Store identity,
+  `native/pliage-review` (built by `npm run native:build`), opens it, so a
+  failure there can never close Pliage. It only works with the Store identity,
   so the review window can only be tried in the Store build.
 
 One-time setup (Partner Center + GitHub):
@@ -350,14 +350,14 @@ One-time setup (Partner Center + GitHub):
 3. Partner Center → **Account settings → User management → Microsoft Entra
    applications → Add Microsoft Entra application**:
    - **Create Microsoft Entra application** (simplest): any display name
-     (e.g. `orfeo-store-publisher`), any unique Reply URL (e.g.
+     (e.g. `pliage-store-publisher`), any unique Reply URL (e.g.
      `https://orfeo.cc/store-publisher`), role **Manager**. Or **Add Microsoft
      Entra application** to pick one already registered in the
      [Entra admin center](https://entra.microsoft.com), also as **Manager**.
    - Click the application's name: it shows the **Tenant ID** and **Client ID**.
      **Add new key** shows the key (the client secret) once — copy it then.
 4. The app's **Store ID** (12 characters, starts with `9`) is under *Apps and
-   games → Orfeo → Product management → Product identity*.
+   games → Pliage → Product management → Product identity*.
 5. GitHub → **Settings → Secrets and variables → Actions**:
    - Secrets: `AZURE_AD_TENANT_ID`, `AZURE_AD_APPLICATION_CLIENT_ID`,
      `AZURE_AD_APPLICATION_SECRET` (the key).

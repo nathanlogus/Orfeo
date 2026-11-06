@@ -1,5 +1,5 @@
 // ── One switchboard for "the sound engine that's on" ─────────────────────────
-// The rest of Orfeo asks here — not the engines directly — for the output
+// The rest of Pliage asks here — not the engines directly — for the output
 // delay, mixer changes and master settings, so adding an engine never leaves
 // an "if Samples … else General MIDI" somewhere quietly treating it as GM.
 
@@ -45,3 +45,13 @@ export const COMPRESSOR_PRESETS = samples.COMPRESSOR_PRESETS
 
 /** Engines whose mixer has per-channel effects and a master section */
 export function hasMixerEffects(): boolean { return engine() !== 'gm' }
+
+// A Library preview plays on the sound set. The native engine can hold the sound
+// card alone, and a set that won't load mustn't leave the preview silent, so
+// both fall back to General MIDI.
+export async function playSongPreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
+  if (engine() !== 'native') {
+    try { return await samples.playSamplesPreview(bytes, onEnd) } catch (e) { console.warn('[Pliage] sound set preview failed:', e) }
+  }
+  return gm.playPreview(bytes, onEnd)
+}

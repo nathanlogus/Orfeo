@@ -13,9 +13,9 @@ export function serverUrl(text: string): string {
 
 // Discovery: server/song-server.mjs answers this on UDP, naming its web port
 export const DISCOVERY_PORT = 8765
-export const DISCOVERY_PROBE = 'orfeo-songs?'
+export const DISCOVERY_PROBE = 'pliage-songs?'
 export function discoveredAddress(reply: string, ip: string): string | null {
-  const port = /^orfeo-songs:(\d{1,5})$/.exec(reply)?.[1]
+  const port = /^pliage-songs:(\d{1,5})$/.exec(reply)?.[1]
   return port && Number(port) <= 65535 ? `${ip}:${port}` : null
 }
 

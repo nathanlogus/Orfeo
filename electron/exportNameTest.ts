@@ -13,11 +13,11 @@ export function runExportNameTest(): number {
   check(nextFreeName(set('song.MP3'), 'Song.mp3') === 'Song (2).mp3', 'case-insensitive (Windows)')
   check(nextFreeName(set('Song.wav'), 'Song.mp3') === 'Song.mp3', 'another format is no clash')
 
-  check(exportsDir('D:/Midi', 'C:/Users/Me/Music').replace(/\\/g, '/') === 'D:/Midi/Orfeo/Exports', 'library set → <library>/Orfeo/Exports')
-  check(exportsDir(null, 'C:/Users/Me/Music').replace(/\\/g, '/') === 'C:/Users/Me/Music/Orfeo/Exports', 'no library (demo songs) → Music/Orfeo/Exports, never a hidden app folder')
+  check(exportsDir('D:/Midi', 'C:/Users/Me/Music').replace(/\\/g, '/') === 'D:/Midi/Pliage/Exports', 'library set → <library>/Pliage/Exports')
+  check(exportsDir(null, 'C:/Users/Me/Music').replace(/\\/g, '/') === 'C:/Users/Me/Music/Pliage/Exports', 'no library (demo songs) → Music/Pliage/Exports, never a hidden app folder')
 
   const throws = (f: () => unknown) => { try { f(); return false } catch { return true } }
-  const DIR = 'D:/Music/Orfeo/Exports'
+  const DIR = 'D:/Music/Pliage/Exports'
   const inside = (name: string) => safeExportPath(DIR, name).replace(/\\/g, '/').startsWith(DIR + '/')
 
   check(safeExportName('Song.mp3') === 'Song.mp3', 'plain name kept')

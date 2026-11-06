@@ -5,7 +5,7 @@ import { Midi } from '@tonejs/midi'
 import * as EA from './exportAudio'
 const { isOpenSong, previewExport, pauseForExport, isExporting, exportToAudio, renderOutcome, finishOrExplain, ExportError } = EA
 
-// The open song as Orfeo holds it, with an unsaved note edit in the editor
+// The open song as Pliage holds it, with an unsaved note edit in the editor
 function song(path: string, pitch: number) {
   return { fileName: 'x.mid', duration: 1, bpm: 120, timeSignatureNumerator: 4, timeSignatureDenominator: 4, noteCount: 1, _filePath: path,
     tracks: [{ index: 0, name: 'Piano', gmName: 'Piano', program: 0, group: 'piano', isDrum: false, color: '#000000', channel: 0,
@@ -32,15 +32,15 @@ export async function runExportAudioTest(): Promise<number> {
   // 2. The open song is recognised however its path is spelled
   check(isOpenSong('d:/lib/pop/song.MID'), 'slashes and letter case don\'t matter')
   check(!isOpenSong('D:\\Lib\\Pop\\Other.mid'), 'another song is not the open one')
-  // a Guitar Pro song plays from its converted copy in the Library's Orfeo folder
-  useStore.setState({ midi: song('D:/Lib/Orfeo/Riff_ORFEO_IMPORTED.mid', 60) })
+  // a Guitar Pro song plays from its converted copy in the Library's Pliage folder
+  useStore.setState({ midi: song('D:/Lib/Pliage/Riff_PLIAGE_IMPORTED.mid', 60) })
   check(isOpenSong('D:\\Lib\\Tabs\\Riff.gp5'), 'an open Guitar Pro song counts as open from its Library entry')
 
   NES.dirty = false; NES.editMidi = null
 
   // 3. An export pauses the song (the player too, as an Explorer does)
   let playerPaused = false
-  ;(globalThis as any).window.__orfeoPlayer = { pause: () => { playerPaused = true } }
+  ;(globalThis as any).window.__pliagePlayer = { pause: () => { playerPaused = true } }
   useStore.setState({ playbackState: 'playing' })
   pauseForExport()
   check(useStore.getState().playbackState === 'paused' && playerPaused, 'a playing song is paused for the export')

@@ -1,9 +1,9 @@
-# Orfeo's native code. orfeo-audio = the engine (+ CLI and self-test);
-# orfeo-audio-node = the Node add-on Orfeo's audio process loads.
-# orfeo-review = opens the Microsoft Store's review window (Store build only).
+# Pliage's native code. pliage-audio = the engine (+ CLI and self-test);
+# pliage-audio-node = the Node add-on Pliage's audio process loads.
+# pliage-review = opens the Microsoft Store's review window (Store build only).
 [workspace]
 resolver = "2"
-members = ["orfeo-audio", "orfeo-audio-node", "orfeo-review"]
+members = ["pliage-audio", "pliage-audio-node", "pliage-review"]
 
 [profile.release]
 opt-level = 3

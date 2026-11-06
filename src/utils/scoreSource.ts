@@ -1,10 +1,11 @@
+import { SAVED_WORD } from './legacyNames'
 import { getGMGroup } from './gmInstruments'
 import { HAND_ASSIGN_GROUPS } from './keyboardGroups'
 
 // ── Score view source ─────────────────────────────────────────────────────
 // A notation file's bytes, kept for the score view after import has turned
 // them into MIDI. midiPaths are every path the song can be loaded under: the
-// source itself, or its _ORFEO_IMPORTED.mid copy once that exists.
+// source itself, or its _PLIAGE_IMPORTED.mid copy once that exists.
 export type ScoreSource = { midiPaths: string[]; bytes: Uint8Array }
 
 export function isScoreFor(source: ScoreSource | null, midiPath: string | undefined): source is ScoreSource {
@@ -22,7 +23,7 @@ export function transposeKeySignature(key: number, semitones: number): number {
   return (((key + 7 * semitones + 5) % 12) + 12) % 12 - 5
 }
 
-// Orfeo's tracks come from alphaTab's MIDI, so a part is known by its channels.
+// Pliage's tracks come from alphaTab's MIDI, so a part is known by its channels.
 // A score always shows something, so hiding every track shows them all.
 export function partsToShow<P extends { playbackInfo: { primaryChannel: number; secondaryChannel: number } }>(
   parts: P[],
@@ -70,7 +71,7 @@ export function stavesToShow(part: StaffPart, left: number[], songTracks: { chan
   return right || leftOn ? [right, leftOn] : [true, true]
 }
 
-// Adds text events to a one-track MIDI file, the way Orfeo's own hints travel
+// Adds text events to a one-track MIDI file, the way Pliage's own hints travel
 export function withTextEvents(smf: Uint8Array, texts: string[]): Uint8Array {
   const bytes = texts.flatMap(t => [0, 0xFF, 0x01, t.length, ...new TextEncoder().encode(t)])
   const out = new Uint8Array(smf.length + bytes.length)
@@ -90,7 +91,7 @@ export function findImportSource<F extends { name: string; path: string }>(
   isNotation: (path: string) => boolean,
 ): F | null {
   const name = midiPath.split(/[\\/]/).pop() ?? ''
-  const stem = name.match(/^(.+)_ORFEO_IMPORTED\.mid$/i)?.[1]
+  const stem = name.match(new RegExp(`^(.+)_${SAVED_WORD}_IMPORTED\\.mid$`, 'i'))?.[1]
   if (!stem) return null
   return files.find(f => isNotation(f.path) && f.name.slice(0, f.name.lastIndexOf('.')) === stem) ?? null
 }

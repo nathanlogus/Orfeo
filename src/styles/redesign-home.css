@@ -6,7 +6,6 @@
 .lib-header { flex-shrink: 0; display: flex; align-items: center; gap: 12px; height: 80px; padding: 0 40px; box-sizing: border-box; }
 .lib-logo { flex-shrink: 0; display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px 0 6px; box-sizing: border-box; border-radius: var(--radius-md); background: var(--ink); color: #fff; font-size: var(--text-md); }
 .lib-logo-disc { width: 36px; height: 36px; border-radius: 50%; background: var(--paint-yellow); display: flex; align-items: center; justify-content: center; }
-.lib-logo-disc path { fill: var(--ink); }
 .lib-seg { flex-shrink: 0; display: flex; gap: 2px; margin-left: 4px; padding: 3px; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); background: var(--ui-control); }
 .lib-seg button { display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 20px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--ui-text); font: inherit; font-size: var(--text-md); cursor: pointer; transition: var(--control-transition); }
 .lib-seg-icons button { width: 40px; padding: 0; }

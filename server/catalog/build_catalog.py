@@ -3,7 +3,7 @@
 # Run: python -I build_catalog.py "<library folder>"
 import csv, glob, hashlib, html, json, math, os, re, shutil, sqlite3, sys, time, unicodedata
 
-DATA = os.environ.get('ORFEO_DATA') or sys.exit('Set ORFEO_DATA to the private folder that holds the catalog data')
+DATA = os.environ.get('PLIAGE_DATA') or sys.exit('Set PLIAGE_DATA to the private folder that holds the catalog data')
 RAW = os.path.join(DATA, 'raw')
 KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']  # same as keyDetection.ts
 

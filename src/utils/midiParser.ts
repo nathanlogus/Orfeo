@@ -8,12 +8,13 @@ import { useStore } from '../store'
 import { HAND_ASSIGN_GROUPS } from './keyboardGroups'
 import { SEMITONE_TO_KEY_NAME } from './keyDetection'
 import { distinctTrackColor, pianoFamilyColor } from './colors'
+import { upgradeMarkers } from './legacyNames'
 
 export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath = ''): ParsedMidi {
   // FUTURE: KAR lyric events (meta type 0x05 = lyrics, 0x01 = text) could
   // be extracted here for a karaoke display overlay. Not in scope currently.
   // @tonejs/midi v2.x handles these silently via the underlying midi-file parser.
-  const midi = new Midi(buffer)
+  const midi = upgradeMarkers(new Midi(buffer))
 
   const bpm = midi.header.tempos.length > 0 ? midi.header.tempos[0].bpm : 120
   // Full tempo map: [{bpm, time}] sorted by time — for tempo-change support
@@ -30,18 +31,18 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath 
     .map((s: any) => ({ num: s.timeSignature[0], den: s.timeSignature[1], time: midi.header.ticksToSeconds(s.ticks) }))
     .sort((a: any, b: any) => a.time - b.time)
 
-  // Extract key signature from MIDI metadata. ORFEO_KEY (see
+  // Extract key signature from MIDI metadata. PLIAGE_KEY (see
   // electron/main.ts's tempoKey:save) takes priority over the native
   // key-signature meta event — verified directly that @tonejs/midi's own
   // encoder silently drops that value on any re-save regardless of what's
   // written into it (a pure library bug, unrelated to transpose math), so
-  // any file Orfeo has saved through the tempo/key feature needs its own
-  // reliable custom meta instead, same pattern as ORFEO_TRACK_NAME/COLOR.
+  // any file Pliage has saved through the tempo/key feature needs its own
+  // reliable custom meta instead, same pattern as PLIAGE_TRACK_NAME/COLOR.
   let keySignature: { key: number | string; scale: string } | null = null
   try {
     for (const meta of (midi.header as any).meta ?? []) {
-      if (typeof meta.text !== 'string' || !meta.text.startsWith('ORFEO_KEY:')) continue
-      const rest = meta.text.slice('ORFEO_KEY:'.length)
+      if (typeof meta.text !== 'string' || !meta.text.startsWith('PLIAGE_KEY:')) continue
+      const rest = meta.text.slice('PLIAGE_KEY:'.length)
       const [semitoneStr, scale] = rest.split(':')
       const semitone = parseInt(semitoneStr, 10)
       if (!isNaN(semitone) && SEMITONE_TO_KEY_NAME[semitone]) {
@@ -174,52 +175,52 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath 
   const { barTimes: _barTimes, beatTimes: _beatTimes } = buildFileGrid(midi.header, duration)
   const barStarts = _barTimes
 
-  // ── Restore Orfeo custom track names from header text meta-events ────────────
-  // Format: ORFEO_TRACK_NAME:N:name — type-0x01 text events injected by editor:save.
-  // Only present in files previously saved through Orfeo; ignored for all other files.
-  const orfeoTrackNames: Record<number, string> = {}
+  // ── Restore Pliage custom track names from header text meta-events ────────────
+  // Format: PLIAGE_TRACK_NAME:N:name — type-0x01 text events injected by editor:save.
+  // Only present in files previously saved through Pliage; ignored for all other files.
+  const pliageTrackNames: Record<number, string> = {}
   for (const meta of (midi.header as any).meta ?? []) {
-    if (typeof meta.text === 'string' && meta.text.startsWith('ORFEO_TRACK_NAME:')) {
-      const rest = meta.text.slice('ORFEO_TRACK_NAME:'.length)
+    if (typeof meta.text === 'string' && meta.text.startsWith('PLIAGE_TRACK_NAME:')) {
+      const rest = meta.text.slice('PLIAGE_TRACK_NAME:'.length)
       const colonIdx = rest.indexOf(':')
       if (colonIdx >= 0) {
         const idx = parseInt(rest.slice(0, colonIdx), 10)
         const name = rest.slice(colonIdx + 1)
-        if (!isNaN(idx) && name) orfeoTrackNames[idx] = name
+        if (!isNaN(idx) && name) pliageTrackNames[idx] = name
       }
     }
   }
 
-  // ── Restore Orfeo custom track colors from header text meta-events ──────────
-  // Format: ORFEO_TRACK_COLOR:N:#hexcolor — same convention as ORFEO_TRACK_NAME.
+  // ── Restore Pliage custom track colors from header text meta-events ──────────
+  // Format: PLIAGE_TRACK_COLOR:N:#hexcolor — same convention as PLIAGE_TRACK_NAME.
   // Without this, a color picked in the color popover only ever lived in the
   // Zustand store — any save+reload silently discarded it back to the
   // palette default, since nothing wrote it into the file at all.
-  const orfeoTrackColors: Record<number, string> = {}
+  const pliageTrackColors: Record<number, string> = {}
   for (const meta of (midi.header as any).meta ?? []) {
-    if (typeof meta.text === 'string' && meta.text.startsWith('ORFEO_TRACK_COLOR:')) {
-      const rest = meta.text.slice('ORFEO_TRACK_COLOR:'.length)
+    if (typeof meta.text === 'string' && meta.text.startsWith('PLIAGE_TRACK_COLOR:')) {
+      const rest = meta.text.slice('PLIAGE_TRACK_COLOR:'.length)
       const colonIdx = rest.indexOf(':')
       if (colonIdx >= 0) {
         const idx = parseInt(rest.slice(0, colonIdx), 10)
         const color = rest.slice(colonIdx + 1)
-        if (!isNaN(idx) && /^#[0-9a-fA-F]{6}$/.test(color)) orfeoTrackColors[idx] = color
+        if (!isNaN(idx) && /^#[0-9a-fA-F]{6}$/.test(color)) pliageTrackColors[idx] = color
       }
     }
   }
 
-  // ── Restore Orfeo persisted roll-visibility / keyboard-lit flags ────────────
-  // Format: ORFEO_TRACK_VISIBLE:N:0/1 and ORFEO_TRACK_KEYBOARD:N:0/1 — same
-  // convention as ORFEO_TRACK_NAME/COLOR. Only the Playback Editor's Save
+  // ── Restore Pliage persisted roll-visibility / keyboard-lit flags ────────────
+  // Format: PLIAGE_TRACK_VISIBLE:N:0/1 and PLIAGE_TRACK_KEYBOARD:N:0/1 — same
+  // convention as PLIAGE_TRACK_NAME/COLOR. Only the Playback Editor's Save
   // writes these; the TrackPanel's per-track icons are session-only and never
   // touch the file (see MidiEditor.tsx / electron/main.ts editor:save).
-  const orfeoTrackVisible: Record<number, boolean> = {}
-  const orfeoTrackKeyboard: Record<number, boolean> = {}
+  const pliageTrackVisible: Record<number, boolean> = {}
+  const pliageTrackKeyboard: Record<number, boolean> = {}
   for (const meta of (midi.header as any).meta ?? []) {
     if (typeof meta.text !== 'string') continue
     for (const [prefix, target] of [
-      ['ORFEO_TRACK_VISIBLE:', orfeoTrackVisible],
-      ['ORFEO_TRACK_KEYBOARD:', orfeoTrackKeyboard],
+      ['PLIAGE_TRACK_VISIBLE:', pliageTrackVisible],
+      ['PLIAGE_TRACK_KEYBOARD:', pliageTrackKeyboard],
     ] as const) {
       if (!meta.text.startsWith(prefix)) continue
       const rest = meta.text.slice(prefix.length)
@@ -231,23 +232,23 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath 
     }
   }
 
-  // ── Restore hand tags from an Orfeo export hint, if this file has one ───────
-  // Track-name " RH"/" LH" suffix or ORFEO_HAND_MAP text meta — see
+  // ── Restore hand tags from a Pliage export hint, if this file has one ───────
+  // Track-name " RH"/" LH" suffix or PLIAGE_HAND_MAP text meta — see
   // utils/handMetadata.ts. Neither is real MIDI clef data, just a breadcrumb.
   // When this returns false, no hint was found (or it was stale) and the
   // assignment engine still needs to run — that happens where the split/
   // color/merge UI actually calls it, not here in the parser.
   // A notation import's hands come from its staves (foreignFormatImport.ts), so
-  // they're exact. ORFEO_TRACK_HAND:<channel>:<hand>, and a file whose tracks
+  // they're exact. PLIAGE_TRACK_HAND:<channel>:<hand>, and a file whose tracks
   // no longer match every hint (one staff empty, hands merged) ignores them.
   const sheetHands = ((midi.header as any).meta ?? [])
-    .map((m: any) => typeof m.text === 'string' && m.text.match(/^ORFEO_TRACK_HAND:(\d+):([LR])$/))
+    .map((m: any) => typeof m.text === 'string' && m.text.match(/^PLIAGE_TRACK_HAND:(\d+):([LR])$/))
     .filter(Boolean)
     .map((m: RegExpMatchArray) => ({ track: tracks.find(t => t.channel === Number(m[1])), hand: m[2] as 'L' | 'R' }))
   if (sheetHands.every((h: any) => h.track)) {
     for (const { track, hand } of sheetHands) {
       track.name = withHandSuffix(track.gmName, hand)
-      orfeoTrackNames[track.index] = hand === 'L' ? 'Left Hand' : 'Right Hand'
+      pliageTrackNames[track.index] = hand === 'L' ? 'Left Hand' : 'Right Hand'
     }
   }
 
@@ -288,10 +289,10 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath 
     _barStarts: barStarts,
     _barTimes,
     _beatTimes,
-    _orfeoTrackNames: Object.keys(orfeoTrackNames).length > 0 ? orfeoTrackNames : undefined,
-    _orfeoTrackColors: Object.keys(orfeoTrackColors).length > 0 ? orfeoTrackColors : undefined,
-    _orfeoTrackVisible: Object.keys(orfeoTrackVisible).length > 0 ? orfeoTrackVisible : undefined,
-    _orfeoTrackKeyboard: Object.keys(orfeoTrackKeyboard).length > 0 ? orfeoTrackKeyboard : undefined,
+    _pliageTrackNames: Object.keys(pliageTrackNames).length > 0 ? pliageTrackNames : undefined,
+    _pliageTrackColors: Object.keys(pliageTrackColors).length > 0 ? pliageTrackColors : undefined,
+    _pliageTrackVisible: Object.keys(pliageTrackVisible).length > 0 ? pliageTrackVisible : undefined,
+    _pliageTrackKeyboard: Object.keys(pliageTrackKeyboard).length > 0 ? pliageTrackKeyboard : undefined,
     _handTagsRestored: handTagsRestored,
   }
 

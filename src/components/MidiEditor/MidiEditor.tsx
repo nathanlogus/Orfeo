@@ -19,7 +19,7 @@ import { detectKeyFromTracks, parseKeySignature } from '../../utils/keyDetection
 import { bringToFront, MODAL_BASE_Z } from '../../utils/modalFocus'
 import { KEYBOARD_GROUPS, HAND_ASSIGN_GROUPS } from '../../utils/keyboardGroups'
 import { NES } from '../../utils/noteEditorState'
-import { nextOrfeoBaseName } from '../../utils/orfeoVersioning'
+import { nextPliageBaseName } from '../../utils/pliageVersioning'
 import { getHandPreviewStats, getLowConfidencePassages } from '../../utils/handPreview'
 import { withHandSuffix } from '../../utils/handMetadata'
 import { getGMName, getGMGroup } from '../../utils/gmInstruments'
@@ -176,13 +176,13 @@ type MergeGroup = number[]
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // ── Preview only — the actual save (electron/main.ts editor:save) computes
-// its own output path with the same rule (src/utils/orfeoVersioning.ts),
+// its own output path with the same rule (src/utils/pliageVersioning.ts),
 // this just keeps what's shown here accurate to that. ─────────────────────
-function orfeoName(p: string) {
+function pliageName(p: string) {
   const norm = p.replace(/\\/g, '/')
   const slash = norm.lastIndexOf('/')
   const base = norm.substring(slash + 1).replace(/\.midi?$/i, '')
-  return `${nextOrfeoBaseName(base)}.mid`
+  return `${nextPliageBaseName(base)}.mid`
 }
 function baseName(p: string) { return p.split(/[\\/]/).pop() ?? p }
 
@@ -761,7 +761,7 @@ export default function MidiEditor() {
     const filePath = (midi as any)._filePath ?? ''
     const rows = buildRows()
     snapshotRows(rows)
-    setState({ fileName: midi.fileName, filePath, rows, outputPath: orfeoName(filePath) })
+    setState({ fileName: midi.fileName, filePath, rows, outputPath: pliageName(filePath) })
     setSaveResult(null)
     setSplitResult(null)
     setPendingSplitIndex(null)
@@ -791,7 +791,7 @@ export default function MidiEditor() {
     const filePath = (midi as any)._filePath ?? ''
     const freshRows = buildRows()
     snapshotRows(freshRows)
-    setState(s => s ? { ...s, rows: freshRows, filePath, fileName: midi.fileName, outputPath: orfeoName(filePath) } : s)
+    setState(s => s ? { ...s, rows: freshRows, filePath, fileName: midi.fileName, outputPath: pliageName(filePath) } : s)
     // keyed on the file's bytes: a Tap Tempo grid swap (same file, new midi
     // object) must not discard unsaved row edits
   }, [(midi as any)?._raw])
@@ -884,14 +884,14 @@ export default function MidiEditor() {
       const firstIdx = s.rows.findIndex(r => r.index === first.index)
       const without  = s.rows.filter(r => !selected.some(sel => sel.index === r.index))
       const newRows  = [...without.slice(0, firstIdx), mergedRow, ...without.slice(firstIdx)]
-      return { ...s, rows: newRows, outputPath: orfeoName(s.filePath) }
+      return { ...s, rows: newRows, outputPath: pliageName(s.filePath) }
     })
   }
 
   // ── Unmerge: reset rows from current store state (no IPC needed) ──────────────
   const handleUnmerge = () => {
     const rows = buildRows()
-    setState(s => s ? { ...s, rows, outputPath: orfeoName(s.filePath) } : s)
+    setState(s => s ? { ...s, rows, outputPath: pliageName(s.filePath) } : s)
   }
 
   const mergeCount    = state.rows.filter(t => t.mergeSelected && !t.isMerged).length
@@ -943,7 +943,7 @@ export default function MidiEditor() {
 
   // ── Save — the ONLY point that writes to disk. Every staged edit (include/
   // exclude, merge, split, rename, recolor, reassign instrument) travels in
-  // one payload and lands in exactly one _ORFEO_vN. Once a save SUCCEEDS the
+  // one payload and lands in exactly one _PLIAGE_vN. Once a save SUCCEEDS the
   // footer switches to a single OK button (see render below) — Cancel and
   // Save & Reload disappear so a second click here can't silently mint v2,
   // v3, ad infinitum. A failed save leaves Cancel/Save & Reload in place so
@@ -1121,13 +1121,13 @@ export default function MidiEditor() {
       // rendering, src/utils/handColors.ts) — not inherited from the source
       // track, which would make both halves look identical. ───────────────
       // The user's hand colours as literal hex (not the CSS var): the colour
-      // travels into ORFEO_TRACK_COLOR meta on save, which only accepts hex
+      // travels into PLIAGE_TRACK_COLOR meta on save, which only accepts hex
       // (see midiParser.ts's restore regex)
       const lhRow: EditorTrack = { ...orig, name: 'Left Hand', trackName: lhName, noteCount: lhCount, splitHand: 'L', splitOriginIndex: trackIndex, mergeSelected: false, color: handHex().lh, colorSource: 'custom' }
       const rhRow: EditorTrack = { ...orig, index: _mergeIdCounter++, name: 'Right Hand', trackName: rhName, noteCount: rhCount, splitHand: 'R', splitOriginIndex: trackIndex, mergeSelected: false, color: handHex().rh, colorSource: 'custom' }
       const rows = [...s.rows]
       rows.splice(idx, 1, lhRow, rhRow)
-      return { ...s, rows, outputPath: orfeoName(s.filePath) }
+      return { ...s, rows, outputPath: pliageName(s.filePath) }
     })
     setSplitResult({ ok: true, msg: 'Staged — apply with Save & Reload' })
   }
@@ -1148,7 +1148,7 @@ export default function MidiEditor() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="xp-pe-title"
-      className="orfeo-modal-glow app-no-drag theme-paper xp-window xp-pe"
+      className="pliage-modal-glow app-no-drag theme-paper xp-window xp-pe"
       onMouseDown={() => setZIndex(bringToFront())}
       style={{ left: pos.x, top: pos.y, zIndex, '--_modal-shadow': 'none' } as CSSProperties}
     >
@@ -1156,10 +1156,10 @@ export default function MidiEditor() {
       <div className="xp-pe-head" onPointerDown={startMove}>
         <div className="xp-pe-title">
           <h2 id="xp-pe-title" className="o-title-lg">MIDI Playback Editor</h2>
-          <div ref={fileNameWrapRef} className="orfeo-marquee-track" style={{ minWidth: 0, overflow: 'hidden', display: 'flex' }}>
+          <div ref={fileNameWrapRef} className="pliage-marquee-track" style={{ minWidth: 0, overflow: 'hidden', display: 'flex' }}>
             <span
               ref={fileNameRef}
-              className={fileNameOverflow > 0 ? 'orfeo-marquee-text is-overflowing' : 'orfeo-marquee-text'}
+              className={fileNameOverflow > 0 ? 'pliage-marquee-text is-overflowing' : 'pliage-marquee-text'}
               style={{
                 fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)', whiteSpace: 'nowrap',
                 ...(fileNameOverflow > 0 ? { '--marquee-distance': `-${fileNameOverflow}px` } as CSSProperties : {}),
@@ -1388,7 +1388,7 @@ export default function MidiEditor() {
           </div>
         )}
         <div className="xp-pe-actions">
-          <span className="xp-pe-tiny">Original file is never modified! Saves as a new _ORFEO_vX copy in "Orfeo" folder next to it, auto-loads on save. Only shows up in your Library list if that folder is inside your registered Library Folder. Refresh Library to see it immediately.</span>
+          <span className="xp-pe-tiny">Original file is never modified! Saves as a new _PLIAGE_vX copy in "Pliage" folder next to it, auto-loads on save. Only shows up in your Library list if that folder is inside your registered Library Folder. Refresh Library to see it immediately.</span>
           {saveResult?.ok ? (
             <button className="o-btn-primary o-btn-lg" onClick={() => setMidiEditorOpen(false)}><ThumbsUp size={16} /> OK</button>
           ) : (

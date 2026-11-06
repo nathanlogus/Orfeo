@@ -1,8 +1,8 @@
-# Orfeo Lessons
+# Pliage Lessons
 
 The course behind the Learn tab: reading piano music from a first note to sight-reading. Piano and keyboard only.
 
-The explanations and numbered exercises are original to Orfeo. Songs are traditional or long out of copyright, arranged here from scratch. Sources and rules for adding pieces are in [Sources](#sources).
+The explanations and numbered exercises are original to Pliage. Songs are traditional or long out of copyright, arranged here from scratch. Sources and rules for adding pieces are in [Sources](#sources).
 
 ## How a lesson works
 
@@ -652,4 +652,4 @@ Used as references. The wording here is original. Credits for the bundled pieces
 | [Open Music Theory](https://viva.pressbooks.pub/openmusictheory/) | CC BY-SA 4.0 | Later theory topics |
 | [Vorschule im Klavierspiel, Op. 101](https://imslp.org/wiki/Vorschule_im_Klavierspiel%2C_Op.101_%28Beyer%2C_Ferdinand%29), Beyer | Public domain | Graded repertoire |
 
-To add a piece, use a public-domain original. Don't copy a modern edition's fingerings or editorial marks, and don't use non-commercial material: Orfeo is GPLv3, which allows selling copies.
+To add a piece, use a public-domain original. Don't copy a modern edition's fingerings or editorial marks, and don't use non-commercial material: Pliage is GPLv3, which allows selling copies.

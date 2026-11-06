@@ -67,7 +67,7 @@ export function encodeWav(a: Stereo): Uint8Array {
   str(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true)
   dv.setUint32(24, a.rate, true); dv.setUint32(28, a.rate * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true)
   str(36, 'data'); dv.setUint32(40, n * 4, true)
-  // samples through a 16-bit view (WAV is little-endian, as every machine Orfeo runs on):
+  // samples through a 16-bit view (WAV is little-endian, as every machine Pliage runs on):
   // several times faster than per-sample DataView writes, so a song doesn't stall the window
   // (a typed-array store truncates an in-range value: within one 16-bit step)
   const pcm = new Int16Array(out.buffer, 44, n * 2)
@@ -84,7 +84,7 @@ export function encodeWav(a: Stereo): Uint8Array {
  *  turn in between; empty when cancelled */
 export async function encodeMp3(a: Stereo, onProgress?: (p: number) => void, isCancelled?: () => boolean): Promise<Uint8Array> {
   if (a.rate !== EXPORT_RATE) throw new Error(`MP3 export expects ${EXPORT_RATE} Hz`)
-  // loaded on first use: the encoder never weighs on Orfeo's start-up
+  // loaded on first use: the encoder never weighs on Pliage's start-up
   const { createMp3Encoder } = await import('wasm-media-encoders')
   const enc = await createMp3Encoder()
   enc.configure({ sampleRate: a.rate, channels: 2, bitrate: MP3_KBPS })

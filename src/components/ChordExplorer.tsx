@@ -8,7 +8,7 @@ import type { Genre } from '../utils/genreVoicing'
 import type { NoteNaming } from '../types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import SpeedControl from './SpeedControl'
-import OrfeoMark from './OrfeoMark'
+import PliageMark from './PliageMark'
 import Tooltip from './Tooltip'
 import { useHeldChord } from '../hooks/useHeldChord'
 import { buildChordMidi, formatChordSuffix, formatInversionDisplay, ordinalSuffix } from '../utils/chordDetection'
@@ -185,7 +185,7 @@ export default function ChordExplorer() {
     if (!chordExplorerOpen) return
     const { playbackState, explorerPausesPlayback } = useStore.getState()
     if (playbackState === 'playing' && explorerPausesPlayback) {
-      ;(window as any).__orfeoPlayer?.pause?.()
+      ;(window as any).__pliagePlayer?.pause?.()
       useStore.setState({ playbackState: 'paused' })
     }
   }, [chordExplorerOpen])
@@ -480,7 +480,7 @@ export default function ChordExplorer() {
     const notes = [...RITE_LOW, ...RITE_HIGH]
     lightKeys(notes, RITE_LOW[0] % 12)
     setExplorerChordDisplay({ name: t`E♭7 over F♭`, invCount: 0, noteCount: notes.length })
-    const playNote = (window as any).__orfeoPlayNote
+    const playNote = (window as any).__pliagePlayNote
     if (!playNote) return
     for (let i = 0; i < RITE_PULSES; i++) {
       const last = i === RITE_PULSES - 1
@@ -570,7 +570,7 @@ export default function ChordExplorer() {
   const invNow = cd && cd.noteCount > 0 ? ((cd.invCount % cd.noteCount) + cd.noteCount) % cd.noteCount : 0
 
   return (
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="orfeo-modal-glow touch-explorer theme-studio xp-full xp-chords" style={{
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Chords Explorer" data-instant className="pliage-modal-glow touch-explorer theme-studio xp-full xp-chords" style={{
       display: chordExplorerMinimized ? 'none' : 'flex',
     }}>
 
@@ -585,7 +585,7 @@ export default function ChordExplorer() {
             className="xp-logo"
             onClick={() => { setRiteOpen(true); playRiteChord() }}
             aria-label={t`Easter egg`}
-          ><OrfeoMark height={22} /></button>
+          ><PliageMark height={22} tone="night" /></button>
         </Tooltip>
         <div className="xp-seg" data-accent role="group" aria-label={t`Explorers`}>
           <button aria-pressed={true}>{t`Chords`}</button>

@@ -55,9 +55,9 @@ function UpdatesCard() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="set-card-name">{t`Updates`}</div>
           <div className="set-card-desc">
-            {t`You're on Orfeo ${displayVersion(__APP_VERSION__)}.`}
+            {t`You're on Pliage ${displayVersion(__APP_VERSION__)}.`}
             {mode === 'store' && <> {t`Updates come from the Microsoft Store.`}</>}
-            {status.state === 'up-to-date' && <> {t`Orfeo is up to date.`}</>}
+            {status.state === 'up-to-date' && <> {t`Pliage is up to date.`}</>}
             {status.state === 'downloading' && <> {t`Downloading update…`}</>}
           </div>
         </div>
@@ -67,7 +67,7 @@ function UpdatesCard() {
         <div role="status" className="set-update">
           <span className="o-dot o-dot-alert" style={{ outline: '1px solid var(--ink)' }} />
           <span style={{ flex: 1, minWidth: 0 }}>
-            {status.state === 'ready' ? t`Orfeo ${out} is ready to install.` : t`Orfeo ${out} is out.`}
+            {status.state === 'ready' ? t`Pliage ${out} is ready to install.` : t`Pliage ${out} is out.`}
             <span className="set-update-note">{t`Your songs and settings stay as they are.`}</span>
           </span>
           <button onClick={pressUpdateButton}>{status.state === 'ready' ? t`Install` : t`Download`}</button>
@@ -129,7 +129,7 @@ export default function SettingsWindow() {
   return createPortal(
     <div className="o-scrim" onMouseDown={e => { if (e.target === e.currentTarget) close() }}
       style={{ zIndex: 10500, padding: `${MODAL_MIN_TOP}px 16px 12px`, boxSizing: 'border-box' }}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t`Settings`} className="orfeo-modal-glow orfeo-settle-in touch-settings theme-paper set-window"
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t`Settings`} className="pliage-modal-glow pliage-settle-in touch-settings theme-paper set-window"
         style={{ width: 'min(1480px, calc(100vw - 32px))', height: `min(1000px, ${MODAL_MAX_HEIGHT})`, ...placed }}>
         {/* ── Header (drag handle): title | search | close ── */}
         <div onPointerDown={onDragStart} className="o-window-head set-head">
@@ -160,11 +160,11 @@ export default function SettingsWindow() {
                 )
               })}
             </div>
-            {/* ── ORFEO + version (opens GitHub) | update check ── */}
+            {/* ── PLIAGE + version (opens GitHub) | update check ── */}
             <div className="set-about" data-dot={dot ? undefined : 'off'}>
-              <Tooltip title="Open Orfeo on GitHub" oneLine placement="top">
+              <Tooltip title="Open Pliage on GitHub" oneLine placement="top">
                 <button className="o-link" onClick={() => window.electronAPI.openExternal('https://github.com/Squarebow/Orfeo')}>
-                  Orfeo v{displayVersion(__APP_VERSION__)}
+                  Pliage v{displayVersion(__APP_VERSION__)}
                 </button>
               </Tooltip>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><DevModeBadge /><RateButton placement="top" /><UpdateButton placement="top" showStatus={false} /></div>

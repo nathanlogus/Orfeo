@@ -94,7 +94,7 @@ export default function LockedChordModal() {
 
   // ── Play all locked notes ─────────────────────────────────────────────────
   const playLockedChord = useCallback(() => {
-    const playNote = (window as any).__orfeoPlayNote
+    const playNote = (window as any).__pliagePlayNote
     if (!playNote) return
     lockedKeys.forEach(midi => playNote(midi, 0.75, 800, undefined, false))
   }, [lockedKeys])
@@ -107,7 +107,7 @@ export default function LockedChordModal() {
     setLockedKeys(newKeys, newColors)
     const s = useStore.getState()
     s.setLockedInversionCount(s.lockedInversionCount + direction)
-    const playNote = (window as any).__orfeoPlayNote
+    const playNote = (window as any).__pliagePlayNote
     if (playNote) newKeys.forEach(midi => playNote(midi, 0.7, 600, undefined, false))
   }, [lockedKeys, setLockedKeys])
 
@@ -154,7 +154,7 @@ export default function LockedChordModal() {
   const notes = Array.from(lockedKeys).sort((a, b) => a - b).map(m => getNoteName(m, noteNaming, accidentals))
 
   return (
-    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Lock-a-Chord" data-instant className="orfeo-modal-glow app-no-drag theme-paper xp-lock" style={{
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Lock-a-Chord" data-instant className="pliage-modal-glow app-no-drag theme-paper xp-lock" style={{
       left: pos.x,
       top: pos.y,
       '--_modal-shadow': 'var(--elevation-modal)',

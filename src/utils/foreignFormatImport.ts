@@ -7,8 +7,9 @@
 import { useStore } from '../store';
 import { confirmDialog } from './confirmController';
 import { findImportSource, leftHandChannels, withTextEvents, type ScoreSource } from './scoreSource';
+import { legacyImportPath, SAVED_WORD } from './legacyNames';
 
-const HAND_HINT = 'ORFEO_TRACK_HAND:';
+const HAND_HINT = new RegExp(`${SAVED_WORD}_TRACK_HAND:`);
 
 export type ForeignFormat = 'musicxml' | 'guitarpro' | 'capella';
 
@@ -115,7 +116,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return btoa(result);
 }
 
-// ── Compute cache path inside the library's Orfeo/ subfolder ─────────────
+// ── Compute cache path inside the library's Pliage/ subfolder ─────────────
 // Falls back to a sibling path only if no library folder is configured.
 export function getCachePath(sourcePath: string, libraryFolder: string | null): string {
   const fileName = sourcePath.replace(/\\/g, '/').split('/').pop()!;
@@ -123,11 +124,11 @@ export function getCachePath(sourcePath: string, libraryFolder: string | null): 
   const stem     = lastDot > -1 ? fileName.slice(0, lastDot) : fileName;
 
   if (libraryFolder) {
-    return `${libraryFolder.replace(/\\/g, '/')}/Orfeo/${stem}_ORFEO_IMPORTED.mid`;
+    return `${libraryFolder.replace(/\\/g, '/')}/Pliage/${stem}_PLIAGE_IMPORTED.mid`;
   }
   // Fallback: write beside the source (rare — user hasn't configured a library folder).
   const dir = sourcePath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
-  return `${dir}/${stem}_ORFEO_IMPORTED.mid`;
+  return `${dir}/${stem}_PLIAGE_IMPORTED.mid`;
 }
 
 // ── Resolve source file to playable MIDI base64 ───────────────────────────
@@ -149,14 +150,18 @@ export async function resolveToMidiBase64(
   const cachePath = getCachePath(filePath, libraryFolder);
   // getCachedImport and writeCachedImport are wired in Task 5.
   // Cast via any to avoid type errors in this task.
-  const cached = await (window.electronAPI as any).getCachedImport(filePath, cachePath);
+  let cached = await (window.electronAPI as any).getCachedImport(filePath, cachePath);
+  if (!cached) {
+    cached = await (window.electronAPI as any).getCachedImport(filePath, legacyImportPath(cachePath));
+    if (cached) await (window.electronAPI as any).writeCachedImport(cachePath, cached);
+  }
   if (cached) {
     // A copy saved before hands came from the sheet gets them now. It only
-    // ever holds this conversion, as edits save to their own _ORFEO_vN.
-    if (!atob(cached).includes(HAND_HINT)) {
+    // ever holds this conversion, as edits save to their own _PLIAGE_vN.
+    if (!HAND_HINT.test(atob(cached))) {
       const fresh = await convertForeignFileToMidiBuffer(base64ToBytes(originalBase64), format).catch(() => null);
       const freshBase64 = fresh && bytesToBase64(new Uint8Array(fresh));
-      if (freshBase64 && atob(freshBase64).includes(HAND_HINT)) {
+      if (freshBase64 && HAND_HINT.test(atob(freshBase64))) {
         await (window.electronAPI as any).writeCachedImport(cachePath, freshBase64);
         return { base64: freshBase64, resolvedPath: cachePath, isPendingSave: false };
       }
@@ -281,9 +286,9 @@ export async function confirmPendingImportBeforeSwitch(
   return true;
 }
 
-// ── Gate before opening any Orfeo editing tool (MIDI Playback Editor, Note
+// ── Gate before opening any Pliage editing tool (MIDI Playback Editor, Note
 // Editor) on the currently loaded file — editing an imported foreign-format
-// file that only exists in memory has nowhere real to save its _ORFEO_v1,
+// file that only exists in memory has nowhere real to save its _PLIAGE_v1,
 // so it must be written to disk as an actual .mid first. Unlike
 // confirmPendingImportBeforeSwitch, "Don't Save" isn't offered here — there's
 // no sensible "edit but don't save the base file" option. Returns true (and
@@ -299,7 +304,7 @@ export async function confirmPendingImportBeforeEdit(): Promise<boolean> {
 
   const choice = await confirmDialog({
     message: `Save "${pendingImportedFile.fileName}" as a MIDI file before editing?`,
-    detail: `Orfeo's editing tools only work on real .mid files. This saves a copy at:\n${cachePath}\n\nThe original ${pendingImportedFile.fileName} is never modified.`,
+    detail: `Pliage's editing tools only work on real .mid files. This saves a copy at:\n${cachePath}\n\nThe original ${pendingImportedFile.fileName} is never modified.`,
     buttons: ['Save as MID', 'Cancel'],
   });
 

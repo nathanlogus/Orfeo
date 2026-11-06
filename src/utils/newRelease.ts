@@ -1,4 +1,4 @@
-// ── Is there a newer Orfeo to download? For builds that can't update themselves
+// ── Is there a newer Pliage to download? For builds that can't update themselves
 // (Mac, Linux, portable): main asks GitHub once at launch and the update button
 // shows a dot. Windows publishes first and Mac and Linux join a little later, so
 // a release only counts once it has this system's download. ───────────────────

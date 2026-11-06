@@ -5,6 +5,8 @@ import { execFile } from 'child_process'
 import { readFileSync, writeFileSync, existsSync, readdirSync, createWriteStream, statSync, renameSync, unlinkSync } from 'fs'
 import { mkdir, access, copyFile, readdir, rename, rmdir, writeFile } from 'fs/promises'
 import { Midi } from '@tonejs/midi'
+import { isOutputFolder, LEGACY_OUTPUT_FOLDER, SAVED_WORD, upgradeMarkers } from '../src/utils/legacyNames'
+import { migrateUserData } from './migrateUserData'
 import { Chord, Note } from 'tonal'
 import PDFDocument from 'pdfkit'
 import { assignHands } from '../src/utils/handAssignment'
@@ -13,16 +15,16 @@ import { getGMGroup } from '../src/utils/gmInstruments'
 import { exportsDir, nextFreeName, safeExportBaseName } from './exportName'
 import { DISCOVERY_PORT, DISCOVERY_PROBE, discoveredAddress, percentCounter, safeSongPath, serverUrl, songServerDest } from './songServer'
 import { KEYBOARD_GROUPS } from '../src/utils/keyboardGroups'
-import { nextOrfeoVersion, stripOrfeoSuffix } from '../src/utils/orfeoVersioning'
+import { nextPliageVersion, stripPliageSuffix } from '../src/utils/pliageVersioning'
 import { downloadEnding, newerRelease } from '../src/utils/newRelease'
 import type { Hand } from '../src/types'
 
-// ── Electron defaults app.getName() to package.json's "name" ("orfeo"),
-// not "productName" ("Orfeo") — that name feeds app.getPath('userData'),
+// ── Electron defaults app.getName() to package.json's "name" ("pliage"),
+// not "productName" ("Pliage") — that name feeds app.getPath('userData'),
 // so without this every userData path (prefs, Demo/, soundfonts/, file
-// log) lands in a lowercase %APPDATA%\orfeo\ folder. Must run before any
+// log) lands in a lowercase %APPDATA%\pliage\ folder. Must run before any
 // app.getPath('userData') call anywhere in this file. ──────────────────────
-app.setName('Orfeo')
+app.setName('Pliage')
 
 // ── Module-level window reference — needed by the close handler and IPC send ──────
 let mainWin: BrowserWindow | null = null
@@ -68,20 +70,20 @@ async function ensureDemoFolder(): Promise<void> {
   await copyDemoFilesRecursive(srcDir, targetDir)
 }
 
-// ── Resolve (and auto-create) the Orfeo output subfolder for a given source file ──
-// If the source is already inside an Orfeo/ subfolder, step up to its parent so
-// output always lands in a single Orfeo/ level — never Orfeo/Orfeo/.
-async function getOrfeoOutputDir(sourceFilePath: string): Promise<string> {
+// ── Resolve (and auto-create) the Pliage output subfolder for a given source file ──
+// If the source is already inside a Pliage/ subfolder, step up to its parent so
+// output always lands in a single Pliage/ level — never Pliage/Pliage/.
+async function getPliageOutputDir(sourceFilePath: string): Promise<string> {
   const sourceDir = dirname(sourceFilePath)
-  const baseDir   = basename(sourceDir).toLowerCase() === 'orfeo' ? dirname(sourceDir) : sourceDir
-  const orfeoDir  = join(baseDir, 'Orfeo')
-  await mkdir(orfeoDir, { recursive: true })
-  return orfeoDir
+  const baseDir   = isOutputFolder(basename(sourceDir)) ? dirname(sourceDir) : sourceDir
+  const pliageDir  = join(baseDir, 'Pliage')
+  await mkdir(pliageDir, { recursive: true })
+  return pliageDir
 }
 
-// ── Next available _ORFEO_vN output path — scans the actual Orfeo/ folder
-// for existing versions instead of trusting nextOrfeoVersion(rawBase) alone.
-// orfeoVersioning.ts computes the next number purely from the currently-
+// ── Next available _PLIAGE_vN output path — scans the actual Pliage/ folder
+// for existing versions instead of trusting nextPliageVersion(rawBase) alone.
+// pliageVersioning.ts computes the next number purely from the currently-
 // loaded file's OWN name — correct only if you always keep editing the
 // freshly-reloaded result. Reopen an unversioned original later (e.g. via
 // Favorites, which still points at the original after prior sessions
@@ -91,19 +93,22 @@ async function getOrfeoOutputDir(sourceFilePath: string): Promise<string> {
 // missing — it just clobbered an old version under the same name instead
 // of ever creating a new one. Scanning the directory for the real max in
 // use makes every save land on a genuinely unused filename. ────────────────
-function nextAvailableOrfeoPath(orfeoDir: string, rawBase: string): string {
-  const strippedBase = stripOrfeoSuffix(rawBase)
+function nextAvailablePliagePath(pliageDir: string, rawBase: string): string {
+  const strippedBase = stripPliageSuffix(rawBase)
   const escaped = strippedBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const versionRe = new RegExp(`^${escaped}_ORFEO_v(\\d+)\\.mid$`, 'i')
+  const versionRe = new RegExp(`^${escaped}_${SAVED_WORD}_v(\\d+)\\.mid$`, 'i')
   let existingMax = 0
-  try {
-    for (const name of readdirSync(orfeoDir)) {
-      const m = name.match(versionRe)
-      if (m) existingMax = Math.max(existingMax, parseInt(m[1], 10))
-    }
-  } catch {}
-  const version = Math.max(existingMax + 1, nextOrfeoVersion(rawBase))
-  return join(orfeoDir, `${strippedBase}_ORFEO_v${version}.mid`)
+  // Versions saved before the rename sit in the older folder beside this one
+  for (const dir of [pliageDir, join(dirname(pliageDir), LEGACY_OUTPUT_FOLDER)]) {
+    try {
+      for (const name of readdirSync(dir)) {
+        const m = name.match(versionRe)
+        if (m) existingMax = Math.max(existingMax, parseInt(m[1], 10))
+      }
+    } catch {}
+  }
+  const version = Math.max(existingMax + 1, nextPliageVersion(rawBase))
+  return join(pliageDir, `${strippedBase}_PLIAGE_v${version}.mid`)
 }
 
 // ── Main window ────────────────────────────────────────────────────────────
@@ -178,7 +183,7 @@ function createWindow() {
 }
 
 // ── Prefs ──────────────────────────────────────────────────────────────────
-function getPrefsPath() { return join(app.getPath('userData'), 'orfeo-prefs.json') }
+function getPrefsPath() { return join(app.getPath('userData'), 'pliage-prefs.json') }
 function loadPrefs(): Record<string, any> {
   try { const p = getPrefsPath(); if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf-8')) } catch {}
   return {}
@@ -207,7 +212,7 @@ ipcMain.handle('prefs:set', async (_e, data) => savePrefs(data))
 // keyboard shortcut (via before-input-event, set up in createWindow) and
 // the Settings → Appearance control (via the zoom:set IPC handler below)
 // both funnel through applyZoom, so they can never disagree, and prefs
-// persistence reuses the existing orfeo-prefs.json read/write above rather
+// persistence reuses the existing pliage-prefs.json read/write above rather
 // than round-tripping through the renderer's own store. ───────────────────
 const ZOOM_STEPS = [80, 90, 100, 110, 125, 150, 175, 200]
 let currentZoomPercent = 100
@@ -262,9 +267,9 @@ ipcMain.handle('zoom:set', async (_e, percent: number) => {
 // ── File info change log — two sources, merged on read.
 //
 // Content-changing saves (mixer:save, tempoKey:save, noteEditor:save) embed
-// their own history entries directly into the .mid file as ORFEO_HISTORY
+// their own history entries directly into the .mid file as PLIAGE_HISTORY
 // text meta-events (see historyMetaText/parseHistoryFromMidi below) — same
-// convention as ORFEO_KEY/ORFEO_TRACK_NAME. This used to be sidecar-only
+// convention as PLIAGE_KEY/PLIAGE_TRACK_NAME. This used to be sidecar-only
 // (a JSON file in userData, keyed by path), which meant the history was
 // only ever as durable as one specific install: switching between the
 // portable build (userData redirected next to the exe — see
@@ -278,7 +283,7 @@ ipcMain.handle('zoom:set', async (_e, percent: number) => {
 // a filename change. Lower stakes than losing actual edits, so left as-is.
 interface FileLogEvent { type: string; timestamp: number; summary: string }
 function normLogPath(p: string) { return p.replace(/\\/g, '/') }
-function getFileLogPath() { return join(app.getPath('userData'), 'orfeo-file-log.json') }
+function getFileLogPath() { return join(app.getPath('userData'), 'pliage-file-log.json') }
 function loadFileLog(): Record<string, FileLogEvent[]> {
   try { const p = getFileLogPath(); if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf-8')) } catch {}
   return {}
@@ -310,19 +315,19 @@ function remapFileLog(pairs: { oldPath: string; newPath: string }[]) {
 }
 
 // ── Embedded history meta-events — text format is
-// "ORFEO_HISTORY:<timestamp>:<type>:<summary>". summary is free text (may
+// "PLIAGE_HISTORY:<timestamp>:<type>:<summary>". summary is free text (may
 // itself contain colons, e.g. quoted filenames), so parsing splits on the
 // first two colons only and takes the rest verbatim, same approach as
-// every other ORFEO_* text-meta convention in this file.
+// every other PLIAGE_* text-meta convention in this file.
 function historyMetaText(event: FileLogEvent): string {
-  return `ORFEO_HISTORY:${event.timestamp}:${event.type}:${event.summary}`
+  return `PLIAGE_HISTORY:${event.timestamp}:${event.type}:${event.summary}`
 }
 function parseHistoryFromMidi(midi: Midi): FileLogEvent[] {
   const meta: any[] = (midi.header as any).meta ?? []
   const events: FileLogEvent[] = []
   for (const m of meta) {
-    if (typeof m.text !== 'string' || !m.text.startsWith('ORFEO_HISTORY:')) continue
-    const rest = m.text.slice('ORFEO_HISTORY:'.length)
+    if (typeof m.text !== 'string' || !m.text.startsWith('PLIAGE_HISTORY:')) continue
+    const rest = m.text.slice('PLIAGE_HISTORY:'.length)
     const firstColon = rest.indexOf(':')
     const secondColon = firstColon >= 0 ? rest.indexOf(':', firstColon + 1) : -1
     if (firstColon < 0 || secondColon < 0) continue
@@ -337,7 +342,7 @@ function parseHistoryFromMidi(midi: Midi): FileLogEvent[] {
 ipcMain.handle('fileinfo:getLog', async (_e, filePath: string) => {
   const sidecar = loadFileLog()[normLogPath(filePath)] ?? []
   let embedded: FileLogEvent[] = []
-  try { embedded = parseHistoryFromMidi(new Midi(readFileSync(filePath))) } catch {}
+  try { embedded = parseHistoryFromMidi(upgradeMarkers(new Midi(readFileSync(filePath)))) } catch {}
   return [...embedded, ...sidecar].sort((a, b) => a.timestamp - b.timestamp)
 })
 ipcMain.handle('fileinfo:logEvent', async (_e, filePath: string, type: string, summary: string) => {
@@ -345,20 +350,25 @@ ipcMain.handle('fileinfo:logEvent', async (_e, filePath: string, type: string, s
 })
 
 // ── Version chain — no separate storage, just siblings in the same folder
-// that share the stripped base name (see src/utils/orfeoVersioning.ts).
+// that share the stripped base name (see src/utils/pliageVersioning.ts).
 // version 0 = the original, unsuffixed file. ────────────────────────────
 ipcMain.handle('fileinfo:listVersions', async (_e, filePath: string) => {
   try {
     const dir = dirname(filePath)
-    const strippedTarget = stripOrfeoSuffix(basename(filePath).replace(/\.midi?$/i, ''))
+    const strippedTarget = stripPliageSuffix(basename(filePath).replace(/\.midi?$/i, ''))
     const versions: { name: string; path: string; version: number; mtime: number }[] = []
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (!entry.isFile() || !/\.midi?$/i.test(entry.name)) continue
-      const base = entry.name.replace(/\.midi?$/i, '')
-      if (stripOrfeoSuffix(base) !== strippedTarget) continue
-      const m = base.match(/_ORFEO_v(\d+)$/i)
-      const entryPath = join(dir, entry.name)
-      versions.push({ name: entry.name, path: entryPath, version: m ? parseInt(m[1], 10) : 0, mtime: statSync(entryPath).mtimeMs })
+    // A song's versions may span both output folders: the old one and the new
+    const dirs = isOutputFolder(basename(dir)) ? [join(dirname(dir), 'Pliage'), join(dirname(dir), LEGACY_OUTPUT_FOLDER)] : [dir]
+    for (const from of dirs) {
+      if (!existsSync(from)) continue
+      for (const entry of readdirSync(from, { withFileTypes: true })) {
+        if (!entry.isFile() || !/\.midi?$/i.test(entry.name)) continue
+        const base = entry.name.replace(/\.midi?$/i, '')
+        if (stripPliageSuffix(base) !== strippedTarget) continue
+        const m = base.match(new RegExp(`_${SAVED_WORD}_v(\\d+)$`, 'i'))
+        const entryPath = join(from, entry.name)
+        versions.push({ name: entry.name, path: entryPath, version: m ? parseInt(m[1], 10) : 0, mtime: statSync(entryPath).mtimeMs })
+      }
     }
     return versions.sort((a, b) => a.version - b.version)
   } catch {
@@ -416,7 +426,7 @@ function soundfontPath(id: string): string | null {
 
 // ── Native audio engine (beta) ────────────────────────────────────────────
 // The engine runs in its own utility process (electron/audioHost.ts): a crash
-// there restarts the sound, it doesn't close Orfeo. The renderer asks to
+// there restarts the sound, it doesn't close Pliage. The renderer asks to
 // connect; main starts the process if needed and hands each side one end of a
 // MessageChannel, so commands and status never pass through main afterwards.
 // Dev: native/build (scripts/build-native.mjs). Packaged: resources/native.
@@ -433,10 +443,10 @@ function bundledSoundfontPath() {
 let audioHost: UtilityProcess | null = null
 function connectAudioHost(): { ok: boolean; reason?: string } {
   if (process.platform !== 'win32') return { ok: false, reason: 'The native engine is Windows-only for now.' }
-  const addon = join(nativeDir(), 'orfeo_audio.node')
+  const addon = join(nativeDir(), 'pliage_audio.node')
   if (!existsSync(addon)) return { ok: false, reason: `Native engine not built (${addon} missing) — run npm run native:build.` }
   if (!audioHost) {
-    audioHost = utilityProcess.fork(join(__dirname, 'audioHost.js'), [], { serviceName: 'Orfeo Audio' })
+    audioHost = utilityProcess.fork(join(__dirname, 'audioHost.js'), [], { serviceName: 'Pliage Audio' })
     audioHost.on('exit', (code) => {
       audioHost = null
       // On quit the window is already gone — nobody left to restart the sound for
@@ -648,7 +658,7 @@ ipcMain.handle('songServer:query', async (_e, address: string, query: Record<str
 })
 
 // A song that changed on the server comes down again; edits are never lost that
-// way, since the app saves those as new files in Orfeo/
+// way, since the app saves those as new files in Pliage/
 ipcMain.handle('songServer:download', async (e, address: string, path: string, size: number) => {
   if (!safeSongPath(path)) throw new Error('not a song path')
   const dest = songServerDest(songServerRoot(), path)
@@ -685,7 +695,7 @@ ipcMain.handle('dialog:openFolder', async () => {
   savePrefs({ libraryFolder: folderPath })
   // ── Before a library folder exists, ensureDemoFolder() falls back to
   // userData/Demo — so any edits saved while browsing that fallback demo
-  // (getOrfeoOutputDir writes them to userData/Demo/Orfeo/, sibling to the
+  // (getPliageOutputDir writes them to userData/Demo/Pliage/, sibling to the
   // source file) live there. The Library view only shows userData/Demo
   // while no library is set, so without this they'd become permanently
   // invisible — still on disk, but nowhere the app ever looks again — the
@@ -696,7 +706,7 @@ ipcMain.handle('dialog:openFolder', async () => {
   const fallbackDemoDir = join(app.getPath('userData'), 'Demo')
   if (existsSync(fallbackDemoDir)) {
     try { await copyDemoFilesRecursive(fallbackDemoDir, join(folderPath, 'Demo')) }
-    catch (e) { console.error('[Orfeo] fallback Demo migration failed:', e) }
+    catch (e) { console.error('[Pliage] fallback Demo migration failed:', e) }
   }
   return folderPath
 })
@@ -727,7 +737,7 @@ ipcMain.handle('fs:statFiles', async (_e, paths: string[]) => {
   return out
 })
 
-// ── Export to audio: writes the finished file to <library>/Orfeo/Exports,
+// ── Export to audio: writes the finished file to <library>/Pliage/Exports,
 // never over an existing one (wx: two exports at once can't collide either)
 ipcMain.handle('export:save', async (_e, songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => {
   const dir = exportsDir(libraryFolder, app.getPath('music'))
@@ -797,20 +807,20 @@ ipcMain.handle('fs:copyMidiToLibrary', async (_e, sourcePath: string, libraryFol
 })
 
 // ── Library folder management — create/rename/delete/move, all scoped to
-// libraryFolder. `Demo` and `Orfeo` are reserved: never renamed, deleted, or
+// libraryFolder. `Demo` and `Pliage` are reserved: never renamed, deleted, or
 // used as a move destination. ──────────────────────────────────────────────
 function isProtectedFolderName(name: string): boolean {
   const n = name.toLowerCase()
-  return n === 'demo' || n === 'orfeo'
+  return n === 'demo' || isOutputFolder(n)
 }
 
 // ── Narrower than isProtectedFolderName — for FILES inside a protected
-// folder, not the folder itself. "Orfeo" isn't actually one well-known
-// folder: getOrfeoOutputDir() creates one beside every source file, so
-// literally every saved version lives inside a folder named "Orfeo". Using
+// folder, not the folder itself. "Pliage" isn't actually one well-known
+// folder: getPliageOutputDir() creates one beside every source file, so
+// literally every saved version lives inside a folder named "Pliage". Using
 // isProtectedFolderName for file-level checks blocked renaming/moving any
 // version ever saved. Demo is genuinely read-only bundled content and stays
-// blocked; Orfeo is the user's own generated output and shouldn't be. ───────
+// blocked; Pliage is the user's own generated output and shouldn't be. ───────
 function isReadOnlyFolderName(name: string): boolean {
   return name.toLowerCase() === 'demo'
 }
@@ -963,17 +973,17 @@ ipcMain.handle('editor:save', async (_e, payload: {
   // ── Tempo/Key fold-in — set only when the Playback Editor's "Save Tempo
   // & Key changes" toggle is on and BPM/transpose are dirty; same fields
   // tempoKey:save takes below, folded into this write so one Save & Reload
-  // click mints exactly one _ORFEO_vN instead of two. ─────────────────────
+  // click mints exactly one _PLIAGE_vN instead of two. ─────────────────────
   bpmRatio?: number
   transposeSemitones?: number
   finalKey?: { semitone: number; isMinor: boolean }
 }) => {
   try {
     if (!payload.filePath) return { ok: false, message: 'No source file loaded' }
-    const midi = new Midi(readFileSync(payload.filePath))
+    const midi = upgradeMarkers(new Midi(readFileSync(payload.filePath)))
 
     // ── Restore any hand tags the file already carries — name-suffix (whole-
-    // track) or ORFEO_HAND_MAP (mixed-track, now possibly with a parallel
+    // track) or PLIAGE_HAND_MAP (mixed-track, now possibly with a parallel
     // handSource RLE channel) — BEFORE any split/merge/re-tag logic below
     // runs. Without this, every save recomputed hands from scratch and
     // silently discarded any manual correction already embedded in the file
@@ -982,7 +992,7 @@ ipcMain.handle('editor:save', async (_e, payload: {
     // own hints at all). Indexed by raw array position, not a `.index`
     // field — @tonejs/midi's Track has none; `parsed.trackIndex` was written
     // by this same save handler's `includedInOrder` positions, which is
-    // exactly the array order a fresh read of an Orfeo-saved file has. ─────
+    // exactly the array order a fresh read of a Pliage-saved file has. ─────
     for (let i = 0; i < midi.tracks.length; i++) {
       const hand = nameHandFromSuffix(midi.tracks[i].name)
       if (!hand) continue
@@ -1018,11 +1028,11 @@ ipcMain.handle('editor:save', async (_e, payload: {
       }
     }
 
-    // ── Resolve output path into Orfeo/ subfolder — always the next _ORFEO_vN,
-    // never overwrites a prior save (see src/utils/orfeoVersioning.ts). ────────
-    const orfeoDir   = await getOrfeoOutputDir(payload.filePath)
+    // ── Resolve output path into Pliage/ subfolder — always the next _PLIAGE_vN,
+    // never overwrites a prior save (see src/utils/pliageVersioning.ts). ────────
+    const pliageDir   = await getPliageOutputDir(payload.filePath)
     const rawBase    = basename(payload.filePath).replace(/\.midi?$/i, '')
-    const outputPath = nextAvailableOrfeoPath(orfeoDir, rawBase)
+    const outputPath = nextAvailablePliagePath(pliageDir, rawBase)
 
     const noteTrackIndices: number[] = []
     midi.tracks.forEach((t, i) => { if (t.notes.length > 0) noteTrackIndices.push(i) })
@@ -1035,7 +1045,7 @@ ipcMain.handle('editor:save', async (_e, payload: {
     // "editor:split" IPC used, but folded into this one save instead of its
     // own separate disk write. This is what makes split a staged edit like
     // merge/color/instrument reassignment: nothing hits disk until Save &
-    // Reload, and the whole session becomes exactly one _ORFEO_vN. ──────────
+    // Reload, and the whole session becomes exactly one _PLIAGE_vN. ──────────
     const splitByOrigin = new Map<number, { L?: typeof payload.includedTracks[0]; R?: typeof payload.includedTracks[0] }>()
     for (const it of payload.includedTracks) {
       if (!it.splitHand) continue
@@ -1160,7 +1170,7 @@ ipcMain.handle('editor:save', async (_e, payload: {
       sourcesByRawIdx.set(rawIdx, sources)
     }
 
-    // ── Inject ORFEO_TRACK_NAME / ORFEO_TRACK_COLOR text meta-events for each
+    // ── Inject PLIAGE_TRACK_NAME / PLIAGE_TRACK_COLOR text meta-events for each
     // output track that carries one — name/color now travel directly on each
     // includedTracks entry (see `resolved` above) instead of separate side
     // maps, so split halves (whose editor row isn't a plain noteTrackIndices
@@ -1171,26 +1181,26 @@ ipcMain.handle('editor:save', async (_e, payload: {
     const existingMeta = (midi.header as any).meta ?? []
     ;(midi.header as any).meta = existingMeta.filter((m: any) =>
       !(typeof m.text === 'string' && (
-        m.text.startsWith('ORFEO_TRACK_NAME:') || m.text.startsWith('ORFEO_TRACK_COLOR:') || m.text.startsWith('ORFEO_TRACK_HAND:') ||
-        m.text.startsWith('ORFEO_TRACK_VISIBLE:') || m.text.startsWith('ORFEO_TRACK_KEYBOARD:')
+        m.text.startsWith('PLIAGE_TRACK_NAME:') || m.text.startsWith('PLIAGE_TRACK_COLOR:') || m.text.startsWith('PLIAGE_TRACK_HAND:') ||
+        m.text.startsWith('PLIAGE_TRACK_VISIBLE:') || m.text.startsWith('PLIAGE_TRACK_KEYBOARD:')
       ))
     )
     includedInOrder.forEach((rawIdx, outIdx) => {
       const entry = rawToEntry.get(rawIdx)
-      if (entry?.name) (midi.header as any).meta.push({ type: 'text', text: `ORFEO_TRACK_NAME:${outIdx}:${entry.name}`, ticks: 0 })
-      if (entry?.color) (midi.header as any).meta.push({ type: 'text', text: `ORFEO_TRACK_COLOR:${outIdx}:${entry.color}`, ticks: 0 })
-      if (entry?.visible !== undefined) (midi.header as any).meta.push({ type: 'text', text: `ORFEO_TRACK_VISIBLE:${outIdx}:${entry.visible ? 1 : 0}`, ticks: 0 })
-      if (entry?.showOnKeyboard !== undefined) (midi.header as any).meta.push({ type: 'text', text: `ORFEO_TRACK_KEYBOARD:${outIdx}:${entry.showOnKeyboard ? 1 : 0}`, ticks: 0 })
+      if (entry?.name) (midi.header as any).meta.push({ type: 'text', text: `PLIAGE_TRACK_NAME:${outIdx}:${entry.name}`, ticks: 0 })
+      if (entry?.color) (midi.header as any).meta.push({ type: 'text', text: `PLIAGE_TRACK_COLOR:${outIdx}:${entry.color}`, ticks: 0 })
+      if (entry?.visible !== undefined) (midi.header as any).meta.push({ type: 'text', text: `PLIAGE_TRACK_VISIBLE:${outIdx}:${entry.visible ? 1 : 0}`, ticks: 0 })
+      if (entry?.showOnKeyboard !== undefined) (midi.header as any).meta.push({ type: 'text', text: `PLIAGE_TRACK_KEYBOARD:${outIdx}:${entry.showOnKeyboard ? 1 : 0}`, ticks: 0 })
     })
 
     // ── Inject hand-assignment export hint for every tagged track ─────────────
     // Homogeneous track (every note the same hand) → " (RH)"/" (LH)" name
-    // suffix. Mixed track → ORFEO_HAND_MAP RLE text meta. Neither is real MIDI
+    // suffix. Mixed track → PLIAGE_HAND_MAP RLE text meta. Neither is real MIDI
     // clef data — see src/utils/handMetadata.ts.
     if (handsByRawIdx.size > 0) {
       const existingMeta = (midi.header as any).meta ?? []
       ;(midi.header as any).meta = existingMeta.filter(
-        (m: any) => !(typeof m.text === 'string' && m.text.startsWith('ORFEO_HAND_MAP:'))
+        (m: any) => !(typeof m.text === 'string' && m.text.startsWith('PLIAGE_HAND_MAP:'))
       )
       includedInOrder.forEach((rawIdx, outIdx) => {
         const hands = handsByRawIdx.get(rawIdx)
@@ -1208,7 +1218,7 @@ ipcMain.handle('editor:save', async (_e, payload: {
 
     // ── Tempo/Key fold-in — same math as tempoKey:save below (scale every
     // tempo event by bpmRatio, shift every non-drum note by
-    // transposeSemitones, stamp ORFEO_KEY since @tonejs/midi's own key-
+    // transposeSemitones, stamp PLIAGE_KEY since @tonejs/midi's own key-
     // signature encoder silently drops it on any re-save). Runs after
     // exclusion so it only touches tracks actually being written. ──────────
     if (payload.bpmRatio && payload.bpmRatio !== 1) {
@@ -1229,12 +1239,12 @@ ipcMain.handle('editor:save', async (_e, payload: {
     if (payload.finalKey) {
       ;((midi.header as any).meta ??= []).push({
         type: 'text', ticks: 0,
-        text: `ORFEO_KEY:${payload.finalKey.semitone}:${payload.finalKey.isMinor ? 'minor' : 'major'}`,
+        text: `PLIAGE_KEY:${payload.finalKey.semitone}:${payload.finalKey.isMinor ? 'minor' : 'major'}`,
       })
     }
 
     // ── Build a human-readable summary of what this save actually changed,
-    // for the embedded ORFEO_HISTORY entry — this handler covers renames,
+    // for the embedded PLIAGE_HISTORY entry — this handler covers renames,
     // recolors, splits, merges, and an optional tempo/key fold-in, so no
     // single fixed message fits every save. ──────────────────────────────
     const editSummaryParts: string[] = []
@@ -1265,14 +1275,14 @@ ipcMain.handle('editor:save', async (_e, payload: {
 // ── Mixer Console — persist per-channel volume/pan/reverb/chorus into the file ──
 // Flattens each CC to a single static value at time 0 (the mixer UI never
 // represented automation, only one value per channel), writes through the same
-// _ORFEO_vN versioning as editor:save, and logs one changelog entry.
+// _PLIAGE_vN versioning as editor:save, and logs one changelog entry.
 ipcMain.handle('mixer:save', async (_e, payload: {
   filePath: string
   channels: { index: number; volume: number; pan: number; chorus: number; reverb: number }[]
 }) => {
   try {
     if (!payload.filePath) return { ok: false, message: 'No source file loaded' }
-    const midi = new Midi(readFileSync(payload.filePath))
+    const midi = upgradeMarkers(new Midi(readFileSync(payload.filePath)))
 
     const noteTrackIndices: number[] = []
     midi.tracks.forEach((t, i) => { if (t.notes.length > 0) noteTrackIndices.push(i) })
@@ -1300,9 +1310,9 @@ ipcMain.handle('mixer:save', async (_e, payload: {
       }),
     })
 
-    const orfeoDir   = await getOrfeoOutputDir(payload.filePath)
+    const pliageDir   = await getPliageOutputDir(payload.filePath)
     const rawBase    = basename(payload.filePath).replace(/\.midi?$/i, '')
-    const outputPath = nextAvailableOrfeoPath(orfeoDir, rawBase)
+    const outputPath = nextAvailablePliagePath(pliageDir, rawBase)
 
     const outBuf = Buffer.from(midi.toArray())
     writeFileSync(outputPath, outBuf)
@@ -1315,7 +1325,7 @@ ipcMain.handle('mixer:save', async (_e, payload: {
 })
 
 // ── Tempo/Key save — bakes the session's BPM and transpose changes into a
-// real new _ORFEO_vN copy, same versioning convention as every other save
+// real new _PLIAGE_vN copy, same versioning convention as every other save
 // here. Tempo: every existing tempo event scaled by bpmRatio (current bpm /
 // the file's original bpm) — preserves rubato shape instead of flattening
 // to one constant BPM. Transpose: every note's own pitch shifted by
@@ -1328,7 +1338,7 @@ ipcMain.handle('tempoKey:save', async (_e, payload: {
 }) => {
   try {
     if (!payload.filePath) return { ok: false, message: 'No source file loaded' }
-    const midi = new Midi(readFileSync(payload.filePath))
+    const midi = upgradeMarkers(new Midi(readFileSync(payload.filePath)))
 
     if (payload.bpmRatio !== 1) {
       if (midi.header.tempos.length === 0) {
@@ -1353,8 +1363,8 @@ ipcMain.handle('tempoKey:save', async (_e, payload: {
     // no transpose involved) that its encoder has its own bug and drops
     // the value entirely, regardless of what's written into `.key` first.
     // Not something to fix by writing a "more correct" key.key string —
-    // bypass the native encoding altogether with Orfeo's own custom-meta
-    // convention (same pattern as ORFEO_TRACK_NAME/COLOR), which actually
+    // bypass the native encoding altogether with Pliage's own custom-meta
+    // convention (same pattern as PLIAGE_TRACK_NAME/COLOR), which actually
     // round-trips reliably. midiParser.ts reads this back with priority
     // over the (unreliable) native key signature. Written whenever the
     // current key is known, not just when transposeSemitones !== 0 — a
@@ -1363,7 +1373,7 @@ ipcMain.handle('tempoKey:save', async (_e, payload: {
     if (payload.finalKey) {
       ;((midi.header as any).meta ??= []).push({
         type: 'text', ticks: 0,
-        text: `ORFEO_KEY:${payload.finalKey.semitone}:${payload.finalKey.isMinor ? 'minor' : 'major'}`,
+        text: `PLIAGE_KEY:${payload.finalKey.semitone}:${payload.finalKey.isMinor ? 'minor' : 'major'}`,
       })
     }
     ;((midi.header as any).meta ??= []).push({
@@ -1371,9 +1381,9 @@ ipcMain.handle('tempoKey:save', async (_e, payload: {
       text: historyMetaText({ type: 'tempoKey', timestamp: Date.now(), summary: payload.summary }),
     })
 
-    const orfeoDir   = await getOrfeoOutputDir(payload.filePath)
+    const pliageDir   = await getPliageOutputDir(payload.filePath)
     const rawBase    = basename(payload.filePath).replace(/\.midi?$/i, '')
-    const outputPath = nextAvailableOrfeoPath(orfeoDir, rawBase)
+    const outputPath = nextAvailablePliagePath(pliageDir, rawBase)
 
     const outBuf = Buffer.from(midi.toArray())
     writeFileSync(outputPath, outBuf)
@@ -1529,7 +1539,7 @@ ipcMain.handle('transcript:generate', async (_e, midiFilePath: string, noteNamin
   try {
     // ── 1. Parse MIDI ──────────────────────────────────────────────────────────
     const buf = readFileSync(midiFilePath)
-    const midi = new Midi(buf)
+    const midi = upgradeMarkers(new Midi(buf))
     const tempos = midi.header.tempos.length > 0
       ? midi.header.tempos
       : [{ ticks: 0, bpm: 120 }]
@@ -1634,9 +1644,9 @@ ipcMain.handle('transcript:generate', async (_e, midiFilePath: string, noteNamin
     }
 
     // ── 9. Generate PDF ────────────────────────────────────────────────────────
-    const orfeoDir   = await getOrfeoOutputDir(midiFilePath)
+    const pliageDir   = await getPliageOutputDir(midiFilePath)
     const songName   = basename(midiFilePath).replace(/\.midi?$/i, '')
-    const outputPath = join(orfeoDir, `${songName}_CHORD_TRANSCRIPT.pdf`)
+    const outputPath = join(pliageDir, `${songName}_CHORD_TRANSCRIPT.pdf`)
 
     // ── Font directory: project root in dev, resources/ in packaged app ────────
     const fontsDir = app.isPackaged
@@ -1671,7 +1681,7 @@ ipcMain.handle('transcript:generate', async (_e, midiFilePath: string, noteNamin
         .text(songName, margin, margin, { width: contentW })
 
       doc.font('Inter-Italic').fontSize(8).fillColor(C_DIM)
-        .text('Orfeo Chord Transcript', margin, doc.y + 3, { width: contentW })
+        .text('Pliage Chord Transcript', margin, doc.y + 3, { width: contentW })
 
       const infoLine = [
         `Tempo: ${Math.round(bpm)} BPM`,
@@ -1864,7 +1874,7 @@ ipcMain.handle('transcript:generate', async (_e, midiFilePath: string, noteNamin
       doc.moveTo(margin, footerY - 6).lineTo(margin + contentW, footerY - 6)
         .strokeColor(C_LINE).lineWidth(0.2).stroke()
       doc.font('Inter').fontSize(7).fillColor(C_INFO)
-        .text('Created by Orfeo  ·  github.com/SquareBow/orfeo',
+        .text('Created by Pliage  ·  github.com/SquareBow/orfeo',
           margin, footerY, { width: contentW, align: 'center', lineBreak: false })
 
       stream.on('finish', () => resolve())
@@ -1878,22 +1888,22 @@ ipcMain.handle('transcript:generate', async (_e, midiFilePath: string, noteNamin
   }
 })
 
-// ── Note Editor save — always the next _ORFEO_vN in the source's sibling
-// Orfeo/ folder, same silent-auto-version convention as editor:save and
+// ── Note Editor save — always the next _PLIAGE_vN in the source's sibling
+// Pliage/ folder, same silent-auto-version convention as editor:save and
 // mixer:save (no save-location dialog — a dialog whose defaultPath folder
 // doesn't exist yet can fall back to wherever the OS last had one open,
 // e.g. Downloads, silently writing the file to the wrong place). ────────────
 ipcMain.handle('noteEditor:save', async (_e, payload: { filePath: string; base64: string; summary?: string }) => {
   try {
     if (!payload.filePath) return { ok: false, message: 'No source file loaded' }
-    const orfeoDir   = await getOrfeoOutputDir(payload.filePath)
+    const pliageDir   = await getPliageOutputDir(payload.filePath)
     const rawBase    = basename(payload.filePath).replace(/\.midi?$/i, '')
-    const outputPath = nextAvailableOrfeoPath(orfeoDir, rawBase)
+    const outputPath = nextAvailablePliagePath(pliageDir, rawBase)
 
     // Renderer already serialized the edit buffer to bytes — parse it back
-    // just to append the ORFEO_HISTORY meta-event, same convention as every
+    // just to append the PLIAGE_HISTORY meta-event, same convention as every
     // other save handler here.
-    const midi = new Midi(Buffer.from(payload.base64, 'base64'))
+    const midi = upgradeMarkers(new Midi(Buffer.from(payload.base64, 'base64')))
     ;((midi.header as any).meta ??= []).push({
       type: 'text', ticks: 0,
       text: historyMetaText({ type: 'save', timestamp: Date.now(), summary: payload.summary ?? 'Saved' }),
@@ -1950,7 +1960,7 @@ ipcMain.handle('window:setFullScreen', (_e, value: boolean) => {
 //              electron-updater must never run here — it would download the
 //              GitHub installer and put a second, non-Store copy beside it
 //              (and Store policy forbids an app updating itself). The button
-//              opens Orfeo's page in the Store app, with its Update button.
+//              opens Pliage's page in the Store app, with its Update button.
 //              Never the website: that would install a second, non-Store copy.
 //   'manual' — portable build, macOS/Linux, and dev: no installer for
 //              electron-updater to act on, so the button just opens the
@@ -2010,17 +2020,17 @@ ipcMain.handle('update:check', () => {
 
 // Builds that can't update themselves still hear about a new release: the
 // update button blinks a dot and opens the download page. Silent when offline.
-// ORFEO_RELEASE_TEST=1.0.0 runs the real check in dev, pretending to be that version.
+// PLIAGE_RELEASE_TEST=1.0.0 runs the real check in dev, pretending to be that version.
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/Squarebow/Orfeo/releases/latest'
 const RELEASE_CHECK_TIMEOUT_MS = 10_000
-const releaseTest = app.isPackaged ? undefined : process.env.ORFEO_RELEASE_TEST
+const releaseTest = app.isPackaged ? undefined : process.env.PLIAGE_RELEASE_TEST
 
 // Asked by the renderer once it's listening, so a quick answer can't go missing
 ipcMain.handle('update:new-version', async (): Promise<string | null> => {
   if (updateMode !== 'manual' || !(app.isPackaged || releaseTest)) return null
   try {
     const res = await fetch(LATEST_RELEASE_URL, {
-      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Orfeo' },
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Pliage' },
       signal: AbortSignal.timeout(RELEASE_CHECK_TIMEOUT_MS),
     })
     if (!res.ok) return null
@@ -2033,21 +2043,21 @@ ipcMain.handle('update:install', () => {
   autoUpdater.quitAndInstall()
 })
 
-// ── "Enjoying Orfeo?" note + Rate Orfeo ────────────────────────────────────
+// ── "Enjoying Pliage?" note + Rate Pliage ────────────────────────────────────
 // Every NOTE_EVERY-th launch the renderer shows a small note, unless it's
 // switched off in Settings › Appearance:
 //   Store build — offers the Store's own review window (a star beside the
-//     update check opens it any time), until the person rates Orfeo or picks
-//     "Don't show again". A small helper (native/orfeo-review, shipped beside
-//     the audio add-on) opens it, so a failure there can never close Orfeo.
+//     update check opens it any time), until the person rates Pliage or picks
+//     "Don't show again". A small helper (native/pliage-review, shipped beside
+//     the audio add-on) opens it, so a failure there can never close Pliage.
 //   Every other build — review, community and sponsor links, and "Disable
 //     for 30 days".
-// ORFEO_NOTE_TEST=store or =other shows that note in dev at every launch (the
+// PLIAGE_NOTE_TEST=store or =other shows that note in dev at every launch (the
 // review window itself only opens in the Store build).
 const NOTE_EVERY = 5
 const NOTE_SNOOZE_MS = 30 * 24 * 3600 * 1000
 const STORE_REVIEW_URL = 'ms-windows-store://review/?ProductId=9NJ9Q01P8JQD'
-const noteTest = app.isPackaged ? undefined : process.env.ORFEO_NOTE_TEST
+const noteTest = app.isPackaged ? undefined : process.env.PLIAGE_NOTE_TEST
 const storeNote = noteTest ? noteTest === 'store' : updateMode === 'store'
 let noteLaunchCounted = false
 type NotePrefs = { launches: number; done: boolean; snoozeUntil: number }
@@ -2070,10 +2080,10 @@ ipcMain.handle('note:info', () => {
 ipcMain.handle('review:request', async () => {
   if (!storeNote || !mainWin || mainWin.isDestroyed()) return 'error'
   // A separate little program opens it, so a failure there can never close
-  // Orfeo; its exit code is the answer
+  // Pliage; its exit code is the answer
   const hwnd = mainWin.getNativeWindowHandle().readBigUInt64LE(0).toString()
   const code = await new Promise<number>((resolve) => {
-    execFile(join(nativeDir(), 'orfeo-review.exe'), [hwnd], { windowsHide: true },
+    execFile(join(nativeDir(), 'pliage-review.exe'), [hwnd], { windowsHide: true },
       (err) => resolve(err ? (typeof err.code === 'number' ? err.code : 3) : 0))
   })
   const status: string = ['succeeded', 'canceled', 'network-error'][code] ?? 'error'
@@ -2088,15 +2098,32 @@ ipcMain.handle('note:snooze', () => saveNotePrefs({ snoozeUntil: Date.now() + NO
 // ── Portable mode: redirect userData to a folder next to the exe ─────────────
 // PORTABLE_EXECUTABLE_DIR is injected by electron-builder when running as a
 // portable exe. Storing prefs and cache there lets the user copy the exe +
-// Orfeo-Data/ folder to any machine and keep their settings intact.
+// Pliage-Data/ folder to any machine and keep their settings intact.
 // Must be called before app.whenReady() so getPrefsPath() sees the correct path.
 if (process.env.PORTABLE_EXECUTABLE_DIR) {
-  app.setPath('userData', join(process.env.PORTABLE_EXECUTABLE_DIR, 'Orfeo-Data'))
+  app.setPath('userData', join(process.env.PORTABLE_EXECUTABLE_DIR, 'Pliage-Data'))
+}
+
+// ── First start under the new name: bring the data over from the old folder.
+// Before app.whenReady(), so Chromium has not opened Local Storage yet. Not with
+// --user-data-dir, which asks for exactly that folder and nothing else. ───────
+if (!app.commandLine?.hasSwitch('user-data-dir')) {
+  const userData = app.getPath('userData')
+  const oldData = process.platform === 'android' ? userData
+    : process.env.PORTABLE_EXECUTABLE_DIR ? join(process.env.PORTABLE_EXECUTABLE_DIR, 'Orfeo-Data')
+    : join(app.getPath('appData'), 'Orfeo')
+  try {
+    const { migrated, failed } = process.platform === 'android'
+      ? migrateUserData(oldData, userData, ['com.squarebow.orfeo', 'com.squarebow.pliage'])
+      : migrateUserData(oldData, userData)
+    if (migrated) console.log(`[Pliage] data copied from ${oldData}`)
+    if (failed.length) console.error('[Pliage] not copied:', failed)
+  } catch (e) { console.error('[Pliage] data migration failed:', e) }
 }
 
 // ── Launch: copy demo files on first run, then open main window ───────────────
 app.whenReady().then(async () => {
-  try { await ensureDemoFolder() } catch (e) { console.error('[Orfeo] ensureDemoFolder failed:', e) }
+  try { await ensureDemoFolder() } catch (e) { console.error('[Pliage] ensureDemoFolder failed:', e) }
   // ── No default menu — this app has its own custom title bar and no menu
   // bar is ever shown, but Electron's built-in default menu (auto-created
   // when none is set) still registers real keyboard accelerators in the

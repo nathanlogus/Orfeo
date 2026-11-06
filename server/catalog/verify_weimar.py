@@ -4,7 +4,7 @@
 # recording confirms it or the performer is among the credited writers.
 import json, os, sqlite3, sys, urllib.parse as up
 
-DATA = os.environ.get('ORFEO_DATA') or sys.exit('Set ORFEO_DATA to the private folder that holds the catalog data')
+DATA = os.environ.get('PLIAGE_DATA') or sys.exit('Set PLIAGE_DATA to the private folder that holds the catalog data')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python -I leaves the script's folder off the path
 from fetch_authors import ROLES, get, norm, query_title
 

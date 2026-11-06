@@ -8,33 +8,34 @@
 ## [Unreleased]
 
 ### New
+- **Orfeo is now Pliage.** A new name and a new logo: one sheet, one fold. On its first start Pliage copies your settings, sound sets and saved songs across from the old Orfeo folder, which it leaves as it was. Songs saved under the old name keep opening as before, and your next save carries on their version numbers.
 - **Learn to read music.** Home now has two sections, *Learn* and *Library*. Learn is a 47-lesson course for piano, from finding Middle C to sight-reading: listen, read one idea, drill it, then play it, first with the music waiting for you and then in time. Lessons open in order, and passing a unit's last lesson skips the rest of that unit. *Pieces* adds 15 real works by Beyer, Türk, Schumann, Burgmüller, Clementi, Bach and others, to open like any song. Lessons listen to a MIDI keyboard.
 - **Score view.** Songs opened from MusicXML, Guitar Pro or Capella files can now show their sheet music, on its own or above the piano roll, with a cursor that follows playback. Use the new *Score* button at the top to switch; on its own, the score hides the falling notes, and the keyboard no longer lights up or names chords, so you can practise reading. Click a note to jump there, Transpose rewrites the score in the new key, and the eye in the Track Panel chooses which parts are drawn. A piano written on two staves now opens as a Right Hand and a Left Hand track, taken from the sheet rather than guessed, so you can hide one hand on the score and the roll and have Wait follow the other. On the score, notes take the same hand colours as the roll, and keyboard parts show a suggested finger on every note; a fingering printed in the file is kept as written. MIDI files and saved edits have no score to show, so the button stays off for them.
 - **Wait for notes.** The new *Wait* button holds the song still until you play the next note or chord on your MIDI keyboard, for any song. Hide or mute a track to leave its notes out; pressing Play turns it off.
-- **Orfeo for Mac.** Every release now has downloads for Apple Silicon and Intel Macs, as a disk image or a zip. The first time you open a new version, macOS asks you to allow it once in *System Settings › Privacy & Security*. Mac versions don't update by themselves: *Check for updates* opens the download page. Sound: GM and Studio. Thanks to raiseCatError.
-- **Orfeo for Linux (experimental).** Every release now has Linux downloads for x64 computers: a `.deb` (Ubuntu, Debian, Mint…), an `.rpm` (Fedora, openSUSE…) and an AppImage. They're checked to start, but not yet tested on real Linux machines with a keyboard — reports welcome. Sound: GM and Studio.
+- **Pliage for Mac.** Every release now has downloads for Apple Silicon and Intel Macs, as a disk image or a zip. The first time you open a new version, macOS asks you to allow it once in *System Settings › Privacy & Security*. Mac versions don't update by themselves: *Check for updates* opens the download page. Sound: GM and Studio. Thanks to raiseCatError.
+- **Pliage for Linux (experimental).** Every release now has Linux downloads for x64 computers: a `.deb` (Ubuntu, Debian, Mint…), an `.rpm` (Fedora, openSUSE…) and an AppImage. They're checked to start, but not yet tested on real Linux machines with a keyboard — reports welcome. Sound: GM and Studio.
 - **Song first in the Library.** A new button beside the favorites shows *Artist - Song* files as *Song — Artist*, sorted by song title, and back again with one click. It only changes what you see: your files keep their names. Files that aren't named *Artist - Song* stay as they are.
 - **Rebuild tempo.** For a song whose tempo or bar lines are wrong from the start, *File Info* now has a *Rebuild tempo* button. The song plays from the beginning so you can tap the beat, and one tempo then replaces any you kept before. Cancel and nothing changes. The file itself is never touched.
 - **Bars of different lengths.** After tapping a tempo, type how many beats are in a bar, or a repeating pattern like *3 3 3 4* for songs that keep changing. To change the bars at one point in a song, right-click the TAP pad and choose *Change bars from here*. The time panel, bar lines and metronome all follow. If the music repeats over a length your bars can't fit, the Tap result says so and offers a pattern to try.
 - **New version dot.** Mac, Linux and portable copies can't update themselves, so a blinking dot on the update button now tells you when a new version is out. Click it to open the download page.
-- **Copy bars from another version.** If your Library has a better copy of a song, *File Info* can use its bars and tempo for this one. Orfeo compares the notes, lines the two files up, and lets you listen before you keep it. Your files aren't changed.
+- **Copy bars from another version.** If your Library has a better copy of a song, *File Info* can use its bars and tempo for this one. Pliage compares the notes, lines the two files up, and lets you listen before you keep it. Your files aren't changed.
 - **Type a tempo.** Double-click the BPM number, type the tempo you want and press *Enter*.
-- **Keyboard sound.** Your MIDI keyboard no longer has to sound like a piano: *Settings › MIDI Keyboard › Keyboard sound* (also in Quick Settings) plays it as any of the 128 General MIDI instruments — strings, organs, electric pianos, guitars, synths and more — in every sound engine. Songs keep their own instruments. If your keyboard has its own sound buttons, choosing a sound there switches Orfeo too (*Follow my keyboard's sound buttons*).
+- **Keyboard sound.** Your MIDI keyboard no longer has to sound like a piano: *Settings › MIDI Keyboard › Keyboard sound* (also in Quick Settings) plays it as any of the 128 General MIDI instruments — strings, organs, electric pianos, guitars, synths and more — in every sound engine. Songs keep their own instruments. If your keyboard has its own sound buttons, choosing a sound there switches Pliage too (*Follow my keyboard's sound buttons*).
 - **Two meters for two hands.** With *Hand Assignment* on, a single piano track played by both hands shows a blue and a pink meter side by side in the Tracks panel, each following its own hand.
 
 ### Fixed
 - **Downloading two sound sets at once.** Both now show their own progress bar. Before, they shared one bar that jumped between them, and starting the same download twice could end in an error message. Thanks to InAnYan.
 - **No more Windows wording on Mac and Linux.** The Library's folder menu, the tooltip on the library path and the Playback Editor's show-in-folder button no longer mention Windows Explorer. Thanks to InAnYan.
 - **Step Through lights the whole chord.** With *Reflect on keyboard* on, notes of a chord that started a moment after the first one could stay dark on the keyboard while you stepped, even though you heard them.
-- **Saving an imported song as MIDI works in a new library folder.** Opening a MusicXML, Guitar Pro or Capella file and choosing *Save as MID* could fail if the library had no *Orfeo* folder yet, and the song then didn't open. The folder is now created first. Thanks to Pat Ng.
+- **Saving an imported song as MIDI works in a new library folder.** Opening a MusicXML, Guitar Pro or Capella file and choosing *Save as MID* could fail if the library had no *Pliage* folder yet, and the song then didn't open. The folder is now created first. Thanks to Pat Ng.
 - **Hand colours on the keyboard follow the switch straight away.** Turning *Hand Assignment* on or off during playback changed the piano roll at once, but the keyboard kept its old colours until the next pause. New notes now take the current colours in every sound engine; a key already held keeps its colour until it's released.
-- **The Chord and Scales Explorers stay where you put them.** Switching between *Common*, *Power* and *Extended* moved the window up and down. The top edge now stays put and the window grows downward, moving up only if it would otherwise leave the screen. Both Explorers also remember where you dragged them, after closing Orfeo too.
+- **The Chord and Scales Explorers stay where you put them.** Switching between *Common*, *Power* and *Extended* moved the window up and down. The top edge now stays put and the window grows downward, moving up only if it would otherwise leave the screen. Both Explorers also remember where you dragged them, after closing Pliage too.
 - **Native sound, very rarely wrong at start-up.** When two Native sounds started at exactly the same moment — say, an export beginning just as the Native engine started — one of them could play with a slightly wrong sound until restarted. They now start one after the other.
 - **Delay check:** long values no longer run over their labels, and a Bluetooth MIDI keyboard that sends unusable timing no longer shows delays of several seconds — its notes are left out of the figure, with a note saying how many. Thanks to raiseCatError.
 - *Ctrl+Shift+I* (or *F12*) opens the developer tools in the installed app again, for bug reports. It only worked in development builds.
 - **Exported files always stay in the Exports folder.** A song whose name carried a folder path, or characters Windows doesn't allow in a file name, could fail to save with an error you couldn't read. A name Windows keeps for itself — *CON*, *PRN*, *NUL*, *COM1*… — made a file that couldn't be opened. An export name is now always one plain file name inside the *Exports* folder, and a reserved name gets an underscore in front of it. Thanks to Uli König.
 - **An export that can't finish says so.** A long Studio export plays the song in sections, one per processor core. When a section failed, the export quietly started over in one slower pass; the bar now says *Exporting (single pass)*. And an export that produced nothing at all used to end as if you had pressed *Cancel* — now you get a message. Thanks to Uli König.
-- **A stuck or abandoned Native export no longer blocks Play.** An export whose sound engine stopped answering, or whose window was closed mid-way, could leave Space doing nothing until Orfeo was restarted. An export that makes no progress for 90 seconds is now reported as failed, and closing the window stops it. Thanks to Uli König.
+- **A stuck or abandoned Native export no longer blocks Play.** An export whose sound engine stopped answering, or whose window was closed mid-way, could leave Space doing nothing until Pliage was restarted. An export that makes no progress for 90 seconds is now reported as failed, and closing the window stops it. Thanks to Uli König.
 
 ### Changed
 - **Native now sounds like Studio.** Native was quieter and duller than Studio, with a smaller room around the sound. It now has the same brightness, the same hall and the same stereo chorus, at the same loudness, so switching between the two no longer changes the mix. Audio files exported with Native sound the same way.
@@ -50,14 +51,14 @@
 - Clearer uninstall choices, a tidier velocity editor, and a security update.
 
 ### New
-- **Export to audio** (Settings › Audio, off until you switch it on). Right-click any song in the Library and choose *Export to audio* to save it as a file to listen to anywhere. Pick the version: *Original* (the song as written), *Focus* (keys, bass and drums only) or *As I hear it* (your tempo, key, muted parts, Mixer and loop, for the song you have open). Then pick the sound, Studio or Native, with any of your sound sets. The format is MP3 (320 kbps, 44.1 kHz stereo) or WAV (44.1 kHz, 16-bit stereo, CD quality). Every file starts at the first note, rings out for 2 seconds after the last one and is levelled so it never clips. Files go to the *Exports* folder inside your Library's *Orfeo* folder (or *Music › Orfeo › Exports* if you haven't set a Library) and never overwrite an earlier export. A song that's playing pauses while it exports, and *Cancel* stops an export at any time.
+- **Export to audio** (Settings › Audio, off until you switch it on). Right-click any song in the Library and choose *Export to audio* to save it as a file to listen to anywhere. Pick the version: *Original* (the song as written), *Focus* (keys, bass and drums only) or *As I hear it* (your tempo, key, muted parts, Mixer and loop, for the song you have open). Then pick the sound, Studio or Native, with any of your sound sets. The format is MP3 (320 kbps, 44.1 kHz stereo) or WAV (44.1 kHz, 16-bit stereo, CD quality). Every file starts at the first note, rings out for 2 seconds after the last one and is levelled so it never clips. Files go to the *Exports* folder inside your Library's *Pliage* folder (or *Music › Pliage › Exports* if you haven't set a Library) and never overwrite an earlier export. A song that's playing pauses while it exports, and *Cancel* stops an export at any time.
 - **Skip empty bars at the start** (Settings › Playback, also in Setup). Songs that begin with silent bars open with the music on bar 1: the piano roll, bar numbers, playback, loops and step-through all start where the music starts. *Keep drum count-ins* (on by default) keeps one or two bars of plain drum clicks before the music; switch it off to skip those too. A real drum intro or fill always stays. Your files are never changed: switch it off and every song is exactly as written again, the open one straight away. Edits you save keep the silent bars, and exports start where the music starts. It can't be on together with *Chord Transcription*, whose charts number the bars as the file has them: switching one on switches the other off.
-- **Hand colours** (Settings › Appearance). Choose the colours for your left and right hand on the piano roll, the keyboard and the split preview. Pick a ready-made pair (*Bright*, *Sky* and *Mint* stay easy to tell apart with colour blindness) or any two colours of your own. A note warns when the two hands look too alike. *Back to Orfeo's colours* restores the defaults. Piano tracks switch to your hand colours straight away, in the open song too. The Hand Assignment card links straight to it.
+- **Hand colours** (Settings › Appearance). Choose the colours for your left and right hand on the piano roll, the keyboard and the split preview. Pick a ready-made pair (*Bright*, *Sky* and *Mint* stay easy to tell apart with colour blindness) or any two colours of your own. A note warns when the two hands look too alike. *Back to Pliage's colours* restores the defaults. Piano tracks switch to your hand colours straight away, in the open song too. The Hand Assignment card links straight to it.
 
 ### Changed
 - **Focus mode is pure keys.** One click and you hear the keys (pianos, organs, accordions), bass and drums, but only the keys stay on the piano roll and the keyboard. Every other track is muted and hidden. Click again and every track comes back exactly as it was. Stepping with ← / → follows what you see: a hidden track never makes a step or sounds in one.
 - **Velocity editor without the clutter.** The numbers no longer sit on every bar, where close notes made them overlap. Point at a bar to see its velocity, and the value follows live as you drag it up or down. Select a note on the piano roll and its bar lights up in amber, so in a busy passage you can see which bar is which.
-- **Clearer choices when uninstalling.** The Yes / No / Cancel box is gone. A page of four clearly named choices takes its place, each saying exactly what it does: *Delete everything*, *Keep my edited files*, *Remove Orfeo, keep my data* (handy before a reinstall) and *Keep everything*, which really cancels the uninstall. All of them leave your Library folder alone. The empty *Choose Components* page is gone too.
+- **Clearer choices when uninstalling.** The Yes / No / Cancel box is gone. A page of four clearly named choices takes its place, each saying exactly what it does: *Delete everything*, *Keep my edited files*, *Remove Pliage, keep my data* (handy before a reinstall) and *Keep everything*, which really cancels the uninstall. All of them leave your Library folder alone. The empty *Choose Components* page is gone too.
 - **Piano roll and keyboard always agree.** The keys lit while playing, Reflect on keyboard and stepping with ← / → show exactly what's on the piano roll. Switch a track's eye off and it keeps playing along as accompaniment without showing anywhere — hear the saxophone melody without its notes on the keys. Mute a track and it's silent and off the roll; solo one and only that track is heard and shown. Mute and solo no longer switch the eye on or off, so the buttons stay separate.
 - **Clearer track colours.** Other instruments never start in the piano's colours any more. Each one gets a colour that stands apart from the hands and from the instruments before it.
 - **Audio at a glance.** The sound engine's details in Setup and Settings › Audio now sit in a small framed display, with a new fourth line: the sound set that's playing (or *Built-in GM*).
@@ -80,12 +81,12 @@
 - A lot of polish and tweaks under the hood: Settings pages in a clearer order with a new Editing page, steadier colours on the keyboard, and stray hover labels gone.
 - New: the Chords and Scales Explorers have the keyboard to themselves, play piano on every sound engine, and can let the song keep playing (Settings › Playback).
 - New: the song keeps its track colours on the keyboard even when paused, so an auditioned or locked chord (amber) stands out.
-- New: a small "Enjoying Orfeo?" note now and then, and Microsoft Store users can rate Orfeo right in the app.
+- New: a small "Enjoying Pliage?" note now and then, and Microsoft Store users can rate Pliage right in the app.
 
 ### New
-- **"Enjoying Orfeo?"** Every fifth time you open Orfeo, a small note in the corner offers ways to help it grow: a review, the Orfeo community on Reddit, or a coffee on Ko-fi. *Disable for 30 days* pauses it, and Settings › Appearance turns it off.
+- **"Enjoying Pliage?"** Every fifth time you open Pliage, a small note in the corner offers ways to help it grow: a review, the Pliage community on Reddit, or a coffee on Ko-fi. *Disable for 30 days* pauses it, and Settings › Appearance turns it off.
 - **Explorers pause playback** (Settings › Playback). Opening the Chords or Scales Explorer pauses the song, as before. Switch it off to keep the song playing while you explore. Play and Space then keep working with an Explorer open.
-- **Rate Orfeo** (Microsoft Store version). A star next to *Check for updates* opens the Store's review window right over Orfeo: pick the stars, write a few words, done. In this version the note offers the same, with *Later* and *Don't show again*, and stops for good once you've rated Orfeo.
+- **Rate Pliage** (Microsoft Store version). A star next to *Check for updates* opens the Store's review window right over Pliage: pick the stars, write a few words, done. In this version the note offers the same, with *Later* and *Don't show again*, and stops for good once you've rated Pliage.
 
 ### Changed
 - **Settings pages in a clearer order.**
@@ -107,12 +108,12 @@
 
 ### Fixed
 - **Explorers play piano again with the Native engine.** After a song with its own instrument on MIDI channel 16 had played, the Explorers, Lock-a-Chord and your keyboard could keep sounding that instrument (a sax or strings) instead of piano for the rest of the session.
-- **No more plain white hover labels.** Since 1.5.2, pointing at a track, a piano key or some buttons could show a small white label next to Orfeo's own tooltip. They're gone.
+- **No more plain white hover labels.** Since 1.5.2, pointing at a track, a piano key or some buttons could show a small white label next to Pliage's own tooltip. They're gone.
 
 ## [1.5.3] — 23. 10. 2026 — Native mode sounds like Studio, clearer Settings
 
 **In short**
-- Orfeo's native mode now sounds like Studio: the same balance, placement, room and punch, measured song by song.
+- Pliage's native mode now sounds like Studio: the same balance, placement, room and punch, measured song by song.
 - Both sound engines play a song's own volume swells and fades, and tracks sharing a channel now share its mix.
 - Clearer Settings: the engines are now GM, Studio and Native, with a Shared or Exclusive choice for Native. The MIDI Keyboard page is tidier, and tooltips can be switched off.
 
@@ -120,7 +121,7 @@
 - **Clearer Settings.**
   - Every page now opens with a short heading.
   - **Sound engine:** the three engines are now called GM, Studio (formerly Samples) and Native. Under them you see your sound card, its mode with sample rate and buffer, and the latency. The description shows only the engine you've picked.
-  - **Low latency mode** (Native): two buttons, Shared and Exclusive, each explaining what it does. Exclusive warns that Orfeo takes over the whole sound card.
+  - **Low latency mode** (Native): two buttons, Shared and Exclusive, each explaining what it does. Exclusive warns that Pliage takes over the whole sound card.
   - **Setup** shows the same engine buttons and rows.
   - **MIDI Keyboard:** the cards sit three across, at equal height. *Reconnect automatically* has its own card. "No keyboards connected" and your keyboard-to-speaker delay sit at the right of the tab row. The *Sound & Latency* tab has the Delay check, a *Playing live* card rewritten to be easier to follow, and the delay offset with General MIDI sound.
 - **Tooltips can be switched off.** A new *Tooltips* switch under *Appearance*, in Settings and in Setup, is on by default. Turn it off once you know your way around, and the hints stop popping up when you point at buttons, knobs and icons. A knob still shows its value while you turn it. Windows' own small tips, such as file names, aren't affected.
@@ -128,26 +129,26 @@
 - **The Library's "Right-click for options" hint** now appears just above the song, inside the Library, and only after you rest on a song for 3 seconds, not every time the mouse passes over.
 
 ### Fixed
-- **Orfeo's native mode now mixes songs exactly like Studio.** Parts placed to one side of the stereo picture, such as a piano, guitars or a horn section panned left or right, came out 1.5–3 dB quieter in native mode, while parts in the middle got slightly louder. Their reverb stayed as loud as before, so those parts sounded pushed to the back of the mix. Instruments recorded in stereo, like the piano and horns in many sound sets, were also squeezed to one side, losing their width. Native mode now places every note left and right exactly as Studio does, keeping stereo instruments as wide as they are. Measured part by part on eight songs and two sound sets, every part is now within about 1 dB of Studio in level and in its left–right placement. Before, levels differed by up to 4 dB and placement by up to 13 dB. This works for every song, with nothing to set.
-- **Orfeo's native mode no longer sounds thin next to Studio.** It played about 4 dB hotter into its peak limiter, which then flattened the bass and drum hits all the time, so loud songs lost their punch and the midrange came forward. Its level now matches Studio before any limiting. Its ceiling sits just under full scale, as Studio's does. Measured on whole songs, both engines now sound the same within about 1 dB in every octave, from the deepest bass to the top.
-- **Parts that share a MIDI channel now share its mix.** Many files set a channel's volume, panning, reverb and chorus once, then add more tracks on that channel without repeating them. Orfeo gave those extra tracks full volume, centre position and no effects, so a pad, an organ or a lead on such a track could come out too loud and dry, or in the wrong place. Every track now takes its channel's settings from the song, wherever in the file they're written.
+- **Pliage's native mode now mixes songs exactly like Studio.** Parts placed to one side of the stereo picture, such as a piano, guitars or a horn section panned left or right, came out 1.5–3 dB quieter in native mode, while parts in the middle got slightly louder. Their reverb stayed as loud as before, so those parts sounded pushed to the back of the mix. Instruments recorded in stereo, like the piano and horns in many sound sets, were also squeezed to one side, losing their width. Native mode now places every note left and right exactly as Studio does, keeping stereo instruments as wide as they are. Measured part by part on eight songs and two sound sets, every part is now within about 1 dB of Studio in level and in its left–right placement. Before, levels differed by up to 4 dB and placement by up to 13 dB. This works for every song, with nothing to set.
+- **Pliage's native mode no longer sounds thin next to Studio.** It played about 4 dB hotter into its peak limiter, which then flattened the bass and drum hits all the time, so loud songs lost their punch and the midrange came forward. Its level now matches Studio before any limiting. Its ceiling sits just under full scale, as Studio's does. Measured on whole songs, both engines now sound the same within about 1 dB in every octave, from the deepest bass to the top.
+- **Parts that share a MIDI channel now share its mix.** Many files set a channel's volume, panning, reverb and chorus once, then add more tracks on that channel without repeating them. Pliage gave those extra tracks full volume, centre position and no effects, so a pad, an organ or a lead on such a track could come out too loud and dry, or in the wrong place. Every track now takes its channel's settings from the song, wherever in the file they're written.
 - **Both sound engines now play a song's own volume moves.** Many arrangements fade parts in and out, bring a guitar up for its solo, or swell the strings, sometimes hundreds of times in one song. Both engines used to hold every part at its starting volume, so those moves were lost. Now they play as written. The Console faders still work as before: pulling one down turns the whole part down, swells included.
-- **Orfeo's native mode now puts songs in the same room as Studio.** It used FluidSynth's own reverb and chorus, which sound different from Studio's. Now it uses exactly the same reverb and chorus as Studio, fed the same way: each part's amount from the song, plus the touch the sound set gives each instrument. Measured on several songs with two sound sets, they're within about 1 dB of Studio. Switching engines no longer changes how close or far away the music sounds.
+- **Pliage's native mode now puts songs in the same room as Studio.** It used FluidSynth's own reverb and chorus, which sound different from Studio's. Now it uses exactly the same reverb and chorus as Studio, fed the same way: each part's amount from the song, plus the touch the sound set gives each instrument. Measured on several songs with two sound sets, they're within about 1 dB of Studio. Switching engines no longer changes how close or far away the music sounds.
 
 ## [1.5.2] — 22. 10. 2026 — Studio interfaces, instrument changes, security
 
 **In short**
-- Orfeo's native mode now matches your sound card's real speed by itself in *Low latency*, so studio interfaces like the UAD Apollo no longer sound slowed down and distorted.
+- Pliage's native mode now matches your sound card's real speed by itself in *Low latency*, so studio interfaces like the UAD Apollo no longer sound slowed down and distorted.
 - Songs whose parts switch instrument mid-song (oboe, then guitar…) now play the right instrument at the right moment, on both sound engines.
-- Security update to a newer Electron, Chromium and Node. *Check for updates* now takes you to orfeo.cc or to Orfeo's page in the Microsoft Store.
+- Security update to a newer Electron, Chromium and Node. *Check for updates* now takes you to orfeo.cc or to Pliage's page in the Microsoft Store.
 
 ### Changed
-- **Security update.** Orfeo now runs on Electron 44, with Chromium 152 and Node 24.22. The Electron 42 version it was built on stopped receiving security fixes this week. File pickers (Open MIDI file, Import SoundFont, library folder) still open in the folder you last used: Electron 44 would otherwise open them in *Downloads* every time.
-- **Check for updates sends you to the right place.** In the Microsoft Store version it opens Orfeo's own page in the Store, with its *Update* button. In the portable version, and if an automatic update ever fails, it opens [orfeo.cc/download](https://orfeo.cc/download) instead of GitHub.
+- **Security update.** Pliage now runs on Electron 44, with Chromium 152 and Node 24.22. The Electron 42 version it was built on stopped receiving security fixes this week. File pickers (Open MIDI file, Import SoundFont, library folder) still open in the folder you last used: Electron 44 would otherwise open them in *Downloads* every time.
+- **Check for updates sends you to the right place.** In the Microsoft Store version it opens Pliage's own page in the Store, with its *Update* button. In the portable version, and if an automatic update ever fails, it opens [orfeo.cc/download](https://orfeo.cc/download) instead of GitHub.
 
 ### Fixed
-- **Parts that change instrument mid-song now do, on both sound engines.** Some arrangers switch a part's instrument partway through: a lead melody might be a nylon guitar in the intro, an oboe in the verse, then a guitar again. Orfeo shows such a part as one track per instrument in the Tracks panel, but they all share one MIDI channel, and both engines played that channel with a single instrument for the whole song: Samples the last one (oboe throughout), Native the first one (guitar throughout). Both now switch at the right moment, exactly as the file intends. An instrument you change in the Tracks panel is heard straight away, even mid-song.
-- **Orfeo's native mode could play slowed down and distorted on some studio interfaces in *Low latency*.** Some audio interfaces (Universal Audio's Apollo, for example) run at the sample rate set in their own control app or your DAW, while telling Windows another one. Orfeo sent its sound at the speed Windows reported, and the interface played it at its own: too slow, too low, and crackling. Orfeo now times how fast the sound card really plays during its first two seconds. If that differs from what it reported, Orfeo switches to the card's real rate and checks again, staying in *Low latency*. You don't need to change any setting. If a card can't be matched, Orfeo shares it through Windows, which converts it correctly, and *Settings › Audio* says why.
+- **Parts that change instrument mid-song now do, on both sound engines.** Some arrangers switch a part's instrument partway through: a lead melody might be a nylon guitar in the intro, an oboe in the verse, then a guitar again. Pliage shows such a part as one track per instrument in the Tracks panel, but they all share one MIDI channel, and both engines played that channel with a single instrument for the whole song: Samples the last one (oboe throughout), Native the first one (guitar throughout). Both now switch at the right moment, exactly as the file intends. An instrument you change in the Tracks panel is heard straight away, even mid-song.
+- **Pliage's native mode could play slowed down and distorted on some studio interfaces in *Low latency*.** Some audio interfaces (Universal Audio's Apollo, for example) run at the sample rate set in their own control app or your DAW, while telling Windows another one. Pliage sent its sound at the speed Windows reported, and the interface played it at its own: too slow, too low, and crackling. Pliage now times how fast the sound card really plays during its first two seconds. If that differs from what it reported, Pliage switches to the card's real rate and checks again, staying in *Low latency*. You don't need to change any setting. If a card can't be matched, Pliage shares it through Windows, which converts it correctly, and *Settings › Audio* says why.
 - **The MIDI keyboard log (*Save log…*) now includes the sound card connection.** It records the sound card, its sample rate and format, the buffer, how fast the card really plays, and why it isn't in *Low latency*, if it isn't. One saved file is now enough to diagnose a sound problem.
 
 ## [1.5.1] — 22. 10. 2026 — Native sound, safe on every sound card
@@ -155,12 +156,12 @@
 **In short**
 - Urgent fix for the Native sound engine: on some sound cards it played at full volume, far too loud and distorted. It now follows your Windows volume on every sound card.
 - Native can no longer overload any sound card, from a built-in chip to a studio interface. Two limiters now keep it clean at any volume.
-- Native's *Low latency* is now off unless a MIDI keyboard is connected, so websites and videos keep playing alongside Orfeo.
+- Native's *Low latency* is now off unless a MIDI keyboard is connected, so websites and videos keep playing alongside Pliage.
 
 ### Fixed
-- **Native played at full volume on sound cards without their own volume control, loud and distorted.** Windows' volume (the taskbar slider and the volume keys) is usually applied by Windows itself, after every app. *Low latency* talks to the sound card directly and skipped that step. Sound cards that do volume themselves, as most built-in chips and USB headsets do, weren't affected. Sound cards that leave it to Windows played Orfeo at full level, whatever the slider said: far louder than everything else, with the loudest passages audibly clipped. These include audio interfaces such as Universal Audio's Apollo, and HDMI or DisplayPort monitors. Native now applies the Windows volume and mute itself whenever the sound card doesn't, following the slider live. It's exactly as loud as the rest of your computer, on every sound card.
-- **Native can no longer overload your sound card, whatever its make, driver or volume settings.** The song and the metronome now pass through two limiters. The first keeps loud passages in shape, as with the Samples sound. The second sets a hard ceiling just under full scale: it sees every peak coming a split second ahead and eases the level down just enough, never chopping the sound. Nothing goes above that ceiling, even with every volume at maximum. This happens inside Orfeo, so it doesn't depend on the sound card, its driver or any volume setting. The keys you play don't wait for the look-ahead, so they're heard as quickly as before.
-- **Native's *Low latency* took over the sound card even with no keyboard plugged in**, so a website or video playing alongside Orfeo went silent. *Low latency* is now off unless a MIDI keyboard is connected. Plugging one in turns it on; unplugging the last one turns it off. Switching it by hand holds until the next keyboard is plugged in or unplugged, and every start of Orfeo begins from that rule.
+- **Native played at full volume on sound cards without their own volume control, loud and distorted.** Windows' volume (the taskbar slider and the volume keys) is usually applied by Windows itself, after every app. *Low latency* talks to the sound card directly and skipped that step. Sound cards that do volume themselves, as most built-in chips and USB headsets do, weren't affected. Sound cards that leave it to Windows played Pliage at full level, whatever the slider said: far louder than everything else, with the loudest passages audibly clipped. These include audio interfaces such as Universal Audio's Apollo, and HDMI or DisplayPort monitors. Native now applies the Windows volume and mute itself whenever the sound card doesn't, following the slider live. It's exactly as loud as the rest of your computer, on every sound card.
+- **Native can no longer overload your sound card, whatever its make, driver or volume settings.** The song and the metronome now pass through two limiters. The first keeps loud passages in shape, as with the Samples sound. The second sets a hard ceiling just under full scale: it sees every peak coming a split second ahead and eases the level down just enough, never chopping the sound. Nothing goes above that ceiling, even with every volume at maximum. This happens inside Pliage, so it doesn't depend on the sound card, its driver or any volume setting. The keys you play don't wait for the look-ahead, so they're heard as quickly as before.
+- **Native's *Low latency* took over the sound card even with no keyboard plugged in**, so a website or video playing alongside Pliage went silent. *Low latency* is now off unless a MIDI keyboard is connected. Plugging one in turns it on; unplugging the last one turns it off. Switching it by hand holds until the next keyboard is plugged in or unplugged, and every start of Pliage begins from that rule.
 
 ## [1.5] — 22. 10. 2026 — Play your own keyboard, without the lag
 
@@ -168,11 +169,11 @@
 - A new sound engine for Windows (Native, beta): what you play on a USB keyboard is heard in under 10 ms instead of 40 ms or more, so playing along finally feels like a real instrument.
 - A whole new MIDI Keyboard page in Settings: your keyboards, touch, pedals, and a delay check that shows where every millisecond goes.
 - Step Through: go through any song one note or chord at a time with → and ←, at your own pace.
-- Songs on the Samples sound now play the mix their arranger made, and Orfeo is in the Microsoft Store.
+- Songs on the Samples sound now play the mix their arranger made, and Pliage is in the Microsoft Store.
 
 ### New
-- **Native sound engine (beta, Windows).** Until now every note went through Windows' own sound mixer, which holds it back 40 ms or more: enough that a fast passage on a USB keyboard felt sticky, as if the piano answered late. *Settings › Audio › Sound engine › Native (beta)* plays the same sound sets with Orfeo's own engine, straight to your sound card. On a USB audio interface or headphones, what you play is heard in under 10 ms.
-  - **Low latency** (on by default) talks to the sound card directly, for the shortest delay. Other apps stay silent while Orfeo is open. Switch it off to share the sound card, so a browser lesson or a video call keeps playing alongside.
+- **Native sound engine (beta, Windows).** Until now every note went through Windows' own sound mixer, which holds it back 40 ms or more: enough that a fast passage on a USB keyboard felt sticky, as if the piano answered late. *Settings › Audio › Sound engine › Native (beta)* plays the same sound sets with Pliage's own engine, straight to your sound card. On a USB audio interface or headphones, what you play is heard in under 10 ms.
+  - **Low latency** (on by default) talks to the sound card directly, for the shortest delay. Other apps stay silent while Pliage is open. Switch it off to share the sound card, so a browser lesson or a video call keeps playing alongside.
   - **It switches itself on when you connect a MIDI keyboard**, because that's when the delay matters. Switch it off by hand and it stays off until a keyboard is plugged in again.
   - **Richer, wider sound.** Every instrument sits where the song puts it: two guitars panned left and right, strings to one side, reverb where the arrangement asks for it.
   - **Rock-steady timing.** Songs, the metronome and the count-in all run on the engine's own clock, so the first note after a count-in lands exactly on the beat.
@@ -181,24 +182,24 @@
   - *Beta* means it's new and has been tested on a handful of machines. If anything sounds wrong, switch back to Samples in one click and tell us.
 - **Settings › MIDI Keyboard**, a new page at the bottom of the Settings window, in three tabs:
   - **Keyboards** — every connected keyboard by its own model name, with a light that flashes as you play. Listen to all of them or only the ones you tick, reconnect automatically after unplugging, or *Rescan*. The first time you connect a new keyboard, Settings opens on this page.
-  - **Sound & delay** — *Live playing response* for the Samples sound (*Low latency*, *Balanced*, or *Stable* for computers that crackle); an *Audio delay offset* that lines up key lights, the count-in and tapping with what you hear on Bluetooth headphones or an external instrument; a choice to play General MIDI through Orfeo or through your digital piano or sound module; and the **Delay check**, which shows how long each part of the trip from your key to your ear takes on your computer, with a log to send along with a bug report.
+  - **Sound & delay** — *Live playing response* for the Samples sound (*Low latency*, *Balanced*, or *Stable* for computers that crackle); an *Audio delay offset* that lines up key lights, the count-in and tapping with what you hear on Bluetooth headphones or an external instrument; a choice to play General MIDI through Pliage or through your digital piano or sound module; and the **Delay check**, which shows how long each part of the trip from your key to your ear takes on your computer, with a log to send along with a bug report.
   - **Touch & pedals** — touch response (*Soft*, *Normal*, *Hard* or *Fixed*), ignoring very light touches and capping the loudest note; a filter for keys that accidentally sound twice; and the sustain, sostenuto and soft pedals, pitch bend, modulation, aftertouch, expression and volume from your keyboard, each marked *detected* once you use it and each one switchable off. The sustain pedal now works when you play your own keyboard.
   - **Reset & repair** — clear stuck notes, reconnect every keyboard, or put this page back to how it started.
-- **Step Through** (*Settings › Practice*, on by default). Press → or click the amber arrow in the keyboard bar, and Orfeo jumps to the next moment something is played, a single note or a whole chord, sounds it, lights it on the keyboard and moves the playhead there. ← goes back one, and Shift jumps a whole bar. No tempo, no loop to set up: made for learning fast solos at your own pace and for writing them down.
+- **Step Through** (*Settings › Practice*, on by default). Press → or click the amber arrow in the keyboard bar, and Pliage jumps to the next moment something is played, a single note or a whole chord, sounds it, lights it on the keyboard and moves the playhead there. ← goes back one, and Shift jumps a whole bar. No tempo, no loop to set up: made for learning fast solos at your own pace and for writing them down.
   - Notes that start within 30 ms of each other count as one step, so MIDI files made from audio recordings, whose chords never start at exactly the same moment, still step chord by chord.
   - Muted tracks and drums are skipped: if another instrument leaks into the part you're learning, mute it and step through just yours.
   - Press → while the song plays and it stops on the next note; Space plays on from there.
-- **Orfeo is in the Microsoft Store.** Install it from the Store and it keeps itself up to date there. The GitHub installer and portable version stay as they are.
+- **Pliage is in the Microsoft Store.** Install it from the Store and it keeps itself up to date there. The GitHub installer and portable version stay as they are.
 
 ### Changed
 - **Keys you play on the Samples sound are heard 12 ms sooner.** They used to pass through the song's compressor and safety limiter, which hold every note back even when switched off. Songs still go through both.
 - **The MIDI icon in the top bar** shows the keyboard you're actually playing, not the first entry in Windows' device list. Its tooltip lists any other keyboards, and clicking it opens the MIDI Keyboard settings.
-- **No more hanging notes** when you unplug a keyboard mid-note or minimise Orfeo while holding keys or the sustain pedal.
+- **No more hanging notes** when you unplug a keyboard mid-note or minimise Pliage while holding keys or the sustain pedal.
 - **"Practising" is spelled the British way** where it's a verb, as in "to practise the piano".
 
 ### Fixed
 - **The Samples sound ignored each song's own mix.** The Console showed every track's volume, pan, reverb and chorus as the file sets them, but Samples played every track at full volume, centred and dry until you moved a knob. Songs now sound as their arranger balanced them: instruments placed left and right, quieter parts quieter, reverb where the file asks for it.
-- **General MIDI went silent with a USB keyboard plugged in.** Orfeo sent the song, and what you played, to the keyboard's own MIDI connection instead of its own synth. It now always uses its own synth, unless you choose an instrument in *Settings › MIDI Keyboard › General MIDI sound*.
+- **General MIDI went silent with a USB keyboard plugged in.** Pliage sent the song, and what you played, to the keyboard's own MIDI connection instead of its own synth. It now always uses its own synth, unless you choose an instrument in *Settings › MIDI Keyboard › General MIDI sound*.
 - **The Microsoft Store version no longer tries to update itself from GitHub.** The Store keeps it up to date, and *Check for updates* opens the Store.
 
 ## [1.4.4] — 15. 10. 2026 — Starmap
@@ -234,7 +235,7 @@
 
 ### New
 - **The Chords Explorer now shows the chord you're hearing.** The row under the progressions has the chord's name in amber in the middle, with its inversion (e.g. *Cmaj7/E 1st inv*), the same as above the keyboard. With nothing lit it shows the selected root. *Sequence ›* and the progression's numerals sit on the left; the lit notes, low to high, and *‹ Notes* on the right. The labels stay put however long the chord is.
-- **A hidden surprise in the Chords Explorer.** Hover the Orfeo logo in its title bar.
+- **A hidden surprise in the Chords Explorer.** Hover the Pliage logo in its title bar.
 - **Two new Styles in the Chords Explorer: Gospel and Flamenco** (nine in all).
   - **Gospel:** church harmony. A 6/9 home chord, maj9 on IV and VI, minor 9ths and 11ths, a 13th on V, ♭VII as a dominant 9th and vii° as a full diminished 7th. Pop in C: C6/9 – G13 – Am11 – Fmaj9.
   - **Flamenco:** Phrygian colour. V becomes a 7♭9 (also when it's a minor v), and VI opens into maj7♯11, like the open-string guitar chord. Andalusian in A minor: Am – G – Fmaj7♯11 – E7♭9.
@@ -254,7 +255,7 @@
 - The Scales Explorer has a new, cleaner layout: a bigger Circle of Fifths, with every setting in one column on the right and the full progression list always open.
 - Both Explorers now follow exactly the same rules: the same 61 progressions, played exactly as written, with three clearly different voicings.
 - New Major Blues and Minor Blues scales, and an Octave control in both Explorers.
-- Dragging an Explorer by its title no longer grabs or un-maximizes the whole Orfeo window.
+- Dragging an Explorer by its title no longer grabs or un-maximizes the whole Pliage window.
 
 ### New
 - **Major Blues and Minor Blues scales** in the Scales Explorer. Their tiles are the chords you play the scale over — C7, C6, A7, C7♯9 for C Major Blues; Cm7, C7, F7, G7 for C Minor Blues — because stacking every other note of a blues scale gives odd chords.
@@ -283,20 +284,20 @@
 - **Looping progressions in Roots and Climbing kept rising** every time round, up to the top of the keyboard. They now come back down after about two octaves.
 - **Clicking the same chord tile quickly cut its sound short.**
 - **Turning off *Accent root note*** left the last chord's root pink and didn't affect a run already playing.
-- **Grabbing an Explorer window by its title sometimes moved or un-maximized the whole Orfeo window** instead, whenever the explorer sat over the top bar — you had to hit the very edge of the title to drag it. The same fix covers the Chords Explorer, Lock-a-Chord, the floating keyboard, the MIDI editor, the mixer and File Info.
+- **Grabbing an Explorer window by its title sometimes moved or un-maximized the whole Pliage window** instead, whenever the explorer sat over the top bar — you had to hit the very edge of the title to drag it. The same fix covers the Chords Explorer, Lock-a-Chord, the floating keyboard, the MIDI editor, the mixer and File Info.
 
 ## [1.4.1] — 11. 10. 2026 — Smaller download
 
 **In short**
 - Smarter chord reading: chord names now appear when you hear the chord, follow the instruments actually playing the harmony, and there's a new Progressive mode.
-- Tap Tempo: fix songs whose bar lines and metronome don't match the music — tap along and Orfeo lines up the beat, with optional warnings for songs that need it.
+- Tap Tempo: fix songs whose bar lines and metronome don't match the music — tap along and Pliage lines up the beat, with optional warnings for songs that need it.
 - Count-in of 1–4 bars before the music starts, a metronome volume control, and clicks that follow time-signature changes.
 - A new Settings window with search and links to the online manual, the everyday switches kept in Setup, and zoom for the whole app with Ctrl + / Ctrl −.
 
 ### Changed
 - **Smaller download.** The installer no longer carries website screenshots, duplicate copies of the demo songs and PDF fonts, or developer-only map files.
 - **The user manual now lives at [orfeo.cc/docs](https://orfeo.cc/docs)** and is linked from the top of the README; it's no longer kept in this repository.
-- **The installer is now called `Orfeo-Setup-<version>.exe`**, without spaces, matching the portable `Orfeo-<version>-portable.exe`.
+- **The installer is now called `Pliage-Setup-<version>.exe`**, without spaces, matching the portable `Pliage-<version>-portable.exe`.
 
 ## [1.4] — 4. 10. 2026 — Settings window
 
@@ -304,7 +305,7 @@
 - **A full Settings window.** Every setting now has a proper home with room to explain itself: the eight groups are listed down the left, and each group opens with a sentence on what it's for, then its settings as cards — three across, or two or one on a small window or at a high App Zoom — each with its full description written out, no hovering needed. Options that only matter once a setting is on (Tap Tempo counting, count-in bars, max fingers per hand, the visual-effect pattern and glow, the instrument to follow) sit inside that setting's card and appear when it's on. Open it from the **Open settings** button, from any group in Setup, or with **`Ctrl` `,`** from anywhere; `Esc`, the `X` or a click outside closes it, and the music keeps playing. Drag it by its header like the Mixer.
 - **Search settings** — type in the box at the top of the window to find any setting by name or by what it does, across all groups.
 - **Open in user manual** — every group links to its page of the online manual at orfeo.cc.
-- **ORFEO, the version and Check for updates** sit at the bottom of the group list in the window.
+- **PLIAGE, the version and Check for updates** sit at the bottom of the group list in the window.
 
 ### Changed
 - **The left panel's Settings tab is now Setup** (sliders icon) and holds only the everyday switches: sound engine, demo songs, Focus mode, Tap Tempo, Hand Assignment, Chord Prompter, note names, sharps/flats, chord tracking, key range, keyboard labels, piano-roll zoom, bar lines, the playbar and App Zoom. Each has a short line underneath saying what it does, and the at-a-glance details stay (output delay, which sound set is loaded, note-name and sharps/flats previews, what the chord-tracking mode listens to). Everything else is in the Settings window, under the same group names.
@@ -326,7 +327,7 @@
 
 ### Changed
 - Shorter, clearer tooltips for the TAP pad and the metronome, and the MIDI indicator now reads "NO KEYBOARD" when no keyboard is connected.
-- How to Use and the README now explain that Orfeo needs no internet connection to play, practise or edit, which sound sets come with the installer, and which are optional downloads.
+- How to Use and the README now explain that Pliage needs no internet connection to play, practise or edit, which sound sets come with the installer, and which are optional downloads.
 
 ## [1.3] — 3. 10. 2026 — Count-in
 
@@ -339,7 +340,7 @@
 ## [1.2.1] — 3. 10. 2026 — Tempo warnings
 
 ### New
-- **Tempo warnings — find the songs whose bar lines and metronome don't match the music.** Turn on *Tempo warnings* in Settings → Playback & Editing (off by default). Orfeo checks each song for a steady beat that its bar lines miss: affected songs get an amber dot in the Library, and a pulsing light under the TAP pad when you open one. Click the light to see what's off in plain words — for example "the beat sounds closer to about 91 than the file's 60 — check by ear", or "the bar lines sit off the played notes — the tempo may be right, or counted at double or half speed" — then fix it with Tap Tempo or dismiss it for that song. Freely played music (rubato piano, free-time intros, sparse lead sheets) is never flagged, and the warning clears by itself once you keep a Tap Tempo that lines up with the music. The Library check runs quietly while the Library tab is open, never while a song is playing, and remembers its results.
+- **Tempo warnings — find the songs whose bar lines and metronome don't match the music.** Turn on *Tempo warnings* in Settings → Playback & Editing (off by default). Pliage checks each song for a steady beat that its bar lines miss: affected songs get an amber dot in the Library, and a pulsing light under the TAP pad when you open one. Click the light to see what's off in plain words — for example "the beat sounds closer to about 91 than the file's 60 — check by ear", or "the bar lines sit off the played notes — the tempo may be right, or counted at double or half speed" — then fix it with Tap Tempo or dismiss it for that song. Freely played music (rubato piano, free-time intros, sparse lead sheets) is never flagged, and the warning clears by itself once you keep a Tap Tempo that lines up with the music. The Library check runs quietly while the Library tab is open, never while a song is playing, and remembers its results.
 - **"Original is fine"** — when your tapped tempo matches the file's own, the Tap Tempo panel offers to keep the file as it is and stop warning about that song.
 
 ### Fixed
@@ -352,8 +353,8 @@
 ## [1.2] — 2. 10. 2026 — Tap Tempo
 
 ### New
-- **Tap Tempo: fix songs whose bar lines and metronome don't match the music.** Some MIDI files carry the wrong tempo, so the clicks drift off the drums or the tempo reads double or half what you hear, even though the song itself plays fine. Turn on *Tap Tempo* in Settings → Playback & Editing, put the playhead where things go wrong, click the red **TAP** pad and tap along with `Space` or any key on your MIDI keyboard — on every beat, or only on the 1 if you prefer (a Settings choice). Click TAP again to see the measured tempo. Orfeo lines your beat up with the song's own drums and bass, so the bar lines and clicks land exactly on the music rather than on your slightly early or late taps. Listen back with the panel still open, move the 1 by a beat or the clicks by a few milliseconds while it plays, and press Keep. From that point on, the bar lines, metronome, bar counter, BPM readout and chord display all follow your tempo. The song's sound never changes, your MIDI file is never modified, and the tempo is remembered for that song (even after renaming or moving it, and when Orfeo saves a new version of it). Songs can have several tapped tempos, e.g. a slow intro and a faster groove. A small dot on the pad shows a song has them; right-click the pad to reopen one and adjust it, remove it, or reset them all. Every change is listed in File Info → Orfeo History.
-- **Songs counted at double or half speed get their tempo number fixed without touching their bar lines.** When your tapped beat lands exactly on every second beat of the file (the file says 190 but you hear about 95), Orfeo offers to keep the file's own bar lines, time-signature changes and clicks exactly as they are and only correct the tempo number.
+- **Tap Tempo: fix songs whose bar lines and metronome don't match the music.** Some MIDI files carry the wrong tempo, so the clicks drift off the drums or the tempo reads double or half what you hear, even though the song itself plays fine. Turn on *Tap Tempo* in Settings → Playback & Editing, put the playhead where things go wrong, click the red **TAP** pad and tap along with `Space` or any key on your MIDI keyboard — on every beat, or only on the 1 if you prefer (a Settings choice). Click TAP again to see the measured tempo. Pliage lines your beat up with the song's own drums and bass, so the bar lines and clicks land exactly on the music rather than on your slightly early or late taps. Listen back with the panel still open, move the 1 by a beat or the clicks by a few milliseconds while it plays, and press Keep. From that point on, the bar lines, metronome, bar counter, BPM readout and chord display all follow your tempo. The song's sound never changes, your MIDI file is never modified, and the tempo is remembered for that song (even after renaming or moving it, and when Pliage saves a new version of it). Songs can have several tapped tempos, e.g. a slow intro and a faster groove. A small dot on the pad shows a song has them; right-click the pad to reopen one and adjust it, remove it, or reset them all. Every change is listed in File Info → Pliage History.
+- **Songs counted at double or half speed get their tempo number fixed without touching their bar lines.** When your tapped beat lands exactly on every second beat of the file (the file says 190 but you hear about 95), Pliage offers to keep the file's own bar lines, time-signature changes and clicks exactly as they are and only correct the tempo number.
 - **Metronome volume** — right-click the metronome to make the clicks louder or quieter (0–150%).
 
 ### Fixed
@@ -378,7 +379,7 @@
 
 ### Fixed
 - **Audio and the piano roll could stutter or briefly pause during playback in the development build** (`npm run dev`), especially on busy songs — never an issue in the packaged release. Every note for the rest of the song was queued up the instant playback started; the polished, packaged build breezes through that instantly, but the unoptimized development build could visibly and audibly catch up whenever the music bunched up a lot of notes at once. Playback now only keeps the next second and a half queued at a time, continuously topped up as the song plays, so there's never more than a small amount of work to do at once, no matter how dense or long the song is.
-- **The piano roll could completely freeze — no falling notes, though the music kept playing and the keyboard kept lighting up correctly — on any screen set to 125%, 150%, or 175% Windows scaling.** A rounding mismatch between the roll's drawing size and the screen's actual scaled size made it think it needed to resize on literally every single frame, and it was bailing out to do that resize instead of ever getting to actually draw the notes. 100% and 200% scaling happened not to trigger the rounding error, which is why it looked like an all-or-nothing thing. Changing your screen's scaling while Orfeo is already open now also updates the roll immediately, instead of needing a restart. The Mixer's level meters had the same kind of rounding blind spot and are fixed the same way.
+- **The piano roll could completely freeze — no falling notes, though the music kept playing and the keyboard kept lighting up correctly — on any screen set to 125%, 150%, or 175% Windows scaling.** A rounding mismatch between the roll's drawing size and the screen's actual scaled size made it think it needed to resize on literally every single frame, and it was bailing out to do that resize instead of ever getting to actually draw the notes. 100% and 200% scaling happened not to trigger the rounding error, which is why it looked like an all-or-nothing thing. Changing your screen's scaling while Pliage is already open now also updates the roll immediately, instead of needing a restart. The Mixer's level meters had the same kind of rounding blind spot and are fixed the same way.
 - **A thin grey line could appear on the left and right of the top bar at 150% app zoom.** A pre-existing fallback that lets the logo/tempo cluster and the transport/MIDI cluster scroll internally, rather than get clipped, on a very narrow window was showing its scrollbar at an ordinary window size once app zoom shrank the usable space enough to trigger it. Scrolling still works if it's ever genuinely needed; the bar itself no longer shows.
 - **The "no file open" screen could grow into and get covered by the top bar and keyboard at higher app zoom levels.** It now stays at its normal size and position no matter what zoom you're at, since the rest of the window's usable space doesn't grow to match.
 
@@ -452,8 +453,8 @@ The live chord display was erratic enough to be a hindrance rather than a help: 
 - **Loop Region bar-range popup** — background aligned to the standard popup color; the trigger icon swapped for a cleaner ordered-list glyph.
 - **Chord Transcription (Settings) — the file-row tooltip is split and no longer doubles up.** Hovering the filename shows "Right-click for options"; hovering the transcript icon shows only its own hint, now in plain text that fits the tooltip instead of overflowing amber caps.
 - **Lock-a-Chord modal** — removed the redundant per-button tooltips.
-- **The installer is now per-user again (`perMachine: false`).** 1.0.1's switch to a per-machine install is what broke "uninstall → delete everything": the uninstaller then ran elevated under the all-users shell context, where `$APPDATA` resolves to `C:\ProgramData`, so the cleanup deleted a folder that doesn't exist and the real `orfeo-prefs.json` (with the library-folder link) survived — a fresh reinstall reopened straight into the old library. Per-user install means no UAC prompt to install/uninstall/update, it lands in `%LOCALAPPDATA%\Programs\Orfeo`, and the uninstaller always runs as the right user so the data cleanup works. The cleanup itself was also hardened: it forces the invoking user's context, deletes the prefs/log files by name before the recursive delete (so a locked cache subfolder can't leave the library link behind), never touches data during an auto-update (`--updated`) or silent (`/S`) uninstall, and shows the exact path if the prefs file is somehow still locked rather than failing silently. **If you have an existing per-machine install in `C:\Program Files\Orfeo`, uninstall it once by hand.**
-- **"Check for updates" is now split cleanly by build type.** `electron/main.ts` decides once whether this build does real auto-updates (`'auto'` — the installed Windows build only) or not (`'manual'` — portable, macOS, Linux, dev), and the renderer reads that on open. The installed build's button checks the GitHub feed and, if there's a newer release, starts the download automatically, then shows "Update ready — click to install" (or "Orfeo is up to date"). The portable build's button now has a fixed tooltip — "Check for new releases on GitHub" — and a single click opens the Releases page in the browser; it never shows a spurious "checking…"/round-trip state or needs a second click.
+- **The installer is now per-user again (`perMachine: false`).** 1.0.1's switch to a per-machine install is what broke "uninstall → delete everything": the uninstaller then ran elevated under the all-users shell context, where `$APPDATA` resolves to `C:\ProgramData`, so the cleanup deleted a folder that doesn't exist and the real `pliage-prefs.json` (with the library-folder link) survived — a fresh reinstall reopened straight into the old library. Per-user install means no UAC prompt to install/uninstall/update, it lands in `%LOCALAPPDATA%\Programs\Pliage`, and the uninstaller always runs as the right user so the data cleanup works. The cleanup itself was also hardened: it forces the invoking user's context, deletes the prefs/log files by name before the recursive delete (so a locked cache subfolder can't leave the library link behind), never touches data during an auto-update (`--updated`) or silent (`/S`) uninstall, and shows the exact path if the prefs file is somehow still locked rather than failing silently. **If you have an existing per-machine install in `C:\Program Files\Pliage`, uninstall it once by hand.**
+- **"Check for updates" is now split cleanly by build type.** `electron/main.ts` decides once whether this build does real auto-updates (`'auto'` — the installed Windows build only) or not (`'manual'` — portable, macOS, Linux, dev), and the renderer reads that on open. The installed build's button checks the GitHub feed and, if there's a newer release, starts the download automatically, then shows "Update ready — click to install" (or "Pliage is up to date"). The portable build's button now has a fixed tooltip — "Check for new releases on GitHub" — and a single click opens the Releases page in the browser; it never shows a spurious "checking…"/round-trip state or needs a second click.
 - **A failed update check no longer fills the screen.** electron-updater's errors are a full multi-line HTTP dump (every response header); the "no published release yet" case came through as one and the whole thing rendered as a giant tooltip that stuck around. Errors are now collapsed to a single short sentence, the tooltip is hard-capped in size, and the error state fades on its own. The GitHub `owner`/`repo` in the publish config were also corrected to the real casing (`Squarebow/Orfeo`).
 
 ### Changed
@@ -461,14 +462,14 @@ The live chord display was erratic enough to be a hindrance rather than a help: 
 
 ## [1.0.1] — 29. 8. 2026 — GPLv3 relicense, embedded edit history, piano-roll performance fixes, documentation overhaul
 
-Orfeo is now licensed under the GNU GPLv3 (or later), not MIT — see `LICENSE.md`. GSAP, the one dependency that can't itself be GPLv3 (GreenSock's own "Standard No Charge" license), is covered by an explicit linking exception under GPLv3 §7, documented in both `LICENSE.md` and `THIRD_PARTY_LICENSES.md`.
+Pliage is now licensed under the GNU GPLv3 (or later), not MIT — see `LICENSE.md`. GSAP, the one dependency that can't itself be GPLv3 (GreenSock's own "Standard No Charge" license), is covered by an explicit linking exception under GPLv3 §7, documented in both `LICENSE.md` and `THIRD_PARTY_LICENSES.md`.
 
 ### New
-- **Edit history is now embedded directly in the `.mid` file itself**, not a separate app-only log. Every Playback Editor save, Note Editor save, tempo/key save, and mixer save writes an `ORFEO_HISTORY` entry into the file's own MIDI meta-events — same technique already used for `ORFEO_KEY`/`ORFEO_TRACK_NAME`. Previously this lived only in a JSON file inside the app's userData folder, which meant switching between the portable and installed builds (or a clean uninstall) silently orphaned it. A file's edit history is now genuinely part of the file — travels with it anywhere, survives any install change.
-- **Library auto-refreshes after every save.** A save from the Playback Editor, Note Editor, Mixer, tempo/key, or a foreign-format import now rescans the library folder immediately, expands the `Orfeo/` subfolder the new version landed in (previously it was created collapsed, so a just-saved file — and its embedded history in File info — was hidden until you found and opened that folder by hand), and briefly amber-highlights the new file. The highlight now matches against the actual rescanned row rather than the raw save path, so a drive-letter-case or separator mismatch can't leave the new version with no flash and no pinned bar. The manual refresh button and its blink-when-stale indicator stay as a fallback for whenever the automatic rescan can't run.
+- **Edit history is now embedded directly in the `.mid` file itself**, not a separate app-only log. Every Playback Editor save, Note Editor save, tempo/key save, and mixer save writes an `PLIAGE_HISTORY` entry into the file's own MIDI meta-events — same technique already used for `PLIAGE_KEY`/`PLIAGE_TRACK_NAME`. Previously this lived only in a JSON file inside the app's userData folder, which meant switching between the portable and installed builds (or a clean uninstall) silently orphaned it. A file's edit history is now genuinely part of the file — travels with it anywhere, survives any install change.
+- **Library auto-refreshes after every save.** A save from the Playback Editor, Note Editor, Mixer, tempo/key, or a foreign-format import now rescans the library folder immediately, expands the `Pliage/` subfolder the new version landed in (previously it was created collapsed, so a just-saved file — and its embedded history in File info — was hidden until you found and opened that folder by hand), and briefly amber-highlights the new file. The highlight now matches against the actual rescanned row rather than the raw save path, so a drive-letter-case or separator mismatch can't leave the new version with no flash and no pinned bar. The manual refresh button and its blink-when-stale indicator stay as a fallback for whenever the automatic rescan can't run.
 - **The Windows installer now shows a real license page** — full GPLv3 text plus the GSAP exception, scroll-to-accept, before install proceeds (`build/license.txt`).
-- **The Console Mixer now saves per-channel volume, pan, chorus, and reverb into the file.** Closing the mixer after changing any of them prompts **Save & Reload** (writes a new `_ORFEO_vN` version with a history entry and reloads it, same as the Playback Editor), Discard, or Cancel. The master strip and mute/solo stay session-only. The confirm button was renamed from "Save" to "Save & Reload" to match the Playback Editor's.
-- **Uninstalling asks what to do with your Orfeo data — a three-way choice, not just Yes/No.** **Yes** deletes everything (preferences, library-folder link, cached soundfonts, demo files, and any edited MIDI saved without a library folder set); **No** moves those edited MIDI files to an `Orfeo Edited Files` folder on the Desktop and deletes the rest; **Cancel** keeps everything. Your library folder itself is never touched. A follow-up check retries and warns if the install folder couldn't be fully removed (a locked file or an antivirus scan) instead of silently reporting success.
+- **The Console Mixer now saves per-channel volume, pan, chorus, and reverb into the file.** Closing the mixer after changing any of them prompts **Save & Reload** (writes a new `_PLIAGE_vN` version with a history entry and reloads it, same as the Playback Editor), Discard, or Cancel. The master strip and mute/solo stay session-only. The confirm button was renamed from "Save" to "Save & Reload" to match the Playback Editor's.
+- **Uninstalling asks what to do with your Pliage data — a three-way choice, not just Yes/No.** **Yes** deletes everything (preferences, library-folder link, cached soundfonts, demo files, and any edited MIDI saved without a library folder set); **No** moves those edited MIDI files to an `Pliage Edited Files` folder on the Desktop and deletes the rest; **Cancel** keeps everything. Your library folder itself is never touched. A follow-up check retries and warns if the install folder couldn't be fully removed (a locked file or an antivirus scan) instead of silently reporting success.
 
 ### Fixed
 - **Performance regression on the piano roll — slow file loads and high idle CPU.** Two hot paths were doing expensive work every playback tick: the live chord detector re-ran tonal.js's combinatorial chord search from scratch on every tick for both Classic and sustained modes (now memoized by exact sorted-MIDI content), and the chord-sequence derivation subscribed to `currentTime` and re-computed every frame (now keyed to the resolved note-on/off index). Plus draw-loop and re-render trims across `App`, `Keyboard`, `PianoRoll`, and `SettingsPanel`.
@@ -479,7 +480,7 @@ Orfeo is now licensed under the GNU GPLv3 (or later), not MIT — see `LICENSE.m
 - **Focus Mode** toggle behaviour corrected across the Tracks panel, Console Mixer master strip, and Settings.
 - **A chord could display as "Halt7/C"** — meaningless-looking text that happened to spell a real German word purely by coincidence. Root cause: tonal.js's obscure "altered dominant, no 5th" chord type has the raw internal name `alt7`, which the chord-name formatter didn't recognize and passed straight through; combined with Central European note naming (B → H), `Balt7/C` became `Halt7/C`. Now formatted to the same `alt` abbreviation the Chord Explorer's own catalog already used for this type. Also fixed a related scoring bug (`No5` vs. tonal's actual lowercase `no5`) that meant chords missing their 5th were never deprioritized in favor of a cleaner reading when one existed.
 - **Hit-effect particles (glow bloom, ripple ring, etc.) kept appearing for tracks hidden from both the piano roll and the keyboard**, whenever Hit Effect Scope was set to "All tracks" — that mode was meant to let non-keyboard tracks still spawn effects, but never checked whether the track was visible at all. Also fixed a related staleness bug in the Samples engine: toggling a track's visibility or keyboard-light setting mid-playback didn't rebuild the note schedule, so already-scheduled notes kept firing with stale settings for the rest of the song.
-- **The shipped app was completely unminified.** electron-vite defaults the renderer build to `minify: false`, and nothing in Orfeo's own config overrode it. Explicitly enabled esbuild minification — cuts the three largest JS chunks by roughly half — while pinning `legalComments: 'inline'` so every bundled dependency's license banner (GSAP's included) stays intact in the output.
+- **The shipped app was completely unminified.** electron-vite defaults the renderer build to `minify: false`, and nothing in Pliage's own config overrode it. Explicitly enabled esbuild minification — cuts the three largest JS chunks by roughly half — while pinning `legalComments: 'inline'` so every bundled dependency's license banner (GSAP's included) stays intact in the output.
 
 ### Changed
 - **CHANGELOG.md and CONTRIBUTING.md moved into `docs/`** — only `README.md`, `LICENSE.md`, and `THIRD_PARTY_LICENSES.md` stay in the repo root now.
@@ -490,7 +491,7 @@ Orfeo is now licensed under the GNU GPLv3 (or later), not MIT — see `LICENSE.m
 
 ## [1.0.0] — 20. 8. 2026 — First public release: chord tracking modes, deep chord-detection overhaul, alto sax preview fix
 
-Orfeo's first public release — installer and portable builds downloadable from GitHub. Versioning restarts here (see `CLAUDE.md`); everything before this point is pre-public development history.
+Pliage's first public release — installer and portable builds downloadable from GitHub. Versioning restarts here (see `CLAUDE.md`); everything before this point is pre-public development history.
 
 ### New
 - **"Chords" settings section** — merged into "Notation & Chords" (same collapsible group as note-naming/accidentals, subsections kept in order). Two independent controls:
@@ -515,12 +516,12 @@ Orfeo's first public release — installer and portable builds downloadable from
 ## [1.11.7] — 19. 8. 2026 — Branded installer, live chord-display fixes, playback chord context menu
 
 ### Fixed
-- **Userdata folder was created lowercase (`orfeo`) instead of `Orfeo`.** Electron's `app.getName()` defaults to package.json's internal `"name"` field, not `"productName"` — every settings/library-pointer/soundfont-cache path was affected. `app.setName('Orfeo')` now runs before any `app.getPath('userData')` call.
+- **Userdata folder was created lowercase (`pliage`) instead of `Pliage`.** Electron's `app.getName()` defaults to package.json's internal `"name"` field, not `"productName"` — every settings/library-pointer/soundfont-cache path was affected. `app.setName('Pliage')` now runs before any `app.getPath('userData')` call.
 - **The live chord display above the keyboard stuck on whatever chord was showing when you paused**, even after scrubbing or shift-scrolling the playhead elsewhere. It was pinned to a frozen index that only updated during actual playback. It now always tracks `currentTime`, so the chord name updates live while paused too — instantly, without the 450ms minimum-display hold that real-time playback uses to avoid flicker (that hold only makes sense at playback speed, not while scrubbing).
 
 ### New
-- **Branded Windows installer and uninstaller** — a dark, gradient sidebar (shown on the Welcome/Finish wizard pages) with the amber Orfeo mark, wordmark, and the tagline "From MIDI to mastery.", plus a light header banner on the interior pages. Configured via `nsis.installerHeader`/`installerSidebar`/`uninstallerSidebar` in `package.json`, assets in `build/`.
-- **Uninstaller: opt-in "Delete my Orfeo settings and library data" checkbox** — unchecked by default, so a plain uninstall never touches your library folder pointer, preferences, or cached soundfonts unless you explicitly ask it to (`build/installer.nsh`, via electron-builder's `customUnInstallSection` hook).
+- **Branded Windows installer and uninstaller** — a dark, gradient sidebar (shown on the Welcome/Finish wizard pages) with the amber Pliage mark, wordmark, and the tagline "From MIDI to mastery.", plus a light header banner on the interior pages. Configured via `nsis.installerHeader`/`installerSidebar`/`uninstallerSidebar` in `package.json`, assets in `build/`.
+- **Uninstaller: opt-in "Delete my Pliage settings and library data" checkbox** — unchecked by default, so a plain uninstall never touches your library folder pointer, preferences, or cached soundfonts unless you explicitly ask it to (`build/installer.nsh`, via electron-builder's `customUnInstallSection` hook).
 - **Right-click the chord display while paused** for two new options: **Show on keyboard** locks the chord's notes exactly like Shift+clicking them on the keyboard — same floating modal with play/inversion-cycling; **Open in Chord Explorer** opens it pre-selected, lit on the keyboard, and ready for inversions/progressions. Both reconstruct the same canonical voicing (via a newly-shared `buildChordMidi`), so what you see in the lock and what you see in the Explorer always match.
 - **One-line hover hints on the chord display** — "Pause to study the chord" during playback, "Right-click for options" once paused (and there's actually a chord the menu can act on).
 - **"Set your MIDI folder" button now blinks amber** until a library folder is actually set — same nudge treatment already used for the library-refresh icon.
@@ -573,7 +574,7 @@ Orfeo's first public release — installer and portable builds downloadable from
 A follow-up polish pass covering a sticky-positioning bug the font-sizing audit didn't reach, plus a styling-consistency pass across the app's three floating-modal-style panels (MIDI Playback Editor, MIDI Note Editor, Console Mixer), using the Playback Editor as the reference.
 
 ### Fixed
-- **Library's individual folder headers (e.g. "Demo", "Orfeo") weren't actually sticky.** Same root cause as the pinned active-file row fixed in 1.11.2 — `RowTooltip`'s wrapper `<div>` shrink-wraps to exactly its child's height, leaving `position:sticky` no room to operate within its own containing block — just a separate instance of the pattern one level down that the earlier pass didn't catch. Fixed the same way: `position:sticky` moved onto `RowTooltip`'s own `wrapperStyle` instead of the inner row `<div>`. Verified live via CDP — the header now locks in place at the correct offset while its files scroll underneath, releasing only once the folder's content ends.
+- **Library's individual folder headers (e.g. "Demo", "Pliage") weren't actually sticky.** Same root cause as the pinned active-file row fixed in 1.11.2 — `RowTooltip`'s wrapper `<div>` shrink-wraps to exactly its child's height, leaving `position:sticky` no room to operate within its own containing block — just a separate instance of the pattern one level down that the earlier pass didn't catch. Fixed the same way: `position:sticky` moved onto `RowTooltip`'s own `wrapperStyle` instead of the inner row `<div>`. Verified live via CDP — the header now locks in place at the correct offset while its files scroll underneath, releasing only once the folder's content ends.
 - **MIDI Note Editor toolbar's background didn't match every other modal** — still on the plain `--panel` gray (`#1e1e1e`, warm/brownish next to the app's cooler near-black modals) instead of `--bg-modal-header`. Now matches the Playback Editor exactly.
 - **Console Mixer's main container was one shade lighter than its own header** (`--bg-modal` vs `--bg-modal-header`), the reverse of the Playback Editor's single-tone approach. Container now uses `--bg-modal-header` too; the channel strips and master strip keep their lighter `--bg-tile` shade, which now reads as intentional depth instead of an accident of two similarly-dark tones.
 
@@ -616,8 +617,8 @@ A full pass over every below-readable-size font in the app (many sites sitting a
 The Mixer's stylish tooltip styling (introduced in 1.10.0) is now the tooltip system for the entire app — every remaining native `title=` popup, replaced across three rounds of live-testing fixes. Alongside it: a third notation format (Capella) can now be imported and converted to MIDI, and the bundled demo library now actually reaches existing users when new demo files ship, not just fresh installs.
 
 ### New — app-wide tooltip system
-- **A global boundary-clamping rule for every tooltip.** `TooltipBox` now measures its own rendered size and clamps/flips itself against the real window bounds before ever painting (two-pass: an invisible probe render to measure, then a `useLayoutEffect` correction before the browser's first paint, so there's no visible jump). This is what "the app's own rule" for tooltips near an edge means in practice — it's based on the anchor's actual on-screen position, so it automatically accounts for collapsed vs. expanded side panels, left-docked vs. right-docked rails, without any per-site special-casing. Fixes every reported edge-cropping case at once: collapsed Library/Settings/Tracks rails, the Orfeo logo, Chords, keyboard-size buttons, Scales, Presentation Mode, and more.
-- **A second `oneLine` style**, alongside the original amber-heading + muted-description layout: plain white, normal-case, normal-weight text (can still wrap to two lines) with no heading row, for short self-explanatory hints that don't need the two-part structure. Applied to ~230 sites app-wide — Library (file/folder rows, star icons, folder actions), Settings (Sound Engine, Soundfonts, keyboard-size buttons, Orfeo/Manual/Download links), Tracks and the Console Mixer (Mute/Solo/Visible/Keyboard-lit), Chord Explorer, Scale Explorer, Lock-a-Chord, and TopBar. The original amber-heading style stays reserved for cases that genuinely need a title+explanation pair (Visual Effects scope/color, the Mixer's own knobs, MidiEditor's Save Tempo & Key toggle).
+- **A global boundary-clamping rule for every tooltip.** `TooltipBox` now measures its own rendered size and clamps/flips itself against the real window bounds before ever painting (two-pass: an invisible probe render to measure, then a `useLayoutEffect` correction before the browser's first paint, so there's no visible jump). This is what "the app's own rule" for tooltips near an edge means in practice — it's based on the anchor's actual on-screen position, so it automatically accounts for collapsed vs. expanded side panels, left-docked vs. right-docked rails, without any per-site special-casing. Fixes every reported edge-cropping case at once: collapsed Library/Settings/Tracks rails, the Pliage logo, Chords, keyboard-size buttons, Scales, Presentation Mode, and more.
+- **A second `oneLine` style**, alongside the original amber-heading + muted-description layout: plain white, normal-case, normal-weight text (can still wrap to two lines) with no heading row, for short self-explanatory hints that don't need the two-part structure. Applied to ~230 sites app-wide — Library (file/folder rows, star icons, folder actions), Settings (Sound Engine, Soundfonts, keyboard-size buttons, Pliage/Manual/Download links), Tracks and the Console Mixer (Mute/Solo/Visible/Keyboard-lit), Chord Explorer, Scale Explorer, Lock-a-Chord, and TopBar. The original amber-heading style stays reserved for cases that genuinely need a title+explanation pair (Visual Effects scope/color, the Mixer's own knobs, MidiEditor's Save Tempo & Key toggle).
 - **Tooltips removed entirely** wherever the control already explains itself elsewhere: Settings' toggle-icon rows (each has its own inline description already), Display System/Accidentals/keyboard-range buttons, Soundfonts' redundant per-item tooltip, the "Collapse all folders" header, close (X) buttons on Lock-a-Chord and the Playback Editor, root-row chord notes, and the note-count readout under the keyboard.
 - **Right-click context menus unified into a shared `ContextMenu.tsx`** (`ContextMenu`, `ContextMenuItem`, `ContextMenuDivider`, `ContextMenuLabel`), replacing ~110 lines of copy-pasted `MENU_ITEM_STYLE` + per-button hover handlers across the Library's file- and folder-actions menus. Retheme to the same dark-panel/amber-border/glow language as the tooltips, instead of the old muted `--drag-handle-dot`/`--border-popover` borders.
 - **New `useTooltip` hook** for elements that can't tolerate `Tooltip`'s wrapper `<div>` at all — e.g. a button living inside a `display:'contents'` CSS Grid row, where a wrapper element would either break the grid's direct-child passthrough or (if given `display:contents` itself) return a zero-sized rect at the window's origin from `getBoundingClientRect()`, putting the tooltip in the screen's top-left corner. `useTooltip` attaches hover-tracking and the anchor ref straight onto the caller's own element instead of introducing anything new into the DOM.
@@ -663,7 +664,7 @@ The Console Mixer's master bus gets a compressor/limiter with five presets, a fu
 - **Real `DynamicsCompressorNode`, inserted last in the Samples-engine chain** (`gain → tone filter → compressor → destination`), catching whatever the gain and tone stages produce. Five presets (Safety / Gentle / Medium / Firm / Limiter) each bundle threshold, ratio, attack, and knee together rather than sweeping just one parameter — a fixed threshold with only ratio changing either barely engages at the gentle end or over-triggers at the aggressive end, so the presets wouldn't have sounded distinct from each other. Release is fixed at 250ms across all five; attack is what actually shifts the felt character from "gentle glue" to "hard limiter." On by default at the Gentle preset — this directly addresses a real gain-staging bug found earlier (`SAMPLES_BOOST × masterVolume` can exceed unity with zero limiting in the chain, causing clipping at default settings) rather than leaving it opt-in.
 - **"Off" is a real transparent state** (ratio 1:1, threshold 0dB — mathematically a no-op) instead of disconnecting/reconnecting the audio graph on every toggle.
 - **Master strip redesign** to fit the new control: the three global-action icons (mute-all/waterfall-all/keyboard-all) and the mute-filter button merged into one row to free up space without growing the strip; a new Tone+Compressor row puts the compressor's preset knob opposite Tone, with a bare on/off icon (amber = on, white = off, no button chrome) centered between them via CSS Grid — this repo's own layout convention (`minmax(0,1fr) auto minmax(0,1fr)`, documented in `CLAUDE.md`) rather than flex+space-between, so the toggle can't drift off-center if the two side knobs' widths ever diverge again. Strip widened 160px → 184px to fit.
-- **Compressor icon** (`CompressorIcon.tsx`) restyled from a supplied reference SVG to match every other Orfeo icon's `currentColor` stroke pattern.
+- **Compressor icon** (`CompressorIcon.tsx`) restyled from a supplied reference SVG to match every other Pliage icon's `currentColor` stroke pattern.
 - **Preset knob has no static radial labels.** An early version placed ratio numbers around the knob, but those made its footprint wider than a plain knob and threw off its right-alignment against Reverb above it — removed in favor of a dynamic tooltip: hovering a tick shows that preset's info regardless of what's currently selected, hovering the knob's own center shows whichever preset is actually active.
 - `getMasterCompReduction()` exported from the audio engine (live gain-reduction in dB, unsmoothed) — infrastructure for a planned visual-only "the master/track faders visibly dip while the limiter is working" treatment. Not wired to the UI yet.
 
@@ -739,7 +740,7 @@ A full `/impeccable audit`-driven pass: the app scored 12/20 on a technical audi
 - **TopBar's right-side button-clearance padding, fixed twice — the first pass solved the wrong problem.** The Windows caption-button overlay (`–□×`) reserves real horizontal space, and the app was carrying a flat `174px` guess as permanent right-padding across the bar's entire height to avoid it — a much larger gap than actually needed, and one that didn't scale with the user's real display DPI. First attempt measured the real reserved width live via `navigator.windowControlsOverlay` (down to 137px on a 1920px-wide, 100%-scale display) but also bottom-anchored the right icon group below the buttons' 40px-tall zone to tighten the gap further — which fixed the padding but broke vertical alignment with the left/center groups (live user feedback caught this, not testing). Corrected: the group stays vertically centered like its siblings, and the live-measured inset moved to the group's own `paddingRight` instead of the row's shared padding, so its content's right edge lands exactly at the real button boundary — CDP-verified, zero overlap, no vertical trade-off. A genuinely clipped Volume-knob label (cut off 2.5px early by `overflowY:hidden`, found while measuring the above) was fixed in the same pass.
 
 ### Typography — tokenized, then self-hosted
-- **Every hardcoded `'Inter'`/`'JetBrains Mono'` literal — 235 of them across 24 files — replaced with `var(--font-ui)`/`var(--font-mono)`.** Zero visual change; this was pure infrastructure so a future font swap is a two-line edit instead of a 235-site hunt. `--font-logo` is a separate token for the ORFEO wordmark's own distinct fallback stack, independently swappable from the UI font. Canvas2D `ctx.font` strings (the Piano Roll's falling-note overlay) can't resolve `var()`, so those plug into the file's existing resolve-once-from-CSS pattern (`resolvePianoRollColorsFromCSS`, already used there for PixiJS/Canvas colors) instead of duplicating the font names as separate literals.
+- **Every hardcoded `'Inter'`/`'JetBrains Mono'` literal — 235 of them across 24 files — replaced with `var(--font-ui)`/`var(--font-mono)`.** Zero visual change; this was pure infrastructure so a future font swap is a two-line edit instead of a 235-site hunt. `--font-logo` is a separate token for the PLIAGE wordmark's own distinct fallback stack, independently swappable from the UI font. Canvas2D `ctx.font` strings (the Piano Roll's falling-note overlay) can't resolve `var()`, so those plug into the file's existing resolve-once-from-CSS pattern (`resolvePianoRollColorsFromCSS`, already used there for PixiJS/Canvas colors) instead of duplicating the font names as separate literals.
 - **Google Fonts CDN dependency removed entirely.** `PRODUCT.md` states this app is local-first with no network dependency for core playback; the UI font was quietly violating that on every launch. Downloaded the same files Google was serving (both are variable fonts, so only 4 physical `.woff2` files total cover the whole weight range) and committed them to `public/fonts/`, declared via local `@font-face` blocks. Verified against an actual `electron-vite build` output, not just the dev server — production Electron loads via `file://`, where absolute asset paths can resolve incorrectly; confirmed the build correctly rewrites them to relative paths that survive it.
 - **Fixed a real, unrelated bug found while doing this**: weight 700 was never loaded for either font (only 400/500/600 for Inter, 400/600 for JetBrains Mono) despite being the single most-used weight app-wide — 69 uses across BPM/key numbers, chord names, mute/solo labels, and the logo. All of those were rendering as Chromium's synthetic/faux bold this whole time, not the fonts' real bold faces. Both now load 400/500/600/700 (Inter) and 400/600/700 (JetBrains Mono).
 
@@ -779,8 +780,8 @@ Every floating modal (Note Editor, Playback Editor, Scale Explorer, Chord Explor
 - `NoteEditorIcon.tsx` (a custom SVG) deleted and replaced everywhere with lucide's `AudioLines`/`ListTree` — one less bespoke icon to maintain, no visual regression once stroke-width was compensated for its larger render size.
 
 ### Settings — Library & Hand Labels
-- Library folder list: the app's own `Orfeo` folder is now always pinned topmost (above the existing `Demo` pin).
-- Protected folders (`Orfeo`) now still get a right-click menu — just "Show in explorer" instead of Rename/Move/Delete, instead of no menu at all.
+- Library folder list: the app's own `Pliage` folder is now always pinned topmost (above the existing `Demo` pin).
+- Protected folders (`Pliage`) now still get a right-click menu — just "Show in explorer" instead of Rename/Move/Delete, instead of no menu at all.
 - Max Fingers redesigned: heading + Left/Right rows with one shared description below, instead of two separately-hinted rows.
 - Practice mode (the averaged split-line hand-label display) disabled in the UI — proved inconsistent in practice; the underlying code and store value are untouched (still selectable via a `{false && ...}` guard) so it can come back once improved. A stale saved `'practice'` preference from before this change is no longer restorable.
 
@@ -808,7 +809,7 @@ Every floating modal (Note Editor, Playback Editor, Scale Explorer, Chord Explor
 `useChordSequence.ts` pre-computes the whole file's chord sequence from each note's raw MIDI pitch, but its effect only re-ran on `[midi, noteNaming, accidentals]` — never on key/transpose changes. Playback, the audio engine, and the keyboard all correctly shifted pitch by the current transpose; the chord-name strip never did, so changing key left every chord label showing the file's *original* key. Fixed by folding transpose into the note pitches before chord detection and re-running whenever it changes.
 
 ### Tempo/Key save — rewired into the Playback Editor
-The opt-in "save tempo/key changes" feature (v1.6.0) had its toggle in Settings and its own standalone Save button in the TopBar, disconnected from the Playback Editor that already owns file-versioning saves. Reworked: the toggle now lives in the Playback Editor's select-all/clear-all row ("Save Tempo & Key changes", off by default), and its logic is folded directly into that modal's own Save & Reload write — one click, one `_ORFEO_vN`, one changelog entry, instead of two independent saves stacking two versions. The TopBar button is gone. The underlying bake-in math (`computeTempoKeyPayload()` in `tempoKeySave.ts`) is unchanged and still shared with the standalone Reset/close/drag-drop unsaved-changes guard, which still needs to save tempo/key changes even when the Playback Editor isn't open.
+The opt-in "save tempo/key changes" feature (v1.6.0) had its toggle in Settings and its own standalone Save button in the TopBar, disconnected from the Playback Editor that already owns file-versioning saves. Reworked: the toggle now lives in the Playback Editor's select-all/clear-all row ("Save Tempo & Key changes", off by default), and its logic is folded directly into that modal's own Save & Reload write — one click, one `_PLIAGE_vN`, one changelog entry, instead of two independent saves stacking two versions. The TopBar button is gone. The underlying bake-in math (`computeTempoKeyPayload()` in `tempoKeySave.ts`) is unchanged and still shared with the standalone Reset/close/drag-drop unsaved-changes guard, which still needs to save tempo/key changes even when the Playback Editor isn't open.
 
 ### Scale Explorer — root note coloring (new, opt-in-by-default)
 New "color root note" toggle (top-right of the Chords-in-the-Scale row, on by default): highlights the true root pitch class in pink (same pink as the Note Editor's RH hand color) instead of blending into the uniform amber used for every other note. Two deliberately different rules, both keyed on the chord's *pitch class* rather than voicing position (fixing a real bug — the old code colored whichever note happened to be the current bass, which broke under inversion since the true root can land anywhere in the voicing once inverted):
@@ -816,7 +817,7 @@ New "color root note" toggle (top-right of the Chords-in-the-Scale row, on by de
 - **Inversions** (the ◂/▸ inversion steppers, and inverted progression steps): always colors the **chord's own** root, regardless of the scale. Intended to be ported to the Chord Explorer and Chord Locker next.
 
 ### Fixed — Scale Explorer's close button occasionally maximized the app window
-The Electron window uses a 40px `titleBarOverlay` (Windows draws its own native minimize/maximize/close buttons there, on top of the page regardless of DOM z-index). Scale Explorer's modal is tall enough (600px) that its default vertical position clamps to a floor on smaller windows — and that floor was 8px, landing the modal's own header (and × button) right under Windows' real maximize button. Clicks aimed at Orfeo's close button were sometimes actually hitting the OS control instead. Floor raised to 44px (clears the overlay) for both the initial position and manual header-drag.
+The Electron window uses a 40px `titleBarOverlay` (Windows draws its own native minimize/maximize/close buttons there, on top of the page regardless of DOM z-index). Scale Explorer's modal is tall enough (600px) that its default vertical position clamps to a floor on smaller windows — and that floor was 8px, landing the modal's own header (and × button) right under Windows' real maximize button. Clicks aimed at Pliage's close button were sometimes actually hitting the OS control instead. Floor raised to 44px (clears the overlay) for both the initial position and manual header-drag.
 
 ### Mixer Console
 - **Channel drag-to-reorder** (new): piano/keys channels stay locked leftmost; every other channel gets a grip handle in its name bar and can be dragged to reorder, same pattern as the Track Panel's existing group drag-reorder.
@@ -838,7 +839,7 @@ Patch/minor bumps: React/React DOM/`@types` 19.2.8, Tailwind 4.3.3, `fuse.js` 7.
 The big one. Manual LH/RH hand correction inside the Note Editor, a full toolbar rebuild, a new opt-in tempo/key saving feature, and — found while chasing an unrelated report — a versioning bug that could silently overwrite an earlier saved version instead of creating a new one.
 
 ### Note Editor — manual hand assignment
-The Note Editor gained a full correction workflow for the automatic LH/RH hand-splitting algorithm: a dedicated **Hand** toggle (separate from the Settings LH/RH algorithm toggle — this one only controls what the editor shows/lets you fix right now) that visually isolates the piano/keys track on the roll and keyboard (hides every other track — purely visual, doesn't touch audio) and enables **Assign to Left/Right Hand** in the right-click context menu. Manually assigned notes are tagged `handSource: 'manual'` and protected from being silently overwritten by a fresh algorithm run on the next load. Assign/reassign is fully undo-capable (Ctrl+Z, or the context menu's Undo/Redo, always present and disabled-aware). Split/Merge/Save in the Playback Editor now respects manually-corrected tags end-to-end via an extended `ORFEO_HAND_MAP` persistence format that carries a per-note computed/manual source alongside the hand itself.
+The Note Editor gained a full correction workflow for the automatic LH/RH hand-splitting algorithm: a dedicated **Hand** toggle (separate from the Settings LH/RH algorithm toggle — this one only controls what the editor shows/lets you fix right now) that visually isolates the piano/keys track on the roll and keyboard (hides every other track — purely visual, doesn't touch audio) and enables **Assign to Left/Right Hand** in the right-click context menu. Manually assigned notes are tagged `handSource: 'manual'` and protected from being silently overwritten by a fresh algorithm run on the next load. Assign/reassign is fully undo-capable (Ctrl+Z, or the context menu's Undo/Redo, always present and disabled-aware). Split/Merge/Save in the Playback Editor now respects manually-corrected tags end-to-end via an extended `PLIAGE_HAND_MAP` persistence format that carries a per-note computed/manual source alongside the hand itself.
 
 ### Note Editor — toolbar rebuild and tool isolation
 Full 3-row toolbar redesign: header (logo, title, permanent "click a track to solo it" hint, close), a combined TOOLS+MODES row, and a context-aware tooltip row. Each tool (Select/Pen/Marquee/Lasso) now does exactly one thing — Pen only adds (Alt+click) or marks notes for delete, Marquee/Lasso only select, Select handles move/resize/pan. Right-click always opens a context menu (Assign LH/RH when Hand mode is on, Deselect, Undo, Redo, Delete always last) instead of ever instant-deleting. Every icon's tooltip now shows in the toolbar's own dynamic hint row instead of a native browser tooltip, changing live with hover/selection state. Undo/redo icons rotated to read as directional arrows; velocity lane icon is a static white/amber toggle with no blink/nudge.
@@ -860,16 +861,16 @@ BPM and transpose were session-only display preferences. A new toggle in Setting
 ### Fixed — key signature always showing "—"
 Found while testing the feature above: `@tonejs/midi` (the version in use) returns a file's key signature as a note-name **string** ("F", "Bb"...), never the raw numeric sharps/flats count the app's parser assumed — so `key % 12` silently produced `NaN` for every file with a genuine key signature, permanently stuck the Key display at a dash. Affected any file with real key metadata, not just ones without it. Fixed to map the string directly to a semitone.
 
-Separately, `@tonejs/midi`'s own key-signature *encoder* has a bug that silently drops the value on any re-save regardless — verified directly that even round-tripping a file with zero changes through its encoder loses the key signature. Worked around with a custom `ORFEO_KEY` text meta event (same pattern already used for track names/colors), written by the tempo/key save and read back with priority over the native field.
+Separately, `@tonejs/midi`'s own key-signature *encoder* has a bug that silently drops the value on any re-save regardless — verified directly that even round-tripping a file with zero changes through its encoder loses the key signature. Worked around with a custom `PLIAGE_KEY` text meta event (same pattern already used for track names/colors), written by the tempo/key save and read back with priority over the native field.
 
 ### Fixed — critical: save could silently overwrite an earlier version instead of creating a new one
-`nextOrfeoVersion()` computed the next `_ORFEO_vN` number purely from the *currently loaded file's own filename* — correct only if you always keep editing the freshly-reloaded save result. Reopening the plain original later (exactly what Library Favorites does — it points at the original, not the latest version) computed "_ORFEO_v1" again even if v1/v2/v3 already existed on disk from earlier sessions, and the save had no existence check: **it silently overwrote the old v1 with today's completely different edits.** Affected all three save tools that share this versioning rule (Playback Editor, Mixer, Note Editor). Fixed with a helper that scans the actual output folder for existing versions and always takes the real max + 1.
+`nextPliageVersion()` computed the next `_PLIAGE_vN` number purely from the *currently loaded file's own filename* — correct only if you always keep editing the freshly-reloaded save result. Reopening the plain original later (exactly what Library Favorites does — it points at the original, not the latest version) computed "_PLIAGE_v1" again even if v1/v2/v3 already existed on disk from earlier sessions, and the save had no existence check: **it silently overwrote the old v1 with today's completely different edits.** Affected all three save tools that share this versioning rule (Playback Editor, Mixer, Note Editor). Fixed with a helper that scans the actual output folder for existing versions and always takes the real max + 1.
 
 ### Track Panel
 - Show/hide-in-roll eye icon recolored: green when visible, red when hidden (was white/blue).
 - Drag-to-reorder no longer shows the OS "not allowed" cursor badge for the whole drag — the drag handlers never populated `dataTransfer`, which is unrelated to how the reorder itself works (pure React state) but is what Chromium uses to decide which cursor to show.
 
-**New:** `src/utils/tempoKeySave.ts`, `NES.editedNotes` (`src/utils/noteEditorState.ts`), `HAND_ASSIGN_GROUPS` (`src/utils/keyboardGroups.ts`), `nextAvailableOrfeoPath()` (`electron/main.ts`), `tempoKey:save` IPC handler, `ORFEO_KEY` meta convention. **Changed:** `src/components/NoteEditor/NoteEditorToolbar.tsx` (largely rebuilt), `src/components/PianoRoll/PianoRoll.tsx`, `src/components/TrackPanel/TrackPanel.tsx`, `src/components/Transport/TopBar.tsx`, `src/components/SettingsPanel/SettingsPanel.tsx`, `src/store/index.ts`, `src/utils/keyDetection.ts`, `src/utils/midiParser.ts`, `src/utils/keyboardGroups.ts`, `src/utils/orfeoVersioning.ts` usage, `src/App.tsx`, `src/hooks/useMidiFile.ts`, `electron/main.ts`, `electron/preload.ts`.
+**New:** `src/utils/tempoKeySave.ts`, `NES.editedNotes` (`src/utils/noteEditorState.ts`), `HAND_ASSIGN_GROUPS` (`src/utils/keyboardGroups.ts`), `nextAvailablePliagePath()` (`electron/main.ts`), `tempoKey:save` IPC handler, `PLIAGE_KEY` meta convention. **Changed:** `src/components/NoteEditor/NoteEditorToolbar.tsx` (largely rebuilt), `src/components/PianoRoll/PianoRoll.tsx`, `src/components/TrackPanel/TrackPanel.tsx`, `src/components/Transport/TopBar.tsx`, `src/components/SettingsPanel/SettingsPanel.tsx`, `src/store/index.ts`, `src/utils/keyDetection.ts`, `src/utils/midiParser.ts`, `src/utils/keyboardGroups.ts`, `src/utils/pliageVersioning.ts` usage, `src/App.tsx`, `src/hooks/useMidiFile.ts`, `electron/main.ts`, `electron/preload.ts`.
 
 ---
 
@@ -904,7 +905,7 @@ Reassigning a track's instrument only ever touched its GM program number. The tr
 
 ### File Info changelog — several edit paths logged nothing or just "Saved"
 - **Note Editor saves logged nothing at all.** Now logs a real tally (`added N notes`, `removed N notes`, `moved N notes`, `repitched N notes`, `resized N notes`, `changed velocity on N notes`), built from the undo stack's own command descriptions (`NoteEditorHistory.appliedDescriptions()`).
-- **Note Editor save also wrote to the wrong folder.** It relied on a client-computed Orfeo-subfolder path handed to a native save dialog as `defaultPath` — a folder that often doesn't exist yet, which Electron's dialog can silently ignore, falling back to wherever it last had a folder open (e.g. Downloads) and writing the versioned file there instead. Removed the dialog entirely: `noteEditor:save` now takes the source `filePath` and computes/creates the output path itself via `getOrfeoOutputDir()`/`nextOrfeoBaseName()` and logs its own changelog entry server-side — the same silent-auto-version convention `editor:save`/`mixer:save` already use, so it's no longer possible for the logged path and the actual written path to diverge.
+- **Note Editor save also wrote to the wrong folder.** It relied on a client-computed Pliage-subfolder path handed to a native save dialog as `defaultPath` — a folder that often doesn't exist yet, which Electron's dialog can silently ignore, falling back to wherever it last had a folder open (e.g. Downloads) and writing the versioned file there instead. Removed the dialog entirely: `noteEditor:save` now takes the source `filePath` and computes/creates the output path itself via `getPliageOutputDir()`/`nextPliageBaseName()` and logs its own changelog entry server-side — the same silent-auto-version convention `editor:save`/`mixer:save` already use, so it's no longer possible for the logged path and the actual written path to diverge.
 - Foreign-format import cache writes (`fs:writeCachedImport`) wrote to disk with zero changelog entry — now logs "Imported and converted to MIDI".
 
 **New:** `PIANO_FAMILY_COLORS` (`src/utils/colors.ts`), `NoteEditorHistory.appliedDescriptions()` (`src/utils/noteEditorHistory.ts`), `buildNoteEditSummary()` (`src/utils/noteEditorState.ts`). **Changed:** `src/utils/foreignFormatImport.ts`, `src/App.tsx`, `src/hooks/useMidiFile.ts`, `src/components/SettingsPanel/SettingsPanel.tsx`, `src/components/MidiEditor/MidiEditor.tsx`, `src/components/NoteEditor/NoteEditorToolbar.tsx`, `src/utils/midiParser.ts`, `electron/main.ts` (`noteEditor:save` rewritten, `fs:writeCachedImport` logging).
@@ -915,7 +916,7 @@ Reassigning a track's instrument only ever touched its GM program number. The tr
 
 "Hide from library" (right-click) had no way back — a hidden file stayed excluded forever, with no unhide affordance anywhere in the UI.
 
-Added a toggle button next to "New folder" in the Library panel (`ChevronsDownUp` icon — lucide-react has no `ListChevronsDownUp` in any published version, this was the closest real icon) that reveals hidden files back into the list instead of hard-excluding them. Revealed files render in a dedicated dim-amber shade (new `--text-amber-dimmest` token, ~40% amber — not a generic opacity fade, so they still read as "library color," not disabled) so they're visually distinct from normal files while shown. Right-click on a revealed file now offers "Unhide" in place of "Hide from library". Toggle state persists across restarts via `orfeo-prefs.json`, same mechanism as favourites/hidden-list itself. `All`/`★` filter tabs tightened slightly (padding/font-size) to make room for the third toolbar button.
+Added a toggle button next to "New folder" in the Library panel (`ChevronsDownUp` icon — lucide-react has no `ListChevronsDownUp` in any published version, this was the closest real icon) that reveals hidden files back into the list instead of hard-excluding them. Revealed files render in a dedicated dim-amber shade (new `--text-amber-dimmest` token, ~40% amber — not a generic opacity fade, so they still read as "library color," not disabled) so they're visually distinct from normal files while shown. Right-click on a revealed file now offers "Unhide" in place of "Hide from library". Toggle state persists across restarts via `pliage-prefs.json`, same mechanism as favourites/hidden-list itself. `All`/`★` filter tabs tightened slightly (padding/font-size) to make room for the third toolbar button.
 
 **New:** `store.unhideLibraryFile`, `store.showHiddenLibraryFiles`/`setShowHiddenLibraryFiles` (`src/store/index.ts`), `--text-amber-dimmest` (`src/index.css`). **Changed:** `src/components/SettingsPanel/SettingsPanel.tsx` (toolbar button, list filtering, row dimming, context menu).
 
@@ -926,7 +927,7 @@ Added a toggle button next to "New folder" in the Library panel (`ChevronsDownUp
 Piano and keys tracks were rendering a different, arbitrary color every load — root-caused to two disconnected color sources and a per-load-order assignment with no instrument awareness. Fixed alongside two related Playback Editor color bugs found during investigation, plus two small split/merge UI fixes.
 
 ### Piano/keys tracks: deterministic color on every load
-`src/utils/midiParser.ts` had its own bespoke 12-color array, separate from the 10-color `TRACK_COLOR_PALETTE` shown in the Playback Editor's color picker (`src/utils/colors.ts`) — and assigned colors by raw note-track encounter order, with no idea which tracks were piano vs. anything else. Whichever color landed on a given file's piano track was pure chance based on how many other tracks preceded it. Unified onto one palette and made piano-family tracks (`KEYBOARD_GROUPS`: piano/chromatic/organ) deterministic: 1st piano/keys track always gets the same blue as the Left Hand split color, 2nd always gets the same pink as Right Hand, 3rd+ gets Orfeo amber. Non-piano tracks keep round-robining the rest of the palette. Purely a default-assignment change at parse time — no file writes, no versioning. TrackPanel, Piano Roll, and Keyboard already shared one `store.tracks[i].color`, so once the assigned value is consistent, all three render it consistently.
+`src/utils/midiParser.ts` had its own bespoke 12-color array, separate from the 10-color `TRACK_COLOR_PALETTE` shown in the Playback Editor's color picker (`src/utils/colors.ts`) — and assigned colors by raw note-track encounter order, with no idea which tracks were piano vs. anything else. Whichever color landed on a given file's piano track was pure chance based on how many other tracks preceded it. Unified onto one palette and made piano-family tracks (`KEYBOARD_GROUPS`: piano/chromatic/organ) deterministic: 1st piano/keys track always gets the same blue as the Left Hand split color, 2nd always gets the same pink as Right Hand, 3rd+ gets Pliage amber. Non-piano tracks keep round-robining the rest of the palette. Purely a default-assignment change at parse time — no file writes, no versioning. TrackPanel, Piano Roll, and Keyboard already shared one `store.tracks[i].color`, so once the assigned value is consistent, all three render it consistently.
 
 ### Bugfix — Cancel in Playback Editor kept a picked color
 Picking a color swatch wrote straight into the live global store immediately (so Track Panel/Keyboard could preview it live) instead of staying staged like every other edit in the editor. Clicking Cancel (or the × close button) discarded the editor's local staged state but never reverted that already-committed store write — the new color stuck around even though nothing was saved. Added an open-time color/colorSource snapshot and a `handleCancel` that reverts any track whose color drifted from it before closing.
@@ -945,7 +946,7 @@ Split preview's small Cancel button (next to the hand-split stats) renamed to "D
 
 Console Mixer channel strips (volume, pan, reverb, chorus) were previously session-only — re-seeded from the file's CC data on every load, discarded on close. Brainstormed and built end to end: values now persist to disk on request.
 
-Volume/pan/chorus/reverb moved from `ChannelStrip`'s local `useState` into the store (`TrackState.chorus`/`.reverb` joined the existing `.volume`/`.pan`), with a `mixerBaseline` snapshot captured on file load. Closing the mixer (Escape or the × button) diffs live values against that baseline; if any channel changed, a Save/Discard/Cancel dialog appears. **Save** writes a new `_ORFEO_vN.mid` (same versioning `editor:save` uses — never overwrites) via a new `mixer:save` IPC handler, which flattens each channel's CC7/CC10/CC91/CC93 to a single static value at time 0 (the mixer UI only ever represented one static value, so any pre-existing automation on those controllers is replaced, not preserved) and logs one entry to the file's Orfeo History. The app then reloads onto the new version. **Discard** closes without writing; **Cancel** leaves the mixer open. Master strip and everything else on the channel strip (mute/solo/etc.) stay session-only — out of scope.
+Volume/pan/chorus/reverb moved from `ChannelStrip`'s local `useState` into the store (`TrackState.chorus`/`.reverb` joined the existing `.volume`/`.pan`), with a `mixerBaseline` snapshot captured on file load. Closing the mixer (Escape or the × button) diffs live values against that baseline; if any channel changed, a Save/Discard/Cancel dialog appears. **Save** writes a new `_PLIAGE_vN.mid` (same versioning `editor:save` uses — never overwrites) via a new `mixer:save` IPC handler, which flattens each channel's CC7/CC10/CC91/CC93 to a single static value at time 0 (the mixer UI only ever represented one static value, so any pre-existing automation on those controllers is replaced, not preserved) and logs one entry to the file's Pliage History. The app then reloads onto the new version. **Discard** closes without writing; **Cancel** leaves the mixer open. Master strip and everything else on the channel strip (mute/solo/etc.) stay session-only — out of scope.
 
 **New:** `mixer:save` IPC (`electron/main.ts`, `electron/preload.ts`, `src/types/index.ts`). **Changed:** `src/store/index.ts` (`mixerBaseline`, `TrackState.chorus`/`.reverb`), `src/components/Mixer/ChannelStrip.tsx`, `src/components/Mixer/MixerConsole.tsx`.
 
@@ -960,7 +961,7 @@ Read-only-by-default metadata table — Artist, Song (parsed from the `Artist - 
 
 Artist/Song are editable: double-click to rename, same interaction as track renaming in the Playback Editor (amber-on-hover label, pencil cursor, "Double-click to rename" tooltip, `bg-row`/amber-border input on activation). Edits stage locally; nothing touches disk until **Save changes**, which fires one real file rename. A swap icon swaps the two staged values, not an immediate rename. "Show in folder" (outline style, same size as Save) sits beside it.
 
-**Orfeo History** — a change log local to the app (not written into the .mid file): every Playback Editor save now records a terse summary against the saved file's path ("merged 2 tracks into 1, changed color of 1 track, changed roll visibility of 1 track"), and renames/moves log themselves automatically. Persisted in a sidecar JSON (`userData/orfeo-file-log.json`, keyed by path) with remap hooks in every rename/move IPC handler so entries follow the file instead of orphaning. Fixed-height (~2 entries), scrolls instead of growing the popup.
+**Pliage History** — a change log local to the app (not written into the .mid file): every Playback Editor save now records a terse summary against the saved file's path ("merged 2 tracks into 1, changed color of 1 track, changed roll visibility of 1 track"), and renames/moves log themselves automatically. Persisted in a sidecar JSON (`userData/pliage-file-log.json`, keyed by path) with remap hooks in every rename/move IPC handler so entries follow the file instead of orphaning. Fixed-height (~2 entries), scrolls instead of growing the popup.
 
 Version dropdown next to the filename — appears when siblings exist (`Original`, `v1`, `v2`, ...), derived by scanning for files sharing the stripped base name (no separate storage). Hover a version for its saved date/time. Navigates the popup only, never loads the file into the app; no delete.
 
@@ -969,7 +970,7 @@ Popup itself: draggable (same pattern as the Playback Editor's modals), filename
 **New:** `src/components/FileInfoModal.tsx`, `src/utils/midiMetadata.ts`, `fs:renameLibraryFile` / `fileinfo:getLog` / `fileinfo:logEvent` / `fileinfo:listVersions` IPC (`electron/main.ts`, `electron/preload.ts`, `src/types/index.ts`). **Changed:** `src/components/SettingsPanel/SettingsPanel.tsx` (new context-menu item), `src/components/MidiEditor/MidiEditor.tsx` (save-summary logging).
 
 ### Bug fix — file organize actions blocked for every saved version
-`isProtectedFolderName` (guards the reserved `Demo`/`Orfeo` library folders from rename/delete) was also being used to gate file-level rename and move — but `Orfeo` isn't one well-known folder: every saved version lands in a folder literally named `Orfeo` next to its source file. That made the check true for nearly every file a user might want to rename or move, not just the two reserved top-level folders. Split into two checks: folder-level operations (renaming/deleting the reserved folders themselves) still block both `Demo` and `Orfeo`; file-level operations (rename, move) now only block `Demo` (genuinely read-only bundled content). Fixed in both `electron/main.ts` and the equivalent renderer-side guard in `SettingsPanel.tsx`, which had the same bug independently.
+`isProtectedFolderName` (guards the reserved `Demo`/`Pliage` library folders from rename/delete) was also being used to gate file-level rename and move — but `Pliage` isn't one well-known folder: every saved version lands in a folder literally named `Pliage` next to its source file. That made the check true for nearly every file a user might want to rename or move, not just the two reserved top-level folders. Split into two checks: folder-level operations (renaming/deleting the reserved folders themselves) still block both `Demo` and `Pliage`; file-level operations (rename, move) now only block `Demo` (genuinely read-only bundled content). Fixed in both `electron/main.ts` and the equivalent renderer-side guard in `SettingsPanel.tsx`, which had the same bug independently.
 
 **Changed:** `electron/main.ts`, `src/components/SettingsPanel/SettingsPanel.tsx`.
 
@@ -980,7 +981,7 @@ Popup itself: draggable (same pattern as the Playback Editor's modals), filename
 Driven by live bug reports and iterative UI feedback across the session — the Playback Editor's split/save flow had a real data-loss bug (every split silently discarded whatever else was staged in the same session), and the Library sidebar needed real design work to stay usable at 500+ files.
 
 ### Playback Editor — split and save unified into one disk write
-Previously "Split into two tracks" wrote its own file and reloaded the whole editor immediately — which wiped every other staged edit in progress (include/exclude, merges, colors, renames) because the reload rebuilt the row list from scratch. Split is now a purely local staging operation (no IPC, no disk write); the actual note-splitting happens once, inside Save & Reload's single write. A session's edits — however many — now always produce exactly one `_ORFEO_vN`, never two-plus.
+Previously "Split into two tracks" wrote its own file and reloaded the whole editor immediately — which wiped every other staged edit in progress (include/exclude, merges, colors, renames) because the reload rebuilt the row list from scratch. Split is now a purely local staging operation (no IPC, no disk write); the actual note-splitting happens once, inside Save & Reload's single write. A session's edits — however many — now always produce exactly one `_PLIAGE_vN`, never two-plus.
 
 Undo moved to where it belongs: "Undo split" now sits with the split-staging banner (reverts the staged split locally, before anything is written), not after a successful save. Once Save & Reload actually commits, the footer collapses to a single **OK** button — Cancel/Save & Reload disappear, so a second click can no longer mint v2, v3, etc. in the same modal session. A failed save leaves Cancel/Save & Reload in place to retry.
 
@@ -989,7 +990,7 @@ Fixed two related bugs surfaced by this rework: staged split output was inheriti
 **Changed:** `electron/main.ts` (`editor:save` now handles split+merge+color+name+instrument in one write; standalone `editor:split` handler removed), `electron/preload.ts`, `src/types/index.ts`, `src/components/MidiEditor/MidiEditor.tsx`.
 
 ### Playback Editor — persisted Roll/Keyboard columns
-Two new columns (Piano roll visibility, Keyboard-lit) let a save persist what the TrackPanel's matching icons only ever did for the current session. Written as `ORFEO_TRACK_VISIBLE`/`ORFEO_TRACK_KEYBOARD` text meta-events on save (same convention as track name/color), restored as defaults on reimport.
+Two new columns (Piano roll visibility, Keyboard-lit) let a save persist what the TrackPanel's matching icons only ever did for the current session. Written as `PLIAGE_TRACK_VISIBLE`/`PLIAGE_TRACK_KEYBOARD` text meta-events on save (same convention as track name/color), restored as defaults on reimport.
 
 **Changed:** `src/utils/midiParser.ts`, `src/store/index.ts`, `electron/main.ts`, `src/components/MidiEditor/MidiEditor.tsx`.
 
@@ -1001,7 +1002,7 @@ Columns reordered (Include, Track, Merge, Split, Color, Piano roll, Keyboard, As
 ### Library — pinned active file, collapsible Folders section
 The loaded file now gets its own always-visible bar pinned above the list — CSS `position: sticky` alone can't pull a row out of a collapsed folder or up from its alphabetical position, so this is a real pin, not a scroll trick. It still renders at its normal spot in its folder too, so a folder's contents never look incomplete just because one of them is loaded.
 
-All folders now collapse under one "Folders" row (amber chevron) instead of each needing its own; individual folder headers lost their per-folder chevron (clicking the header still expands/collapses it). Right-click menu gained "Show in folder" (Explorer, file pre-selected via `shell.showItemInFolder`) and a multi-select fix: "New folder from selection"/"Move to folder" were hidden if *any* selected file was in a protected folder (Demo/Orfeo) — now only hidden if *all* of them are, since the move backend already skips protected files individually.
+All folders now collapse under one "Folders" row (amber chevron) instead of each needing its own; individual folder headers lost their per-folder chevron (clicking the header still expands/collapses it). Right-click menu gained "Show in folder" (Explorer, file pre-selected via `shell.showItemInFolder`) and a multi-select fix: "New folder from selection"/"Move to folder" were hidden if *any* selected file was in a protected folder (Demo/Pliage) — now only hidden if *all* of them are, since the move backend already skips protected files individually.
 
 **New:** `shell:showItemInFolder` IPC (`electron/main.ts`, `electron/preload.ts`, `src/types/index.ts`). **Changed:** `src/components/SettingsPanel/SettingsPanel.tsx`.
 
@@ -1035,7 +1036,7 @@ A dirty-flag gate on the MidiEditor's Save button (meant to skip a redundant re-
 **Changed:** `src/components/MidiEditor/MidiEditor.tsx`.
 
 ### Split-output track renaming — actually reaches the UI now
-"Split into two tracks" renamed the underlying MIDI track-name field correctly, but the UI's displayed track name is a separate field (`trackName` in the store) that only reads an `ORFEO_TRACK_NAME` hint — never the plain track-name field — so the rename was invisible in the app. Split now injects that hint for both output tracks. Also handles the common real-world case of a blank source track name (falls back to "Piano" so output reads "Piano LH"/"Piano RH" instead of a bare " LH"/" RH").
+"Split into two tracks" renamed the underlying MIDI track-name field correctly, but the UI's displayed track name is a separate field (`trackName` in the store) that only reads an `PLIAGE_TRACK_NAME` hint — never the plain track-name field — so the rename was invisible in the app. Split now injects that hint for both output tracks. Also handles the common real-world case of a blank source track name (falls back to "Piano" so output reads "Piano LH"/"Piano RH" instead of a bare " LH"/" RH").
 
 **Changed:** `electron/main.ts`, `src/utils/handMetadata.ts`.
 
@@ -1138,8 +1139,8 @@ All `OptionRow` labels now render uppercase; eye/EyeOff feature toggles replaced
 - **Notation**: section icon swapped `Type` → `Music2`; description text added under "Display system".
 - **Accidentals**: flat/sharp buttons replaced with a borderless "♭ Flats / toggle / Sharps ♯" layout, labels 20px off the toggle icon and centered as a unit; the ♭/♯ glyphs themselves render 50% larger than the label text; hint text dropped its redundant "e.g." prefix and centers under the row.
 - **Keyboard**: "Labels" (containing Show octaves/Show note names) promoted to full row-label weight since it's a real subgroup heading, not a thin divider; the two rows under it use `labelSmall` instead. Left/Right Hand section (plus its Mode/sensitivity sub-controls) moved out of Keyboard into Playback & Practice, below Loop region. New **Close panels on playback** toggle: auto-hides the Tracks *and* Settings/Library panels while playing, restores whichever were actually open on pause/stop/new-file-load (`autoCollapseDrawers` in the store, debounced 150ms against the brief real playbackState blips seek operations cause — see below).
-- **Piano Roll**: loupe+ icon → `Columns3`; description added under "Bar numbers & grid lines"; the "Visual Effects" subsection (Effect Scope & Color / Effect Pattern / Intensity / Spread / Threshold) uses `labelSmall` throughout; the three bloom sliders got a custom `.orfeo-slider-amber` CSS class (transparent-amber fill over a gray track via WebKit track/thumb pseudo-elements) replacing `accentColor`, which couldn't give the fill its own opacity independent of the solid thumb, and dropped the stray default track border.
-- **Appearance**: Warm theme button dimmed/disabled, relabeled "Coming soon"; "Background" label renamed to "Theme"; About icon replaced with the real `OrfeoMark` SVG logo (clickable → opens the GitHub repo); **version string is now injected at build time from `package.json`** via Vite's `define` (`electron.vite.config.ts` → `__APP_VERSION__`, declared in `src/jzz.d.ts`) instead of being hand-typed and drifting; footer reads "by SquareBow" (no link, styled identically to the version line — same font/color/size, including the preceding dot); the northeast-arrow icon detached from the User Manual button into its own `CloudDownload` button ("Check for updates" tooltip, opens the GitHub releases page — full auto-update-checking wasn't built, just the manual fallback); User Manual label switched to JetBrains Mono to match.
+- **Piano Roll**: loupe+ icon → `Columns3`; description added under "Bar numbers & grid lines"; the "Visual Effects" subsection (Effect Scope & Color / Effect Pattern / Intensity / Spread / Threshold) uses `labelSmall` throughout; the three bloom sliders got a custom `.pliage-slider-amber` CSS class (transparent-amber fill over a gray track via WebKit track/thumb pseudo-elements) replacing `accentColor`, which couldn't give the fill its own opacity independent of the solid thumb, and dropped the stray default track border.
+- **Appearance**: Warm theme button dimmed/disabled, relabeled "Coming soon"; "Background" label renamed to "Theme"; About icon replaced with the real `PliageMark` SVG logo (clickable → opens the GitHub repo); **version string is now injected at build time from `package.json`** via Vite's `define` (`electron.vite.config.ts` → `__APP_VERSION__`, declared in `src/jzz.d.ts`) instead of being hand-typed and drifting; footer reads "by SquareBow" (no link, styled identically to the version line — same font/color/size, including the preceding dot); the northeast-arrow icon detached from the User Manual button into its own `CloudDownload` button ("Check for updates" tooltip, opens the GitHub releases page — full auto-update-checking wasn't built, just the manual fallback); User Manual label switched to JetBrains Mono to match.
 
 **New:** `src/components/NoteEditorIcon.tsx`. **Changed:** `src/components/SettingsPanel/SettingsPanel.tsx`, `src/store/index.ts`, `electron.vite.config.ts`, `src/jzz.d.ts`.
 
@@ -1148,13 +1149,13 @@ The enter/exit-note-edit-mode control moved out of TopBar into TrackPanel, under
 
 **Changed:** `src/components/TrackPanel/TrackPanel.tsx`, `src/components/Transport/TopBar.tsx`.
 
-### `_ORFEO_vN` save-versioning unification
-Three editing tools each hand-rolled their own save-suffix logic and disagreed: MidiEditor's merge/instrument-reassign save always overwrote the same `_ORFEO`/`_ORFEO_MERGED` file (no versioning at all), split always overwrote `_ORFEO_SPLIT`, and only the note editor incremented at all — using uppercase `_ORFEO_V2` and skipping straight past a `_v1`. Unified into `src/utils/orfeoVersioning.ts`, shared by `electron/main.ts` (`editor:save` and `editor:split`) and `NoteEditorToolbar.tsx`: every edit now produces the next `_ORFEO_v{N}`; legacy suffixes (`_ORFEO`, `_ORFEO_MERGED`, `_ORFEO_SPLIT`, `_ORFEO_V2`, `_ORFEO_IMPORTED`) are recognized and stripped so re-saving an old-scheme file starts a clean v1 instead of stacking. Also added `confirmPendingImportBeforeEdit` (`src/utils/foreignFormatImport.ts`) — opening the MIDI Playback Editor or Note Editor on a foreign-format file (MusicXML/Guitar Pro) still only in memory now prompts to save it as a real `.mid` first.
+### `_PLIAGE_vN` save-versioning unification
+Three editing tools each hand-rolled their own save-suffix logic and disagreed: MidiEditor's merge/instrument-reassign save always overwrote the same `_PLIAGE`/`_PLIAGE_MERGED` file (no versioning at all), split always overwrote `_PLIAGE_SPLIT`, and only the note editor incremented at all — using uppercase `_PLIAGE_V2` and skipping straight past a `_v1`. Unified into `src/utils/pliageVersioning.ts`, shared by `electron/main.ts` (`editor:save` and `editor:split`) and `NoteEditorToolbar.tsx`: every edit now produces the next `_PLIAGE_v{N}`; legacy suffixes (`_PLIAGE`, `_PLIAGE_MERGED`, `_PLIAGE_SPLIT`, `_PLIAGE_V2`, `_PLIAGE_IMPORTED`) are recognized and stripped so re-saving an old-scheme file starts a clean v1 instead of stacking. Also added `confirmPendingImportBeforeEdit` (`src/utils/foreignFormatImport.ts`) — opening the MIDI Playback Editor or Note Editor on a foreign-format file (MusicXML/Guitar Pro) still only in memory now prompts to save it as a real `.mid` first.
 
-**New:** `src/utils/orfeoVersioning.ts`. **Changed:** `electron/main.ts`, `src/components/NoteEditor/NoteEditorToolbar.tsx`, `src/components/MidiEditor/MidiEditor.tsx`, `src/utils/foreignFormatImport.ts`.
+**New:** `src/utils/pliageVersioning.ts`. **Changed:** `electron/main.ts`, `src/components/NoteEditor/NoteEditorToolbar.tsx`, `src/components/MidiEditor/MidiEditor.tsx`, `src/utils/foreignFormatImport.ts`.
 
 ### Modal/popup default-position overhaul
-Every floating modal used to default-position against the whole window, independent of the layout around it. New shared anchors (`src/utils/modalAnchors.ts`), read from the DOM once at open time via `data-piano-roll-area` (`App.tsx`) and `data-keyboard-header` (`Keyboard.tsx`'s chord/scale bar): ChordExplorer, ScaleExplorer, MixerConsole, and LockedChordModal bottom-align to the keyboard header and horizontally center on the piano roll; FloatingKeyboard bottom-aligns to the fixed-ratio playbar line (doesn't move when the playbar is hidden) and horizontally centers on the piano roll; MidiEditor centers on the whole screen with a fixed 220px top offset (simplified after the piano-roll-relative version kept landing partially off-screen); NoteEditorToolbar horizontally centers on the piano roll and always recomputes on open rather than persisting a dragged position across app restarts (it used to, which meant any test-drag got permanently "stuck" and reappeared in what looked like a random spot on the next launch), and is re-clamped into the viewport on mount/resize so a position saved at a larger window size can't render half off-screen after the window shrinks. Undocking the keyboard is now blocked (dimmed, explanatory tooltip) while any of those bottom-anchored modals except LockedChordModal is open — they share the same anchor, floating the keyboard out from under them would look broken; re-docking is always allowed. ConfirmDialog is now screen-centered *and* has the amber `orfeo-modal-glow` it was missing (as does LockedChordModal, which had its own bespoke, dimmer glow implementation that never actually matched the others — now uses the shared class, and the two now-dead `--accent-amber-glow-outer/inner` tokens that fed it were removed).
+Every floating modal used to default-position against the whole window, independent of the layout around it. New shared anchors (`src/utils/modalAnchors.ts`), read from the DOM once at open time via `data-piano-roll-area` (`App.tsx`) and `data-keyboard-header` (`Keyboard.tsx`'s chord/scale bar): ChordExplorer, ScaleExplorer, MixerConsole, and LockedChordModal bottom-align to the keyboard header and horizontally center on the piano roll; FloatingKeyboard bottom-aligns to the fixed-ratio playbar line (doesn't move when the playbar is hidden) and horizontally centers on the piano roll; MidiEditor centers on the whole screen with a fixed 220px top offset (simplified after the piano-roll-relative version kept landing partially off-screen); NoteEditorToolbar horizontally centers on the piano roll and always recomputes on open rather than persisting a dragged position across app restarts (it used to, which meant any test-drag got permanently "stuck" and reappeared in what looked like a random spot on the next launch), and is re-clamped into the viewport on mount/resize so a position saved at a larger window size can't render half off-screen after the window shrinks. Undocking the keyboard is now blocked (dimmed, explanatory tooltip) while any of those bottom-anchored modals except LockedChordModal is open — they share the same anchor, floating the keyboard out from under them would look broken; re-docking is always allowed. ConfirmDialog is now screen-centered *and* has the amber `pliage-modal-glow` it was missing (as does LockedChordModal, which had its own bespoke, dimmer glow implementation that never actually matched the others — now uses the shared class, and the two now-dead `--accent-amber-glow-outer/inner` tokens that fed it were removed).
 
 **New:** `src/utils/modalAnchors.ts`. **Changed:** `src/App.tsx`, `src/components/Keyboard/Keyboard.tsx`, `src/components/Keyboard/FloatingKeyboard.tsx`, `src/components/Keyboard/KeyboardControls.tsx`, `src/components/ChordExplorer.tsx`, `src/components/ScaleExplorer.tsx`, `src/components/Mixer/MixerConsole.tsx`, `src/components/MidiEditor/MidiEditor.tsx`, `src/components/LockedChordModal.tsx`, `src/components/ConfirmDialog.tsx`, `src/components/NoteEditor/NoteEditorToolbar.tsx`, `src/index.css`.
 
@@ -1194,12 +1195,12 @@ The cursor-following "Alt+drag · set loop region" tooltip was gated on the Loop
 **Changed:** `src/components/PianoRoll/PianoRoll.tsx`.
 
 ### Auto-update (Windows) + CONTRIBUTING.md
-Orfeo can now check GitHub Releases for updates and install them in-app, via `electron-updater` — Windows only, by design. Checks silently 5s after launch (nothing shows unless a real update is found) and on demand via Settings' `CloudDownload` icon, which now reflects live state (checking / downloading with a blinking dot / ready-to-install, amber / error) instead of always just opening the releases page; clicking it re-checks, and shows "Orfeo is up to date" briefly if there's nothing new. macOS/Linux builds are community-contributed and never go through Orfeo's own release pipeline, so pointing the updater at the official feed for them would be wrong regardless of whether the app is packaged — those platforms (and portable Windows builds, and dev) fall back to opening the releases page manually. `CONTRIBUTING.md` was referenced from `README.md` but never existed; added it with build commands per platform and a "Releases & auto-update" section spelling out the policy above — what maintainers do to cut a real Windows release (`GH_TOKEN` + `npm run dist`, why the `latest.yml` manifest matters), and what community macOS/Linux builders should do instead. Caveat: the app isn't code-signed, so the downloaded installer still trips Windows SmartScreen — unrelated to auto-update itself, same warning a manual download already got. Untested end-to-end pending a real tagged release.
+Pliage can now check GitHub Releases for updates and install them in-app, via `electron-updater` — Windows only, by design. Checks silently 5s after launch (nothing shows unless a real update is found) and on demand via Settings' `CloudDownload` icon, which now reflects live state (checking / downloading with a blinking dot / ready-to-install, amber / error) instead of always just opening the releases page; clicking it re-checks, and shows "Pliage is up to date" briefly if there's nothing new. macOS/Linux builds are community-contributed and never go through Pliage's own release pipeline, so pointing the updater at the official feed for them would be wrong regardless of whether the app is packaged — those platforms (and portable Windows builds, and dev) fall back to opening the releases page manually. `CONTRIBUTING.md` was referenced from `README.md` but never existed; added it with build commands per platform and a "Releases & auto-update" section spelling out the policy above — what maintainers do to cut a real Windows release (`GH_TOKEN` + `npm run dist`, why the `latest.yml` manifest matters), and what community macOS/Linux builders should do instead. Caveat: the app isn't code-signed, so the downloaded installer still trips Windows SmartScreen — unrelated to auto-update itself, same warning a manual download already got. Untested end-to-end pending a real tagged release.
 
 **New:** `CONTRIBUTING.md`. **Changed:** `package.json` (`build.publish`, new `electron-updater` dependency), `electron/main.ts`, `electron/preload.ts`, `src/types/index.ts`, `src/components/SettingsPanel/SettingsPanel.tsx`.
 
 ### Note editor: velocity lane
-New advanced editing technique, opened on demand: while a track is soloed for note editing, a toolbar icon blinks (amber) to indicate it's available; clicking it opens a lane covering the whole piano-roll area below the playhead, showing one thin (5px) bar per note of the soloed track — aligned to the *same* X/pitch position as the falling notes and keyboard below it (one continuous vertical line: keyboard key → note → velocity bar), rather than a horizontal-time-axis lane like a typical DAW. That's a deliberate fit to Orfeo's own vertical-scrolling roll (Y=time, X=pitch) instead of porting Signal/Ableton/Logic's exact layout, which assumes a horizontal-scrolling roll Orfeo doesn't have. Drag a bar vertically to change that note's velocity (0–127 MIDI range, real note-on velocity — persists as actual MIDI data on save, playable in any app/DAW), with a live numeric readout while dragging, undo/redo support, grab/grabbing cursor, and five subtle reference gridlines (0/32/64/96/127) with edge value markers. Scoped to one soloed track at a time — editing velocity across a whole orchestration with many tracks and thousands of notes isn't practically usable any other way. Two upgrades flagged, not built: no independent pan/zoom to browse a soloed track's full note list while paused (bars only reflect the same live time-window the falling view already computes); the lane overlays the bottom of the falling-notes canvas rather than reserving real space for it (shrinking the roll safely touches pervasive height-based math across the file).
+New advanced editing technique, opened on demand: while a track is soloed for note editing, a toolbar icon blinks (amber) to indicate it's available; clicking it opens a lane covering the whole piano-roll area below the playhead, showing one thin (5px) bar per note of the soloed track — aligned to the *same* X/pitch position as the falling notes and keyboard below it (one continuous vertical line: keyboard key → note → velocity bar), rather than a horizontal-time-axis lane like a typical DAW. That's a deliberate fit to Pliage's own vertical-scrolling roll (Y=time, X=pitch) instead of porting Signal/Ableton/Logic's exact layout, which assumes a horizontal-scrolling roll Pliage doesn't have. Drag a bar vertically to change that note's velocity (0–127 MIDI range, real note-on velocity — persists as actual MIDI data on save, playable in any app/DAW), with a live numeric readout while dragging, undo/redo support, grab/grabbing cursor, and five subtle reference gridlines (0/32/64/96/127) with edge value markers. Scoped to one soloed track at a time — editing velocity across a whole orchestration with many tracks and thousands of notes isn't practically usable any other way. Two upgrades flagged, not built: no independent pan/zoom to browse a soloed track's full note list while paused (bars only reflect the same live time-window the falling view already computes); the lane overlays the bottom of the falling-notes canvas rather than reserving real space for it (shrinking the roll safely touches pervasive height-based math across the file).
 
 **New:** velocity lane rendering + interaction in `src/components/PianoRoll/PianoRoll.tsx` (reuses the already-existing `cmdSetNoteVelocity`/`cmdSetRangeVelocity` command layer, previously unused outside a round-trip test), `velocityPanelOpen` in `src/store/index.ts`. **Changed:** `src/components/NoteEditor/NoteEditorToolbar.tsx` (toggle icon).
 
@@ -1248,15 +1249,15 @@ New "Import your own .sf2 / .sf3" button (tooltip warns to only import soundfont
 ## [0.17.0] — 1. 8. 2026 — Library folder management, sidebar fixes, i18n scaffolding
 
 ### Library folder management — create, rename, delete, move, undo
-The library sidebar now supports organizing MIDI files into subfolders entirely from within Orfeo, mirrored live on disk under the library root:
+The library sidebar now supports organizing MIDI files into subfolders entirely from within Pliage, mirrored live on disk under the library root:
 
 - **Create** via the `<Folders/>` icon (filter-tabs row) or right-click a file selection → "New folder from selection" (creates + moves in one step). Both auto-enter inline rename.
 - **Move** by dragging a selection onto a folder row (or the library-root drop zone that appears while dragging), or via the right-click "Move to folder ▸" submenu / a folder's "Move N selected files here". Standard Explorer multi-select: click / Ctrl-click / Shift-range.
 - **Rename** inline (row label swaps for a text input); **delete** only when empty (blocked + tooltipped otherwise).
-- **`Demo` and `Orfeo` are protected**: never renamed/deleted, never a drop target, their files aren't draggable — enforced in both the renderer and the IPC handlers.
+- **`Demo` and `Pliage` are protected**: never renamed/deleted, never a drop target, their files aren't draggable — enforced in both the renderer and the IPC handlers.
 - **Per-session undo** (until the app closes, not persisted): an Undo icon appears on any moved file and on any folder that received a move (covers drag-in and "New folder from selection" alike), reversing that specific move. Renaming a folder remaps its undo records to the new name rather than orphaning them; deleting a folder purges undo records that pointed at it.
 - **Bulk favourite**: a ★ on each folder header stars/unstars every file inside at once. The "starred" filter tab is now a flat cross-folder list (files never move on disk just from starring — only the star lights up in place); the library root itself stays plain alphabetical regardless of favourite status (previously starred-first).
-- Drag-over feedback: target folder gets an amber border + "Move to `<name>`" badge; `Demo`/`Orfeo` show a red border + "Can't move to system folder" instead of silently rejecting.
+- Drag-over feedback: target folder gets an amber border + "Move to `<name>`" badge; `Demo`/`Pliage` show a red border + "Can't move to system folder" instead of silently rejecting.
 - Selected rows get an amber box around the whole contiguous selection (not per-row outlines); right-click menus and hover states carry explanatory tooltips throughout.
 
 **New:** `src/utils/i18n.ts`. **Changed:** `electron/main.ts` (`fs:createLibraryFolder/renameLibraryFolder/deleteLibraryFolder/moveLibraryFiles/listLibraryFolders`), `electron/preload.ts`, `src/types/index.ts`, `src/store/index.ts` (`lastFolderOf`, `foldersWithUndo`, `setFavourites`, `remapLibraryPaths`), `src/components/SettingsPanel/SettingsPanel.tsx`.
@@ -1276,7 +1277,7 @@ Added a no-op `t()` placeholder (mirrors `ttag`'s tagged-template API) so new UI
 ## [0.16.0] — 31. 7. 2026 — Note-hit VFX rewrite, downloadable soundfonts, track reorder, playback polish
 
 ### Downloadable extra soundfonts (Samples engine)
-Settings → Audio → "Sound library": FluidR3 GM (142MB) and MuseScore General (38MB), both MIT-licensed GM soundfonts, one-click download + select. Neither is bundled in the build (would bloat the installer by hundreds of MB) — downloaded on demand into `userData/soundfonts/` (portable build: `<exeDir>/Orfeo-Data/soundfonts/`). Selecting a downloaded soundfont layers it over the always-bundled GeneralUser GS via `soundBankManager.addSoundBank` + `priorityOrder` (GeneralUser GS stays loaded as fallback for any preset the extra bank doesn't cover); switching back unloads it. Selection persists across restarts. Two well-known premium libraries (Timbres of Heaven, Arachno) were researched and rejected — both are "all rights reserved, no redistribution without permission," so only MIT-licensed alternatives were integrated.
+Settings → Audio → "Sound library": FluidR3 GM (142MB) and MuseScore General (38MB), both MIT-licensed GM soundfonts, one-click download + select. Neither is bundled in the build (would bloat the installer by hundreds of MB) — downloaded on demand into `userData/soundfonts/` (portable build: `<exeDir>/Pliage-Data/soundfonts/`). Selecting a downloaded soundfont layers it over the always-bundled GeneralUser GS via `soundBankManager.addSoundBank` + `priorityOrder` (GeneralUser GS stays loaded as fallback for any preset the extra bank doesn't cover); switching back unloads it. Selection persists across restarts. Two well-known premium libraries (Timbres of Heaven, Arachno) were researched and rejected — both are "all rights reserved, no redistribution without permission," so only MIT-licensed alternatives were integrated.
 
 **New/changed:** `electron/main.ts` (soundfont catalog + `soundfont:list/download/delete/read` IPC, redirect-following HTTPS downloader), `electron/preload.ts`, `src/hooks/useSamplesEngine.ts` (`loadSelectedSoundfont`), `src/store/index.ts` (`selectedSoundfont`), `src/types/index.ts` (`SoundfontId`, `SoundfontInfo`), `src/components/SettingsPanel/SettingsPanel.tsx`.
 
@@ -1311,7 +1312,7 @@ Groups and individual tracks within a group can be drag-reordered (session-only,
 **Changed:** `src/components/TrackPanel/TrackPanel.tsx`.
 
 ### Track color file-persistence fix
-Track colors picked in the color popover only ever lived in the Zustand store — any save+reload silently discarded them back to the palette default. Colors are now written to a `ORFEO_TRACK_COLOR:N:#hex` header meta-event (same convention as `ORFEO_TRACK_NAME`) on save and restored on parse.
+Track colors picked in the color popover only ever lived in the Zustand store — any save+reload silently discarded them back to the palette default. Colors are now written to a `PLIAGE_TRACK_COLOR:N:#hex` header meta-event (same convention as `PLIAGE_TRACK_NAME`) on save and restored on parse.
 
 **Changed:** `src/utils/midiParser.ts`, `src/components/MidiEditor/MidiEditor.tsx`, `src/components/Mixer/ChannelStrip.tsx`.
 
@@ -1332,7 +1333,7 @@ Replaces three previously-separate, duplicated implementations (crude pitch-thre
 - Real path: onset clustering + Viterbi DP over per-cluster L/R partitions. Strict mode (default) restricts partitions to pitch-sorted prefix splits — structural "hands never cross." Cost function: quadratic span-violation penalty, hand-movement cost (charged from the piece-wide mean when a hand's never played yet — closes a "free first activation" loophole), a flat penalty for splitting a cluster across hands when it already fits in one hand's reach, and a flat penalty for switching hands between consecutive monophonic clusters.
 - Per-cluster confidence (DP cost margin, best vs. runner-up).
 
-**Persistence:** `hand`/`handConfidence` sidecar fields on `ParsedNote`. Portable export hint — name-suffix for homogeneous (split) tracks, `ORFEO_HAND_MAP:<version>:<trackIndex>:<RLE>` text meta for mixed (colored) tracks. Explicitly not real MIDI clef data (SMF has no clef event). Versioned (`HAND_ENGINE_VERSION`) so an algorithm fix doesn't get masked forever by a previously-saved file's stale hint.
+**Persistence:** `hand`/`handConfidence` sidecar fields on `ParsedNote`. Portable export hint — name-suffix for homogeneous (split) tracks, `PLIAGE_HAND_MAP:<version>:<trackIndex>:<RLE>` text meta for mixed (colored) tracks. Explicitly not real MIDI clef data (SMF has no clef event). Versioned (`HAND_ENGINE_VERSION`) so an algorithm fix doesn't get masked forever by a previously-saved file's stale hint.
 
 **UI:** `MidiEditor.tsx` split action now runs `assignHands()` instead of a pitch-threshold; merge and plain save now hand-tag every surviving keyboard-group track. New hand-split preview panel: colored timeline, low-confidence passages flagged with a red band, two output choices ("Split into two tracks" / "Keep one track, hand-colored" — disabled with a tooltip when the Left/Right Hand setting is off). One-slot undo (snapshot-before-apply, since split/merge never touch the original file). `PianoRoll.tsx` colors notes by hand tag when Left/Right Hand is on. `Keyboard.tsx` shows a per-active-key hand stripe in Performance mode (reads the tag; falls back to live gap-inference only for hardware MIDI input, which has no backing file note). `KeyboardControls.tsx` Practice mode shows a moving split line — sliding-window average of real tags, replacing both the old static-heuristic line and the old live-guessing ribbon.
 
@@ -1389,7 +1390,7 @@ Replaces three previously-separate, duplicated implementations (crude pitch-thre
 **Architecture — main.ts is now a thin dispatcher:**
 - `win.on('close')` reduced to 3 lines: if `allowClose` (module-level flag), let through; else `e.preventDefault()` + send `app:save-before-close` to renderer.
 - `ipcMain.handle('app:confirm-close')` sets `allowClose = true` then calls `mainWin?.close()` (fires the event again; passes through).
-- `dialog.showMessageBox` removed from `main.ts` entirely. `executeJavaScript` dirty probe and `__orfeoNoteEditorDirty` / `__orfeoPendingImportedFile` globals removed.
+- `dialog.showMessageBox` removed from `main.ts` entirely. `executeJavaScript` dirty probe and `__pliageNoteEditorDirty` / `__pliagePendingImportedFile` globals removed.
 
 **Renderer close handler (`App.tsx`) is now the single authority:**
 Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pending imported file → Save as MID / Don't Save / Cancel. Calls `confirmClose()` only after both pass. Cancelling either leaves the app open with all state intact.
@@ -1415,7 +1416,7 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 
 **Architecture:**
 - Foreign formats converted to SMF bytes at load time via `alphaTab.importer.ScoreLoader` + `MidiFileGenerator` + `AlphaSynthMidiFileHandler`.
-- Converted bytes cached as `<stem>_ORFEO_IMPORTED.mid` alongside source in `Orfeo/` subfolder. Cache invalidated when source `mtime` is newer than cache `mtime`.
+- Converted bytes cached as `<stem>_PLIAGE_IMPORTED.mid` alongside source in `Pliage/` subfolder. Cache invalidated when source `mtime` is newer than cache `mtime`.
 - KAR pass-through: zero conversion, extension whitelist only. `@tonejs/midi` silently ignores lyric meta-events.
 - `_filePath` on `ParsedMidi` is always the original source path, not the cache path — library amber-highlight logic is unaffected.
 - Critical fix: `NoteBendEvent` filter required before `midiFile.toBinary()`. alphaTab 1.8.4 emits neutral MIDI 2.0 per-note pitch bend events even when there is no actual pitch bend; SMF 1.0 export cannot represent these. The filter is safe: genuine pitch-bend expression from GP files is encoded as `PitchBendEvent` (SMF 1.0 compatible), not `NoteBendEvent`.
@@ -1424,7 +1425,7 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 
 **Error handling:** Corrupt/unsupported files surface via existing `showDropError()` toast. Empty conversion results load as zero-note MIDI without crashing (handled by existing `parseMidiBuffer` empty-track skip).
 
-**Converted file prompt on switch/close:** pending import bytes held in memory as `pendingImportedFile` store field (session-only, not persisted). User prompted "Save as MID / Don't Save / Cancel" when loading a different file or closing the app with unsaved converted bytes. Save writes to `Orfeo/` subfolder with mkdirSync. Same-file reload skips prompt.
+**Converted file prompt on switch/close:** pending import bytes held in memory as `pendingImportedFile` store field (session-only, not persisted). User prompted "Save as MID / Don't Save / Cancel" when loading a different file or closing the app with unsaved converted bytes. Save writes to `Pliage/` subfolder with mkdirSync. Same-file reload skips prompt.
 
 **Known limitations:** Very large orchestral MusicXML scores may be slow to convert (no special handling). MIDI Editor split/merge/instrument assign not tested on imported files.
 
@@ -1507,7 +1508,7 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 - Added `setFullScreen` to the `Window.electronAPI` interface.
 
 **`src/store/index.ts`:**
-- Added `presentationMode: boolean` + `setPresentationMode(v)` to `OrfeoStore` interface and store body. Initialized `false`, not persisted.
+- Added `presentationMode: boolean` + `setPresentationMode(v)` to `PliageStore` interface and store body. Initialized `false`, not persisted.
 
 **`src/App.tsx`:**
 - Added `presentationMode` selector from store.
@@ -1556,25 +1557,25 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 
 **Root cause — instrument audio (both engines):** clicking a note in the editor before ever pressing Play always sounded like piano on all tracks. Two separate bugs, one per engine:
 
-- **Samples engine (`useSamplesEngine.ts`):** `__orfeoPlayNoteSamples` called `_synth.noteOn(ch, ...)` without ever sending `_synth.programChange()` first. SpessaSynth defaults all channels to program 0 (piano). `programChange` was only called inside `buildSamplesPlayer` (playback start). Fix: module-level `_samplesChanInit: Set<number>` — on first `noteOn` for a channel (when ch ≠ 15), look up the track's `program` from the store and call `_synth.programChange(ch, program)` before `noteOn`. `buildSamplesPlayer` clears this set and repopulates it as part of its own program-change loop.
-- **GM engine (`useAudioEngine.ts`):** `_port.send([0xC0|ch, program])` is silently discarded before any JZZ player has been connected to `_port` — the synthesizer's internal event pipeline isn't activated until `player.connect(port)` is first called (inside `buildPlayer`). Fix: `warmupEditChannels()` — creates a temporary JZZ SMF player, connects it to `_port`, plays the raw MIDI through a filter that blocks all note events but passes program changes and bank-select CCs. After 150 ms (ample for tick-0 events), the player is stopped. `_warmupPromise` stores the in-flight promise; `playNote` awaits it if the user clicks before 150 ms elapses. Called from PianoRoll on edit mode enter via `window.__orfeoWarmupEditChannels`.
+- **Samples engine (`useSamplesEngine.ts`):** `__pliagePlayNoteSamples` called `_synth.noteOn(ch, ...)` without ever sending `_synth.programChange()` first. SpessaSynth defaults all channels to program 0 (piano). `programChange` was only called inside `buildSamplesPlayer` (playback start). Fix: module-level `_samplesChanInit: Set<number>` — on first `noteOn` for a channel (when ch ≠ 15), look up the track's `program` from the store and call `_synth.programChange(ch, program)` before `noteOn`. `buildSamplesPlayer` clears this set and repopulates it as part of its own program-change loop.
+- **GM engine (`useAudioEngine.ts`):** `_port.send([0xC0|ch, program])` is silently discarded before any JZZ player has been connected to `_port` — the synthesizer's internal event pipeline isn't activated until `player.connect(port)` is first called (inside `buildPlayer`). Fix: `warmupEditChannels()` — creates a temporary JZZ SMF player, connects it to `_port`, plays the raw MIDI through a filter that blocks all note events but passes program changes and bank-select CCs. After 150 ms (ample for tick-0 events), the player is stopped. `_warmupPromise` stores the in-flight promise; `playNote` awaits it if the user clicks before 150 ms elapses. Called from PianoRoll on edit mode enter via `window.__pliageWarmupEditChannels`.
 
 **Root cause — alt+click recolors all notes (fourth unpatched position-based mapping path):** in `onEditDown` (alt+click), `editMidi.tracks.find((_t, i) => parsedMidi.tracks[i].index ...)` used raw track array position without the non-empty filter. Adding a note to the wrong track made the set of non-empty tracks change, shifting all `trackIndex` assignments in the next `needsFlatRebuild` and recoloring everything. Fix: filter `editMidi.tracks` to non-empty first (`nonEmptyForAdd`) before `.find()`, matching `buildEditFlatNotes` and the `needsFlatRebuild` block.
 
 **`src/hooks/useSamplesEngine.ts`:**
 - Added module-level `const _samplesChanInit = new Set<number>()`.
-- `__orfeoPlayNoteSamples`: lazy programChange on first use of each non-preview channel.
+- `__pliagePlayNoteSamples`: lazy programChange on first use of each non-preview channel.
 - `buildSamplesPlayer`: clears `_samplesChanInit`, then re-populates as it sends programChanges.
 
 **`src/hooks/useAudioEngine.ts`:**
 - Added module-level `let _warmupPromise: Promise<void> | null = null`.
 - `destroyPlayer`: resets `_warmupPromise = null` so next edit-mode entry re-warms.
 - Added `warmupEditChannels()`: temporary filtered SMF player primes GM channels.
-- Registered `window.__orfeoWarmupEditChannels` (GM only) in the playNote useEffect.
+- Registered `window.__pliageWarmupEditChannels` (GM only) in the playNote useEffect.
 - `playNote`: removed failed lazy-init attempt; awaits `_warmupPromise` if channel is specified and warmup is in flight.
 
 **`src/components/PianoRoll/PianoRoll.tsx`:**
-- Edit mode enter now calls `window.__orfeoWarmupEditChannels?.()`.
+- Edit mode enter now calls `window.__pliageWarmupEditChannels?.()`.
 - **alt+click fix:** `nonEmptyForAdd` filter applied before track `.find()`.
 - **New-note dashed border:** `drawDashedRect` color changed from `0xdddddd` to `0xdd2244` (red, matching selected-note color family).
 - **Selection-move pitch axis:** `axis` starts `null` instead of `'time'`; axis is determined by gesture (first crossing `DRAG_THRESHOLD`). Horizontal drag shifts all selected notes by the same pitch delta relative to `origMidi`. Commit: pitch repitch logged to history via `description: 'Repitch N notes'`.
@@ -1598,11 +1599,11 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 - Added `onSaveRequest: (() => Promise<boolean>) | null` — registered by NoteEditorToolbar so SettingsPanel and the close handler can trigger a save without importing the toolbar.
 
 **`src/components/NoteEditor/NoteEditorToolbar.tsx`:**
-- Added `IconSave` SVG and `computeSavePath()` (versioned `_ORFEO` / `_ORFEO_V2` / `_ORFEO_V3...` suffix, placed in `Orfeo/` subfolder).
+- Added `IconSave` SVG and `computeSavePath()` (versioned `_PLIAGE` / `_PLIAGE_V2` / `_PLIAGE_V3...` suffix, placed in `Pliage/` subfolder).
 - `handleSave()` — shows `saveFileDialog`, encodes `NES.editMidi` via `editableCopyToBuffer`, calls `noteEditor:save` IPC, reloads file into store on success, clears `NES.dirty`.
 - Save button inserted after Select (marquee) icon.
 - Registers `NES.onSaveRequest = handleSave` on mount (cleared on unmount).
-- Added amber glow via `className="orfeo-modal-glow"`, removed inline `boxShadow`.
+- Added amber glow via `className="pliage-modal-glow"`, removed inline `boxShadow`.
 
 **`src/components/Transport/TopBar.tsx`:**
 - Removed permanent divider between filename area and pencil slot.
@@ -1614,7 +1615,7 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 
 **`src/App.tsx`:**
 - Imported `NES`.
-- `useEffect` registers `window.__orfeoNoteEditorDirty = () => NES.dirty` and subscribes to `app:save-before-close` IPC — calls `NES.onSaveRequest?.()` then `electronAPI.confirmClose()`.
+- `useEffect` registers `window.__pliageNoteEditorDirty = () => NES.dirty` and subscribes to `app:save-before-close` IPC — calls `NES.onSaveRequest?.()` then `electronAPI.confirmClose()`.
 
 **`electron/main.ts`:**
 - `mainWin` module-level ref to `BrowserWindow`.
@@ -1648,7 +1649,7 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 - Pencil icon wrapped in a fixed-width container (`width: var(--button-height)`) so toggling the icon on/off never shifts the playback controls. Removed the extra divider that was sitting to its left.
 
 **`src/store/index.ts`:**
-- Added `noteEditorToolbarX: number`, `noteEditorToolbarY: number`, `setNoteEditorToolbarPos` to interface, store body, `_prev` sentinels, change-detection, save, and restore — persisted to `orfeo-prefs.json` on drag-end.
+- Added `noteEditorToolbarX: number`, `noteEditorToolbarY: number`, `setNoteEditorToolbarPos` to interface, store body, `_prev` sentinels, change-detection, save, and restore — persisted to `pliage-prefs.json` on drag-end.
 
 **`CLAUDE.md`:** Added Note Editor Architecture section; updated track-mapping note to document the empty-track filter requirement.
 
@@ -1675,14 +1676,14 @@ Resolves in sequence: (1) NES dirty check → Save / Discard / Cancel; (2) pendi
 - Added `editDragActiveRef.current = true/false` on drag start/end.
 - `EditDragState.trackIndex`: new field (parsedTrack.index) for per-channel audio preview.
 - `getTrackChannel()` helper: looks up `parsedTrack.channel` by `trackIndex` for note preview calls.
-- All `__orfeoPlayNote?.(note.midi)` calls in edit handlers now pass the track's MIDI channel.
+- All `__pliagePlayNote?.(note.midi)` calls in edit handlers now pass the track's MIDI channel.
 - Note names (Issue 4): at bottom of `drawFrame`, when `noteEditorActive && NES.showNoteNamesRef.current`, draws note labels via Canvas2D overlay using `getNoteLabel()`.
 
 **`src/hooks/useAudioEngine.ts`:**
-- `playNote()` 4th param `channel?: number` (default 14). Passes `channel` to `__orfeoPlayNoteSamples`; GM path uses `0x90 | ch` / `0x80 | ch`.
+- `playNote()` 4th param `channel?: number` (default 14). Passes `channel` to `__pliagePlayNoteSamples`; GM path uses `0x90 | ch` / `0x80 | ch`.
 
 **`src/hooks/useSamplesEngine.ts`:**
-- `__orfeoPlayNoteSamples` 4th param `channel?: number` (default 15). Uses `ch` instead of hardcoded 15.
+- `__pliagePlayNoteSamples` 4th param `channel?: number` (default 15). Uses `ch` instead of hardcoded 15.
 
 **`src/components/SettingsPanel/SettingsPanel.tsx`:**
 - Moved Note Editor OptionRow from "Playback & Practice" to "MIDI Files & Library" section (after Chord Transcription).
@@ -1903,7 +1904,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 
 `src/App.tsx`:
 - Added import of `runNoteEditorRoundTripTest`
-- Added `useEffect` (runs once on mount) that exposes `window.__orfeoNoteEditorRoundTripTest` in dev mode only
+- Added `useEffect` (runs once on mount) that exposes `window.__pliageNoteEditorRoundTripTest` in dev mode only
 
 `tsconfig.json`:
 - Added `"types": ["vite/client"]` — required for `import.meta.env.DEV` typecheck in dev-only guards
@@ -1927,11 +1928,11 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 - Added `trackNames?: Record<number, string>` to `saveMidiEditor` payload type.
 
 **`src/utils/midiParser.ts`:**
-- Added ORFEO_TRACK_NAME parsing block before building `result`: reads `midi.header.meta[]` for type-0x01 text events matching `ORFEO_TRACK_NAME:N:name` format. Parsing splits on first two colons so names containing colons survive. Result stored as `result._orfeoTrackNames: Record<number,string> | undefined`.
+- Added PLIAGE_TRACK_NAME parsing block before building `result`: reads `midi.header.meta[]` for type-0x01 text events matching `PLIAGE_TRACK_NAME:N:name` format. Parsing splits on first two colons so names containing colons survive. Result stored as `result._pliageTrackNames: Record<number,string> | undefined`.
 
 **`src/store/index.ts`:**
 - `makeTrackState`: added `trackName: track.gmName` — defaults to GM instrument name on load.
-- `setMidi`: reads `(midi as any)._orfeoTrackNames` and applies overrides after `makeTrackState` — so files previously saved through Orfeo restore their custom names.
+- `setMidi`: reads `(midi as any)._pliageTrackNames` and applies overrides after `makeTrackState` — so files previously saved through Pliage restore their custom names.
 
 **`src/components/MidiEditor/MidiEditor.tsx`:**
 - `EditorTrack` interface: added `trackName: string`.
@@ -1943,13 +1944,13 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 
 **`electron/main.ts`:**
 - `editor:save` handler: added `trackNames?: Record<number, string>` to payload type.
-- After merge step: builds `rawIdxToName` (raw MIDI index → name) from `payload.trackNames` + `noteTrackIndices`; computes `includedInOrder`; strips old `ORFEO_TRACK_NAME:*` events from `midi.header.meta`; pushes new `{ type: 'text', text: 'ORFEO_TRACK_NAME:N:name', ticks: 0 }` entries in output-track order. Format round-trips cleanly through `@tonejs/midi`'s `toArray()`.
+- After merge step: builds `rawIdxToName` (raw MIDI index → name) from `payload.trackNames` + `noteTrackIndices`; computes `includedInOrder`; strips old `PLIAGE_TRACK_NAME:*` events from `midi.header.meta`; pushes new `{ type: 'text', text: 'PLIAGE_TRACK_NAME:N:name', ticks: 0 }` entries in output-track order. Format round-trips cleanly through `@tonejs/midi`'s `toArray()`.
 
 **`src/components/Mixer/ChannelStrip.tsx` and `src/components/TrackPanel/TrackPanel.tsx`:**
 - Both already updated in a prior session to read `track.trackName` — confirmed in place.
 
 **Storage format:**
-- `ORFEO_TRACK_NAME:N:name` stored as type-0x01 text meta-event in `midi.header.meta` at ticks=0, one per output track. N is 0-based output track index (matching parser's track array). Standard DAWs ignore type-0x01 header events; Orfeo recognises the prefix on load.
+- `PLIAGE_TRACK_NAME:N:name` stored as type-0x01 text meta-event in `midi.header.meta` at ticks=0, one per output track. N is 0-based output track index (matching parser's track array). Standard DAWs ignore type-0x01 header events; Pliage recognises the prefix on load.
 
 ---
 
@@ -1996,7 +1997,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 - `track.name` (raw MIDI name) replaced with `track.gmName` (resolved GM instrument name) in TrackRow display — same fix as MixerConsole's `ChannelStrip`.
 
 **Modal header unification (`MidiEditor.tsx`, `MixerConsole.tsx`):**
-- `MidiEditor.tsx` header: `OrfeoMark height={16}` → `height={22}` (matches Console). Title: `fontWeight: 700`, `letterSpacing: '0.14em'`, `textTransform: 'uppercase'` (matches Console style). Close button: replaced 20×20 bordered ghost button (`X size={12} strokeWidth={1.8}`, hover to `#c05050`) with Console's borderless style (`X size={16}`, `color: #505068`, hover to `var(--text-default)`).
+- `MidiEditor.tsx` header: `PliageMark height={16}` → `height={22}` (matches Console). Title: `fontWeight: 700`, `letterSpacing: '0.14em'`, `textTransform: 'uppercase'` (matches Console style). Close button: replaced 20×20 bordered ghost button (`X size={12} strokeWidth={1.8}`, hover to `#c05050`) with Console's borderless style (`X size={16}`, `color: #505068`, hover to `var(--text-default)`).
 - `MixerConsole.tsx` title: `fontSize: 10` → `fontSize: 'var(--text-sm)'` (12px) — matches MidiEditor title size.
 
 **Click-to-front z-index (`src/utils/modalFocus.ts`):**
@@ -2034,7 +2035,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 
 ### 19. 7. 2026 — MIDI Playback Editor — rebuilt as floating modal
 
-**Motivation:** The editor was a separate `BrowserWindow`, which caused it to appear as a distinct OS window in the Windows taskbar and made it impossible to apply the amber outer glow used by all other Orfeo panels (CSS `box-shadow` is clipped at the OS window boundary).
+**Motivation:** The editor was a separate `BrowserWindow`, which caused it to appear as a distinct OS window in the Windows taskbar and made it impossible to apply the amber outer glow used by all other Pliage panels (CSS `box-shadow` is clipped at the OS window boundary).
 
 **Architecture change — removed:**
 - `editorWin: BrowserWindow` and `_editorData` module-level variable in `electron/main.ts`
@@ -2055,7 +2056,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 
 **New floating modal — `src/components/MidiEditor/MidiEditor.tsx`:**
 - Full rewrite. Same architecture as `ChordExplorer` / `MixerConsole` / `FloatingKeyboard`
-- `position: fixed`, `760 × 620px`, draggable title bar, `.orfeo-modal-glow` class
+- `position: fixed`, `760 × 620px`, draggable title bar, `.pliage-modal-glow` class
 - Reads `midi`, `tracks`, and all `splitBreakpoint*` values from Zustand store — no IPC data fetch on mount
 - `buildRows()` helper constructs `EditorTrack[]` from store state; called on open and on unmerge
 - Re-initialises state on every open (`useEffect` on `midiEditorOpen`) so track list always reflects current file
@@ -2161,7 +2162,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 ### 19. 7. 2026 — Mixer Console Round 2 — VU fixes, wave mode, real minimize
 
 **`src/store/index.ts`**
-- Added `mixerMinimized` / `setMixerMinimized`, `chordExplorerMinimized` / `setChordExplorerMinimized`, `scaleExplorerMinimized` / `setScaleExplorerMinimized` to `OrfeoStore` interface and body.
+- Added `mixerMinimized` / `setMixerMinimized`, `chordExplorerMinimized` / `setChordExplorerMinimized`, `scaleExplorerMinimized` / `setScaleExplorerMinimized` to `PliageStore` interface and body.
 - Added `vuDisplayMode: 'bars' | 'wave'` / `setVuDisplayMode` (global, shared by MasterStrip).
 - Modified `setMixerOpen`, `setChordExplorerOpen`, `setScaleExplorerOpen`: when called with `true`, also clears the corresponding minimized flag — ensures re-open via icon always restores from minimized state without a stale-state race.
 
@@ -2199,7 +2200,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 ### 19. 7. 2026 — Mixer Console Stage 5 — draggable modal, real trigger, global controls
 
 **`src/store/index.ts`**
-- Added `mixerOpen: boolean` + `setMixerOpen: (open: boolean) => void` to `OrfeoStore` interface and store body (same pattern as `chordExplorerOpen`). Not reset on file load — console stays open across MIDI swaps.
+- Added `mixerOpen: boolean` + `setMixerOpen: (open: boolean) => void` to `PliageStore` interface and store body (same pattern as `chordExplorerOpen`). Not reset on file load — console stays open across MIDI swaps.
 
 **`src/App.tsx`**
 - Removed `showMixerDev` local state.
@@ -2217,7 +2218,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 - `pos` state `{x, y}` initialized to viewport center; `startDrag` header mousedown handler (window mousemove/mouseup pattern from LockedChordModal).
 - Button group has `onMouseDown={e.stopPropagation()}` to prevent accidental header drag when clicking minimize/close.
 - Fixed `width: 1216px` — derived: `2×16 (body-pad) + 8×120 (strips) + 7×8 (inter-strip gaps) + 8 (body-gap) + 160 (master) = 1216`. Exactly 8 channel strips visible before horizontal scroll.
-- Title: "Console". `<OrfeoMark height={22} />` added to header left corner.
+- Title: "Console". `<PliageMark height={22} />` added to header left corner.
 - Escape key calls `setMixerOpen(false)`.
 
 **`src/components/Mixer/MasterStrip.tsx`** (two new rows, height 574px)
@@ -2348,7 +2349,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 - `makeTrackState`: removed `autoMute` parameter — all tracks start unmuted on file load; selective filtering is user-initiated via the Track Panel button.
 - `setMidi`: updated call to `makeTrackState(t)` (no second arg).
 - `autoMuteNonKeyboard` default changed `false` → `true`; repurposed from "auto-mute on load" to "show/hide selective playback button in Track Panel". Comment updated.
-- Added `settingsGroupsCollapsed: Record<string, boolean>` to `OrfeoStore` interface and store body; default: `midi-files-library` expanded, all other groups collapsed.
+- Added `settingsGroupsCollapsed: Record<string, boolean>` to `PliageStore` interface and store body; default: `midi-files-library` expanded, all other groups collapsed.
 - Added `setSettingsGroupCollapsed(id, collapsed)` action.
 - Full persistence wiring for `settingsGroupsCollapsed`: `_prevSettingsGroupsCollapsed` null-sentinel (JSON-stringified for comparison), subscriber diff/update/`setPrefs` payload, `restoreLibraryPrefs` (merges saved values onto defaults so new groups always have a fallback).
 
@@ -2368,7 +2369,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 
 **`src/store/index.ts`**
 - Exported `DEFAULT_MUTED_GROUPS` so TrackPanel can read it without duplicating the set.
-- Added `autoMuteNonKeyboard: boolean` (default `false`) to `OrfeoStore` interface and store body, with `setAutoMuteNonKeyboard` setter and `setTrackMuteFilter(filtered: boolean)` batch action.
+- Added `autoMuteNonKeyboard: boolean` (default `false`) to `PliageStore` interface and store body, with `setAutoMuteNonKeyboard` setter and `setTrackMuteFilter(filtered: boolean)` batch action.
 - `makeTrackState` now takes a second `autoMute: boolean` argument; when `false` (the new default), all tracks start unmuted on file load.
 - `setMidi` passes `get().autoMuteNonKeyboard` to `makeTrackState`.
 - `setTrackMuteFilter`: single `set()` call mapping all tracks — `filtered` mode mutes every non-drum `DEFAULT_MUTED_GROUPS` track, `false` unmutes all.
@@ -2468,7 +2469,7 @@ Internal groundwork only — no user-visible changes. Establishes the command an
 - Description/hint prose normalised panel-wide: JetBrains Mono → Inter, raw pixel sizes (`9`, `10`) → `var(--text-xs)`, name color → `var(--text-default)`, description color → `var(--text-dimmest)`.
 
 **`src/store/index.ts`**
-- Added `showOctaveLabels: boolean` (default `true`) and `showNoteNamesOnKeyboard: boolean` (default `true`) to `OrfeoStore` interface and implementation.
+- Added `showOctaveLabels: boolean` (default `true`) and `showNoteNamesOnKeyboard: boolean` (default `true`) to `PliageStore` interface and implementation.
 - Both fields persisted via the existing null-sentinel subscribe callback; `restoreLibraryPrefs` restores both on cold start.
 
 **Version:** `0.10.3` → `0.10.4`
@@ -2757,7 +2758,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - Added typography scale: `--text-xs` (11 px) through `--text-lg` (16 px).
 - Added border-radius scale: `--radius-sm` (3 px), `--radius-md` (5 px), `--radius-lg` (8 px).
 - Added layout tokens: `--row-height: 44px`, `--button-height: 28px`.
-- Added utility classes: `.orfeo-row`, `.orfeo-label`, `.orfeo-button`, `.orfeo-value` — scoped inside `:root {}` so they resolve as `:root .orfeo-*` via CSS nesting (effective for all descendants).
+- Added utility classes: `.pliage-row`, `.pliage-label`, `.pliage-button`, `.pliage-value` — scoped inside `:root {}` so they resolve as `:root .pliage-*` via CSS nesting (effective for all descendants).
 
 **`src/components/ChordExplorer.tsx`**
 - Progression Play/Stop button: ready state changed from amber (`#e8a027`) to green (`var(--status-success)`); stop state now uses `var(--status-error)` instead of hardcoded `#c0392b` — both states fully token-driven.
@@ -2773,22 +2774,22 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 
 ### 5. 7. 2026 — UI Polish: Logo Mark, EmptyState, Separator, MidiIcon (v0.10.1)
 
-**`src/components/OrfeoMark.tsx`** (new)
-- Extracted the Orfeo logo mark SVG into a shared reusable component (`height` + `style` props); aspect ratio 133.39/150 maintained via `Math.round(height * 133.39 / 150)`.
+**`src/components/PliageMark.tsx`** (new)
+- Extracted the Pliage logo mark SVG into a shared reusable component (`height` + `style` props); aspect ratio 133.39/150 maintained via `Math.round(height * 133.39 / 150)`.
 
 **`src/components/EmptyState.tsx`**
-- Replaced inline `OrfeoMark` function definition with import from shared `OrfeoMark.tsx`.
+- Replaced inline `PliageMark` function definition with import from shared `PliageMark.tsx`.
 - Centering rewritten: outer div uses `position: absolute; inset: 0`; content wrapper uses `position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%)` — pins to true viewport centre regardless of drawer state.
 - Watermark size increased to 320px height; gap between watermark and text block set to 64px.
 
 **`src/components/ChordExplorer.tsx`**
-- Header title area now renders `<OrfeoMark height={14} />` + "Chord Explorer" label in a flex row (gap 7px), replacing the bare span.
+- Header title area now renders `<PliageMark height={14} />` + "Chord Explorer" label in a flex row (gap 7px), replacing the bare span.
 
 **`src/components/ScaleExplorer.tsx`**
-- Same pattern: `<OrfeoMark height={14} />` + "Scale Explorer" label in header flex row.
+- Same pattern: `<PliageMark height={14} />` + "Scale Explorer" label in header flex row.
 
 **`src/components/MidiEditor/MidiEditor.tsx`**
-- Removed hand-drawn circle+lines icon SVG from title bar; replaced with `<OrfeoMark height={18} />`. Existing `gap: 10` on the title bar div provides spacing to the label.
+- Removed hand-drawn circle+lines icon SVG from title bar; replaced with `<PliageMark height={18} />`. Existing `gap: 10` on the title bar div provides spacing to the label.
 
 **`src/components/MidiIcon.tsx`**
 - viewBox trimmed from `0 0 1000 455` to `137 0 712 455` (glyph bounds) to eliminate ~13.7% empty whitespace on the left, making the SVG element's left edge flush with the M glyph's visual left edge for correct alignment with labels.
@@ -2811,7 +2812,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - Tier state type extended: `'common' | 'extended'` → `'common' | 'extended' | 'power'`.
 - New state: `selectedPowerRoot: number | null` — tracks which of the 12 tiles is active.
 - New derived: `isPowerMode = tier === 'power'`.
-- New `playPowerChord(pitchClass)` callback — computes root MIDI at oct 4, builds `[rootMidi, rootMidi+7]` (P5), calls `setExplorerKeys`/`setExplorerChordDisplay`/`__orfeoPlayNote`. Chord display shows e.g. `C5`.
+- New `playPowerChord(pitchClass)` callback — computes root MIDI at oct 4, builds `[rootMidi, rootMidi+7]` (P5), calls `setExplorerKeys`/`setExplorerChordDisplay`/`__pliagePlayNote`. Chord display shows e.g. `C5`.
 - Tier toggle now renders `['common', 'power', 'extended']` with Power positioned between the two existing options.
 - When `isPowerMode`:
   - Results grid switches to 12 power chord tiles in a `repeat(4, 1fr)` layout; each tile shows root name + "5" heading and root+fifth note names; selected tile gets amber border.
@@ -3002,7 +3003,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - MIDI label: `'NO MIDI'` → `'CONNECT A KEYBOARD'`; font-size drops to 7 (from 8) when not connected; letter-spacing tightens to `0.05em` (from `0.08em`); `whiteSpace: 'nowrap'` added; container padding reduced `'0 14px'` → `'0 8px'`
 
 **`src/index.css`**
-- `@keyframes orfeo-loop-blink`: `filter: brightness(1)` at 0%/100%, `filter: brightness(0.3)` at 50%; 1.4s ease-in-out infinite
+- `@keyframes pliage-loop-blink`: `filter: brightness(1)` at 0%/100%, `filter: brightness(0.3)` at 50%; 1.4s ease-in-out infinite
 - `.loop-nudge-blink` applies the animation
 - `filter` chosen over `opacity`/`color` so inline React styles cannot override the keyframe
 
@@ -3057,24 +3058,24 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 
 **`src/hooks/useMidiInput.ts`** (NEW)
 - `useMidiInput()` — requests `navigator.requestMIDIAccess()` on mount (skipped gracefully if API unavailable in the Electron context); attaches `midimessage` listener to every connected input port (all devices merged into one stream)
-- `pressNote(midiNum, vel)` — writes directly to `activeKeys` / `activeKeyColors` (amber `#e8a027`, no timer), then routes audio to `__orfeoNoteOnSamples` or `__orfeoNoteOn` based on current engine
-- `releaseNote(midiNum)` — removes from `activeKeys` / `activeKeyColors`, routes to `__orfeoNoteOffSamples` or `__orfeoNoteOff`
+- `pressNote(midiNum, vel)` — writes directly to `activeKeys` / `activeKeyColors` (amber `#e8a027`, no timer), then routes audio to `__pliageNoteOnSamples` or `__pliageNoteOn` based on current engine
+- `releaseNote(midiNum)` — removes from `activeKeys` / `activeKeyColors`, routes to `__pliageNoteOffSamples` or `__pliageNoteOff`
 - `syncInputs()` — re-enumerates on `onstatechange`; updates `setMidiDevice(connected, name)` — the topbar MIDI indicator is now live
 - Cleanup removes all per-port listeners and nulls `onstatechange` on unmount
 - Verified: key lighting, true sustain (note-off stops sound immediately), polyphony all confirmed via console test helper (helper removed before commit)
 
 **`src/hooks/useAudioEngine.ts`**
 - Added `_hwChannelReady` flag + `ensureHardwareChannel()` — sends program 0 on channel 15 (`[0xCF, 0]`) once; same sentinel pattern as `ensureClickChannel`
-- Added `window.__orfeoNoteOn(midiNum, vel)` — async, awaits `initJZZ()`, calls `ensureHardwareChannel()`, sends `[0x9F, midiNum, vel]` (ch 15); no timer
-- Added `window.__orfeoNoteOff(midiNum)` — sync, sends `[0x8F, midiNum, 0]`; immediate
-- Both registered/unregistered alongside `__orfeoPlayNote` in the same `useEffect`
+- Added `window.__pliageNoteOn(midiNum, vel)` — async, awaits `initJZZ()`, calls `ensureHardwareChannel()`, sends `[0x9F, midiNum, vel]` (ch 15); no timer
+- Added `window.__pliageNoteOff(midiNum)` — sync, sends `[0x8F, midiNum, 0]`; immediate
+- Both registered/unregistered alongside `__pliagePlayNote` in the same `useEffect`
 - Comment: channel 15 collision risk with MIDI files using channel 16 — accepted tradeoff
 
 **`src/hooks/useSamplesEngine.ts`**
 - Added `_hwChannelReady` flag + `ensureHwChannel()` — sends `programChange(15, 0)` + `controllerChange(15, 7, 127)` once on first hardware note-on
-- `__orfeoPlayNoteSamples` now calls `ensureHwChannel()` instead of inline `programChange`/`controllerChange` on every invocation
-- Added `window.__orfeoNoteOnSamples(midiNum, vel)` — calls `ensureHwChannel()`, then `_synth.noteOn(15, midiNum, vel)`; no timer
-- Added `window.__orfeoNoteOffSamples(midiNum)` — calls `_synth.noteOff(15, midiNum)` immediately
+- `__pliagePlayNoteSamples` now calls `ensureHwChannel()` instead of inline `programChange`/`controllerChange` on every invocation
+- Added `window.__pliageNoteOnSamples(midiNum, vel)` — calls `ensureHwChannel()`, then `_synth.noteOn(15, midiNum, vel)`; no timer
+- Added `window.__pliageNoteOffSamples(midiNum)` — calls `_synth.noteOff(15, midiNum)` immediately
 - Same comment re channel 15 collision risk
 
 **`src/App.tsx`**
@@ -3121,7 +3122,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
   - Single-track case (or no qualifying pair): checks ≥15% notes in each register (split-eligible threshold); if yes, uses the global split breakpoint settings to produce a single or range result
 
 **`src/store/index.ts`**
-- Added `showHandLabels: boolean` (default `false`) and `setShowHandLabels` to `OrfeoStore`
+- Added `showHandLabels: boolean` (default `false`) and `setShowHandLabels` to `PliageStore`
 - Wired into null-sentinel subscriber: `_prevShowHandLabels` sentinel, change-detection condition, `setPrefs` payload
 - Wired into `restoreLibraryPrefs`: `if (typeof prefs.showHandLabels === 'boolean') store.setShowHandLabels(...)`
 
@@ -3252,8 +3253,8 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 ### 2. 7. 2026 — Split Track + icon updates + portable build filename (v0.7.0)
 
 **`electron/main.ts`**
-- Added `editor:split` IPC handler: reads source MIDI via `_editorData.filePath`, finds the track by note-bearing index, splits notes into Left Hand (< breakpoint) and Right Hand (≥ breakpoint). Qualifies the split by requiring ≥15% notes in each register — returns a descriptive error if the track is too one-sided. Mutates the source track in-place (becomes LH), adds a new RH track via `midi.addTrack()`. Copies instrument program from source. Output path: `{baseName}_ORFEO_SPLIT.mid` in the Orfeo subfolder via `getOrfeoOutputDir()`. Strips `_(ORFEO_MERGED|ORFEO_SPLIT|ORFEO)` from basename before appending suffix. Sends `midi:reloadFile` to main window on success.
-- `editor:split` basename stripping: regex `_(ORFEO_MERGED|ORFEO_SPLIT|ORFEO)` — order matters, ORFEO_SPLIT must come before ORFEO or the shorter suffix matches first.
+- Added `editor:split` IPC handler: reads source MIDI via `_editorData.filePath`, finds the track by note-bearing index, splits notes into Left Hand (< breakpoint) and Right Hand (≥ breakpoint). Qualifies the split by requiring ≥15% notes in each register — returns a descriptive error if the track is too one-sided. Mutates the source track in-place (becomes LH), adds a new RH track via `midi.addTrack()`. Copies instrument program from source. Output path: `{baseName}_PLIAGE_SPLIT.mid` in the Pliage subfolder via `getPliageOutputDir()`. Strips `_(PLIAGE_MERGED|PLIAGE_SPLIT|PLIAGE)` from basename before appending suffix. Sends `midi:reloadFile` to main window on success.
+- `editor:split` basename stripping: regex `_(PLIAGE_MERGED|PLIAGE_SPLIT|PLIAGE)` — order matters, PLIAGE_SPLIT must come before PLIAGE or the shorter suffix matches first.
 
 **`electron/preload.ts`**
 - Added `splitMidiEditor: (payload) => ipcRenderer.invoke('editor:split', payload)`.
@@ -3262,7 +3263,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - Added `splitMidiEditor: (payload: { trackIndex: number; breakpoint: number }) => Promise<{ ok: boolean; message: string }>` to `window.electronAPI` type.
 
 **`src/store/index.ts`**
-- Added `globalSplitBreakpoint: number` (default 60 — C4, middle C) + `setGlobalSplitBreakpoint` to `OrfeoStore`.
+- Added `globalSplitBreakpoint: number` (default 60 — C4, middle C) + `setGlobalSplitBreakpoint` to `PliageStore`.
 - Setter clamps to 21–107 (A0–B7).
 - Restored in `restoreLibraryPrefs` from `prefs.globalSplitBreakpoint`.
 - Persisted in null-sentinel subscribe callback; `_prevGlobalSplitBreakpoint` added as sentinel variable.
@@ -3285,18 +3286,18 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - Footer: `splitResult` banner rendered above `saveResult` banner (same style).
 
 **`package.json`**
-- Added `"portable": { "artifactName": "${productName}-${version}-portable.${ext}" }` to `build` config. Portable exe will now be named `Orfeo-0.7.0-portable.exe` instead of the default `Orfeo 0.7.0.exe`.
+- Added `"portable": { "artifactName": "${productName}-${version}-portable.${ext}" }` to `build` config. Portable exe will now be named `Pliage-0.7.0-portable.exe` instead of the default `Pliage 0.7.0.exe`.
 - Version bumped to `0.7.0`.
 
 ---
 
-### 2. 7. 2026 — Demo folder + Orfeo subfolder for generated files
+### 2. 7. 2026 — Demo folder + Pliage subfolder for generated files
 
 **`electron/main.ts`**
 - Added `ensureDemoFolder()`: on first launch, copies bundled demo MIDI files from `public/demo/` (dev) or `app.asar.unpacked/public/demo/` (packaged) into `libraryFolder/Demo/`. Writes `.demo-installed` flag to userData so the copy runs exactly once. Safe-copy: skips files that already exist. Falls back to `userData/Demo/` if no library folder is configured yet. Called from `app.whenReady()` before `createWindow()`, wrapped in try/catch so a missing demo dir never blocks launch.
-- Added `getOrfeoOutputDir(sourceFilePath)` helper: resolves and auto-creates an `Orfeo/` subfolder next to the source file. If the source is already inside an `Orfeo/` subfolder, steps up to its parent — prevents `Orfeo/Orfeo/` nesting.
-- `editor:save` IPC handler: output path now computed from `_editorData.filePath` via `getOrfeoOutputDir()` instead of using `payload.outputPath` from the renderer. `writeFileSync`, the `midi:reloadFile` notification, and the return message all use the new local `outputPath`. Fixes bug where the Orfeo/ folder was created (by `getOrfeoOutputDir`) but files were written next to the source (because `payload.outputPath` was still referenced). Re-saving an already-generated `_ORFEO.mid` strips the suffix before appending a new one — prevents `_ORFEO_ORFEO` doubling.
-- `transcript:generate` IPC handler: output path moved into `Orfeo/` subfolder via `getOrfeoOutputDir()`. `songName` variable reused for the filename.
+- Added `getPliageOutputDir(sourceFilePath)` helper: resolves and auto-creates an `Pliage/` subfolder next to the source file. If the source is already inside an `Pliage/` subfolder, steps up to its parent — prevents `Pliage/Pliage/` nesting.
+- `editor:save` IPC handler: output path now computed from `_editorData.filePath` via `getPliageOutputDir()` instead of using `payload.outputPath` from the renderer. `writeFileSync`, the `midi:reloadFile` notification, and the return message all use the new local `outputPath`. Fixes bug where the Pliage/ folder was created (by `getPliageOutputDir`) but files were written next to the source (because `payload.outputPath` was still referenced). Re-saving an already-generated `_PLIAGE.mid` strips the suffix before appending a new one — prevents `_PLIAGE_PLIAGE` doubling.
+- `transcript:generate` IPC handler: output path moved into `Pliage/` subfolder via `getPliageOutputDir()`. `songName` variable reused for the filename.
 - Expanded `fs/promises` import: added `access`, `copyFile`, `readdir`, `writeFile` alongside existing `mkdir`.
 
 **`package.json`**
@@ -3304,12 +3305,12 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - `asarUnpack`: added `public/demo/**/*` so demo files are accessible to `fs.copyFile` in packaged builds.
 
 **`src/store/index.ts`**
-- Added `hideDemoFolder: boolean` (default `false`) + `setHideDemoFolder` to `OrfeoStore`.
+- Added `hideDemoFolder: boolean` (default `false`) + `setHideDemoFolder` to `PliageStore`.
 - Restored from prefs in `restoreLibraryPrefs`.
 - Persisted in the null-sentinel subscribe callback alongside other display settings.
 
 **`src/components/SettingsPanel/SettingsPanel.tsx`**
-- `LibraryPanel`: `Demo` folder (case-insensitive) is sorted to position 0 in the folder list, pinned above `Orfeo/` and all user subfolders. When `hideDemoFolder` is true, the Demo group is filtered from the render — files remain on disk.
+- `LibraryPanel`: `Demo` folder (case-insensitive) is sorted to position 0 in the folder list, pinned above `Pliage/` and all user subfolders. When `hideDemoFolder` is true, the Demo group is filtered from the render — files remain on disk.
 - Settings tab: new **Library** section at the top with a Demo folder Show/Hide toggle.
 
 **`public/demo/`**
@@ -3320,11 +3321,11 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 ### 2. 7. 2026 — Portable build target
 
 **`package.json`**
-- Added `"portable"` to `build.win.target` alongside `"nsis"`. Running `npm run dist` now produces both `Orfeo Setup x.x.x.exe` (NSIS installer) and `Orfeo x.x.x.exe` (portable single-file exe) in `release/`.
+- Added `"portable"` to `build.win.target` alongside `"nsis"`. Running `npm run dist` now produces both `Pliage Setup x.x.x.exe` (NSIS installer) and `Pliage x.x.x.exe` (portable single-file exe) in `release/`.
 - Added `dist:portable` script: same as `dist` but passes `--win portable` to electron-builder — builds the portable exe only, without the installer (faster iteration).
 
 **`electron/main.ts`**
-- Added portable userData redirect before `app.whenReady()`: when `PORTABLE_EXECUTABLE_DIR` is set (injected by electron-builder portable target at runtime), `app.setPath('userData', ...)` points to `Orfeo-Data/` next to the exe. This makes prefs (`orfeo-prefs.json`) and any cached files travel with the exe when copied to another machine. Has no effect on the NSIS installer build.
+- Added portable userData redirect before `app.whenReady()`: when `PORTABLE_EXECUTABLE_DIR` is set (injected by electron-builder portable target at runtime), `app.setPath('userData', ...)` points to `Pliage-Data/` next to the exe. This makes prefs (`pliage-prefs.json`) and any cached files travel with the exe when copied to another machine. Has no effect on the NSIS installer build.
 
 ---
 
@@ -3394,7 +3395,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - Added `transcriptGenerate` IPC bridge for `transcript:generate`
 
 **`src/store/index.ts`**
-- Added `transcriptHistory: TranscriptEntry[]` and `addTranscriptEntry(entry)` — capped at 20 entries (newest first, oldest dropped); persists immediately to `orfeo-prefs.json` via direct `setPrefs` call inside the action
+- Added `transcriptHistory: TranscriptEntry[]` and `addTranscriptEntry(entry)` — capped at 20 entries (newest first, oldest dropped); persists immediately to `pliage-prefs.json` via direct `setPrefs` call inside the action
 - Restored `transcriptHistory` from prefs in `restoreLibraryPrefs`
 
 **`electron/main.ts`**
@@ -3413,7 +3414,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
   8. Returns `{ success, path }` or `{ success: false, error }`
 
 **`src/components/Keyboard/Keyboard.tsx`**
-- Injected `@keyframes orfeo-transcript-spin` style element at module level (guarded by `id` check)
+- Injected `@keyframes pliage-transcript-spin` style element at module level (guarded by `id` check)
 - Added `addTranscriptEntry` subscription
 - Added `transcriptState` (`'idle'|'loading'|'success'|'error'`) and `transcriptTooltip` local state; `transcriptRevertRef` for 3-second auto-revert
 - Replaced `FileText` no-op placeholder with active icon:
@@ -3471,7 +3472,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 - Added `ChordEvent` interface: `{ time: number; name: string; notes: string[] }` — represents one chord in the pre-computed sequence
 
 **`src/store/index.ts`**
-- Added `chordPrompterEnabled: boolean` (default `false`, persisted to `orfeo-prefs.json`)
+- Added `chordPrompterEnabled: boolean` (default `false`, persisted to `pliage-prefs.json`)
 - Added `chordPrompterOpen: boolean` (default `false`, not persisted) + setter
 - Added `chordSequence: ChordEvent[]` (default `[]`, not persisted) + setter
 - `setMidi(null)` and `resetAll` now clear `chordSequence` and `chordPrompterOpen`
@@ -3594,14 +3595,14 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 
 **`src/hooks/useAudioEngine.ts`**
 - Engine switching: `prevAudioEngineRef` tracks the previous engine; when leaving 'gm' → `stopAudio()`; when arriving at 'gm' while playing → `buildPlayer(currentTime)`
-- Replaces `useSF2Engine` import with `useSamplesEngine`; click dispatcher routes to `__orfeoPlayNoteSamples` when `audioEngine === 'samples'`
+- Replaces `useSF2Engine` import with `useSamplesEngine`; click dispatcher routes to `__pliagePlayNoteSamples` when `audioEngine === 'samples'`
 
 **`src/components/SettingsPanel/SettingsPanel.tsx`**
 - Audio section: functional GM Synth / Samples buttons; Samples click calls `initSamplesEngine` with inline progress bar and status line ("Loading soundfont… X%" → "GeneralUser-GS.sf2 · 30.8 MB · loaded")
 - `samplesStatus` / `samplesProgress` local state; switches engine automatically when loading completes
 
 **`src/store/index.ts`**
-- `audioEngine: 'gm' | 'samples'` and `setAudioEngine` added to `OrfeoStore` interface (implementation was already present)
+- `audioEngine: 'gm' | 'samples'` and `setAudioEngine` added to `PliageStore` interface (implementation was already present)
 
 **`electron.vite.config.ts`**
 - `optimizeDeps.exclude: ['spessasynth_lib', 'spessasynth_core']` — prevents Vite from pre-bundling these large ESM packages, which was causing a mid-session page reload (black screen) on first engine activation
@@ -3625,7 +3626,7 @@ Replaced hardcoded hex colors and raw pixel values with design-system CSS variab
 
 **`src/store/index.ts`**
 - `masterVolume: number` (default `0.8`) + `setMasterVolume` — clamped to 0–1
-- Persisted to `orfeo-prefs.json` via the existing display-settings subscriber; restored on startup alongside `noteNaming`/`accidentals`
+- Persisted to `pliage-prefs.json` via the existing display-settings subscriber; restored on startup alongside `noteNaming`/`accidentals`
 - `resetAll` now also resets `bpm: 120`, `originalBpm: 120`, `detectedKey: null`
 
 **`src/hooks/useAudioEngine.ts`**
@@ -3898,7 +3899,7 @@ All changes in `src/components/ScaleExplorer.tsx`:
 
 ### Changed
 - `noteNaming` + `accidentals` persisted with null sentinel fix; MIDI editor undo-merge in-place
-- Output filename dynamically switches `_ORFEO` / `_ORFEO_MERGED`
+- Output filename dynamically switches `_PLIAGE` / `_PLIAGE_MERGED`
 - Drums show plain "Standard Drums"; GM family icons 12px → 15px
 
 ### Fixed
@@ -3913,7 +3914,7 @@ All changes in `src/components/ScaleExplorer.tsx`:
 - Left settings/library drawer (`SettingsPanel.tsx`) — Settings + Library tabs
 - MIDI file library — folder picker, star toggle, persistent, click to load
 - Accidentals toggle — `convertAccidentals()` single source of truth
-- MIDI Playback Editor (`MidiEditor.tsx`) — separate Electron window; track include/exclude; GM reassignment; track merge; Save & Reload (`_ORFEO.mid`)
+- MIDI Playback Editor (`MidiEditor.tsx`) — separate Electron window; track include/exclude; GM reassignment; track merge; Save & Reload (`_PLIAGE.mid`)
 - Build pipeline — `electron-builder` + NSIS; real app icon
 - SF2 audio engine scaffold; design token system; chord detection rewrite; chord lock
 

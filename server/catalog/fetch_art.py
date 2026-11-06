@@ -9,11 +9,11 @@
 # copied; only Perfessor Bill's covers are saved, to avoid hotlinking a small site.
 import base64, json, os, random, re, sqlite3, sys, time, unicodedata, urllib.error, urllib.parse as up, urllib.request as ur
 
-DATA = os.environ.get('ORFEO_DATA') or sys.exit('Set ORFEO_DATA to the private folder that holds the catalog data')
+DATA = os.environ.get('PLIAGE_DATA') or sys.exit('Set PLIAGE_DATA to the private folder that holds the catalog data')
 CACHE = os.path.join(DATA, 'art_cache')
 ART_JSON = os.path.join(DATA, 'art.json')
-UA = {'User-Agent': 'OrfeoCatalog/0.1 (personal music catalog)'}
-SPOTIFY_KEYS = os.environ.get('ORFEO_SPOTIFY_KEYS') or os.path.expanduser('~/.orfeo-spotify.json')  # never in a repo
+UA = {'User-Agent': 'PliageCatalog/0.1 (personal music catalog)'}
+SPOTIFY_KEYS = os.environ.get('PLIAGE_SPOTIFY_KEYS') or os.path.expanduser('~/.pliage-spotify.json')  # never in a repo
 SPOTIFY_DELAY = 0.05  # no published limit: 429 responses set the pace
 ALIASES = {'gonzagao': 'luiz gonzaga', 'tom jobim': 'antonio carlos jobim', 'ari barroso': 'ary barroso'}
 ITUNES_DELAY, DEEZER_DELAY, WIKI_DELAY = 3.2, 0.15, 0.3  # iTunes allows about 20 requests a minute, Deezer 10 a second

@@ -17,7 +17,7 @@ export default function LearnHome() {
 
   return (
     <div className="learn">
-      <nav aria-label={t`Units`} className="learn-nav orfeo-rise-in orfeo-rise-in-2">
+      <nav aria-label={t`Units`} className="learn-nav pliage-rise-in pliage-rise-in-2">
         <h3 className="lib-nav-head">{`${t`Reading music`} · ${t`${passed.length} of ${LESSONS.length} lessons`}`}</h3>
         {COURSE.map(u => (
           <button key={u.n} className="lib-nav-item learn-unit" aria-pressed={chosen !== 'pieces' && u.n === unit.n} onClick={() => setChosen(u.n)}>
@@ -32,7 +32,7 @@ export default function LearnHome() {
           <span className="learn-unit-n">{SHELF.length}</span>
         </button>
       </nav>
-      {chosen === 'pieces' ? <main className="learn-main orfeo-rise-in orfeo-rise-in-3">
+      {chosen === 'pieces' ? <main className="learn-main pliage-rise-in pliage-rise-in-3">
         <h1 className="learn-title">{t`Pieces`}</h1>
         <p className="o-note">{t`Real music to play once you've done the unit shown. Public domain, from dacapo, OpenGoldberg, PianoXML and PDMX.`}</p>
         <div className="learn-pieces">
@@ -46,7 +46,7 @@ export default function LearnHome() {
             </button>
           ))}
         </div>
-      </main> : <main className="learn-main orfeo-rise-in orfeo-rise-in-3">
+      </main> : <main className="learn-main pliage-rise-in pliage-rise-in-3">
         <div className="learn-head">
           <div className="learn-head-text">
             <span className="lib-tag" style={{ background: 'var(--paint-rose)' }}>{`${t`Unit`} ${unit.n}`}</span>

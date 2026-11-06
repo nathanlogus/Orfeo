@@ -12,7 +12,7 @@ const zoomListeners = new Map<(data: any) => void, (e: unknown, data: any) => vo
 
 // ── Native audio engine: main hands us one end of a MessageChannel; pass it
 // to the page (a MessagePort can't cross contextBridge, window.postMessage can) ──
-ipcRenderer.on('audio:port', (e) => { window.postMessage('orfeo-audio-port', '*', e.ports) })
+ipcRenderer.on('audio:port', (e) => { window.postMessage('pliage-audio-port', '*', e.ports) })
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Native audio engine (beta)
@@ -86,7 +86,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   installUpdate:       () => ipcRenderer.invoke('update:install'),
   onUpdateStatus:      (fn: (data: any) => void) => ipcRenderer.on('update:status', (_e, data) => fn(data)),
   offUpdateStatus:     () => ipcRenderer.removeAllListeners('update:status'),
-  // "Enjoying Orfeo?" note + Rate Orfeo (Store build)
+  // "Enjoying Pliage?" note + Rate Pliage (Store build)
   getSupportNoteInfo: () => ipcRenderer.invoke('note:info'),
   requestReview:      () => ipcRenderer.invoke('review:request'),
   neverShowSupportNote: () => ipcRenderer.invoke('note:never'),

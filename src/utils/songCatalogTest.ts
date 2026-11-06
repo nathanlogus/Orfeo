@@ -5,7 +5,7 @@ export function runSongCatalogTest(): number {
   let pass = 0, fail = 0
   const check = (c: boolean, m: string) => { c ? pass++ : (fail++, console.error('FAIL:', m)) }
 
-  const lib = 'D:\\Music\\Orfeo MIDI'
+  const lib = 'D:\\Music\\Pliage MIDI'
   const f = (rel: string) => ({ name: rel.split('/').pop()!, path: `${lib}\\${rel.replace(/\//g, '\\')}` })
   const files = [
     f('Brazilian/Kauffmann/asa-branca.mid'), f('Brazilian/Kauffmann/carinhoso.mid'),
@@ -36,11 +36,11 @@ export function runSongCatalogTest(): number {
   check(buildCards(files, lib, 'nonsense')[0].title === 'asa-branca', 'garbage catalog is ignored')
   check(buildCards(files, lib, { songs: { 'Loose Song.mid': { title: 7, composers: 'x', genres: [{}], bpm: 'fast' } } })[4].title === 'Loose Song', 'bad field types are ignored')
   check(buildCards([{ name: 'constructor', path: `${lib}\\constructor` }], lib, { songs: {} })[0].title === 'constructor', 'inherited object keys are not entries')
-  check(relativeToLibrary('D:/Music/Orfeo MIDI Extra/x.mid', 'D:/Music/Orfeo MIDI').startsWith('D:'), 'a sibling folder is not inside the library')
+  check(relativeToLibrary('D:/Music/Pliage MIDI Extra/x.mid', 'D:/Music/Pliage MIDI').startsWith('D:'), 'a sibling folder is not inside the library')
 
   // image sources
   check(artSource('https://a/b.jpg', lib) === 'https://a/b.jpg', 'https passes')
-  check(artSource('_art/c.jpg', lib)!.startsWith('file:///D:/Music/Orfeo%20MIDI/_art/'), 'relative art resolves into the library')
+  check(artSource('_art/c.jpg', lib)!.startsWith('file:///D:/Music/Pliage%20MIDI/_art/'), 'relative art resolves into the library')
   check(artSource('../../secret.jpg', lib) === null, 'no climbing out of the library')
   check(artSource('C:/Windows/x.jpg', lib) === null && artSource('file:///c:/x.jpg', lib) === null, 'no absolute paths')
   check(artSource('http://a/b.jpg', lib) === null && artSource('javascript:alert(1)', lib) === null, 'other schemes refused')

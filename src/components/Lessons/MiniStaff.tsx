@@ -17,7 +17,7 @@ const COLUMN = 44, LEFT = 44, MARGIN = 26, GRAND_GAP = 56
 
 type Staff = 'treble' | 'bass'
 
-const fontFace = `@font-face { font-family: 'OrfeoBravura'; src: url('${bravuraUrl}') format('woff2'); }`
+const fontFace = `@font-face { font-family: 'PliageBravura'; src: url('${bravuraUrl}') format('woff2'); }`
 
 function StaffNotes({ top, staff, columns, keyName, x }: { top: number; staff: Staff; columns: string[][]; keyName?: string; x: number }) {
   const y = (pos: number) => top + STAFF_H - pos * (GAP / 2)
@@ -27,8 +27,8 @@ function StaffNotes({ top, staff, columns, keyName, x }: { top: number; staff: S
   return (
     <>
       {[0, 1, 2, 3, 4].map(i => <line key={i} x1={x} x2="100%" y1={top + i * GAP} y2={top + i * GAP} stroke="currentColor" strokeWidth={1} />)}
-      <text x={x + 6} y={y(CLEF[staff].line)} fontSize={STAFF_H} fontFamily="OrfeoBravura" fill="currentColor">{CLEF[staff].glyph}</text>
-      {signature.map((_, i) => <text key={i} x={LEFT + i * 10} y={y(SIG_POS[staff][sign!][i])} fontSize={STAFF_H} fontFamily="OrfeoBravura" fill="currentColor">{sign === '#' ? SHARP : FLAT}</text>)}
+      <text x={x + 6} y={y(CLEF[staff].line)} fontSize={STAFF_H} fontFamily="PliageBravura" fill="currentColor">{CLEF[staff].glyph}</text>
+      {signature.map((_, i) => <text key={i} x={LEFT + i * 10} y={y(SIG_POS[staff][sign!][i])} fontSize={STAFF_H} fontFamily="PliageBravura" fill="currentColor">{sign === '#' ? SHARP : FLAT}</text>)}
       {columns.map((notes, c) => notes.map(name => {
         const pos = staffStep(name) - BOTTOM_LINE[staff]
         const cx = start + MARGIN + c * COLUMN
@@ -40,8 +40,8 @@ function StaffNotes({ top, staff, columns, keyName, x }: { top: number; staff: S
         return (
           <g key={`${c}${name}`}>
             {ledgers.map(p => <line key={p} x1={cx - 5} x2={cx + 17} y1={y(p)} y2={y(p)} stroke="currentColor" strokeWidth={1} />)}
-            {accidental && !inKey && <text x={cx - 12} y={y(pos)} fontSize={STAFF_H} fontFamily="OrfeoBravura" fill="currentColor">{accidental === '#' ? SHARP : FLAT}</text>}
-            <text x={cx} y={y(pos)} fontSize={STAFF_H} fontFamily="OrfeoBravura" fill="currentColor">{HEAD}</text>
+            {accidental && !inKey && <text x={cx - 12} y={y(pos)} fontSize={STAFF_H} fontFamily="PliageBravura" fill="currentColor">{accidental === '#' ? SHARP : FLAT}</text>}
+            <text x={cx} y={y(pos)} fontSize={STAFF_H} fontFamily="PliageBravura" fill="currentColor">{HEAD}</text>
           </g>
         )
       }))}
@@ -97,8 +97,8 @@ export function RhythmLine({ tokens, beats, activeBeat }: { tokens: string[]; be
         const base = token.replace(/^d/, '')[0]
         return (
           <g key={i}>
-            <text x={x} y={mid} fontSize={STAFF_H} fontFamily="OrfeoBravura" fill="currentColor">{(rest ? REST : NOTE)[base]}</text>
-            {token.startsWith('d') && <text x={x + 18} y={mid} fontSize={STAFF_H} fontFamily="OrfeoBravura" fill="currentColor">{DOT}</text>}
+            <text x={x} y={mid} fontSize={STAFF_H} fontFamily="PliageBravura" fill="currentColor">{(rest ? REST : NOTE)[base]}</text>
+            {token.startsWith('d') && <text x={x + 18} y={mid} fontSize={STAFF_H} fontFamily="PliageBravura" fill="currentColor">{DOT}</text>}
             {tied && <path d={`M ${marks[i - 1].x + 6} ${mid + 8} Q ${(marks[i - 1].x + x) / 2 + 6} ${mid + 22} ${x + 4} ${mid + 8}`} fill="none" stroke="currentColor" strokeWidth={1.5} />}
           </g>
         )

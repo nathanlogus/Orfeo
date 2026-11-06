@@ -49,7 +49,7 @@ export async function startSamples(): Promise<boolean> {
     useStore.getState().setSamplesIntroduced(true)
     return true
   } catch (e) {
-    console.error('[Orfeo Samples] init failed:', e)
+    console.error('[Pliage Samples] init failed:', e)
     setSf({ samplesStatus: 'error' })
     useStore.getState().openSettingsWindow('audio')
     return false

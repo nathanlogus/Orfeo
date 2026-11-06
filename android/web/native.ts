@@ -1,8 +1,8 @@
-// ── Calls that finish later: Java answers through window.__orfeo(id, …) ──────
-const B = (window as any).OrfeoBridge
+// ── Calls that finish later: Java answers through window.__pliage(id, …) ──────
+const B = (window as any).PliageBridge
 let nextId = 1
 const waiting = new Map<number, (...a: any[]) => void>()
-;(window as any).__orfeo = (id: number, ...a: any[]) => waiting.get(id)?.(...a)
+;(window as any).__pliage = (id: number, ...a: any[]) => waiting.get(id)?.(...a)
 
 export function ask<T>(start: (id: number) => void): Promise<T> {
   const id = nextId++

@@ -92,7 +92,7 @@ export default function FloatingKeyboard() {
       ref={panelRef}
       role="region"
       aria-label="Floating virtual keyboard"
-      className="orfeo-modal-glow app-no-drag pr-float"
+      className="pliage-modal-glow app-no-drag pr-float"
       style={{ left: pos.x, top: pos.y, width: w, maxWidth: 'calc(100vw - 16px)', userSelect: dragState.current ? 'none' : 'auto' } as CSSProperties}
     >
       {/* Left resize handle */}

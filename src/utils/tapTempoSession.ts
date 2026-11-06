@@ -291,7 +291,7 @@ export function fmtSongTime(sec: number): string {
   return `${m}:${s.toFixed(1).padStart(4, '0')}`
 }
 
-// Every saved change shows up in File Info → Orfeo History
+// Every saved change shows up in File Info → Pliage History
 function logTempoEvent(summary: string) {
   const path = (useStore.getState().midi as any)?._filePath as string | undefined
   if (path) window.electronAPI?.logFileEvent?.(path, 'tempo', summary)?.catch?.(() => {})

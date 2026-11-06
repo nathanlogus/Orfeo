@@ -2,7 +2,7 @@
 // Loads the song (the open one as it plays now, edit buffer included, or a
 // Library file read fresh), builds the chosen version, plays it offline with
 // the chosen sound, finishes it (start, tail, level) and saves it to
-// <library>/Orfeo/Exports. The renderers are imported on demand: Studio's
+// <library>/Pliage/Exports. The renderers are imported on demand: Studio's
 // synth stays out of the startup bundle, as the Samples engine keeps it.
 import { useStore } from '../store'
 import { NES } from '../utils/noteEditorState'
@@ -34,7 +34,7 @@ let _exporting = 0
 export const isExporting = () => _exporting > 0
 export function pauseForExport(): void {
   if (useStore.getState().playbackState !== 'playing') return
-  ;(window as any).__orfeoPlayer?.pause?.()
+  ;(window as any).__pliagePlayer?.pause?.()
   useStore.setState({ playbackState: 'paused' })
 }
 
@@ -49,8 +49,8 @@ export class ExportError extends Error {
 // Windows paths: either slash, any letter case
 const samePath = (a: string, b: string) => a.replace(/\\/g, '/').toLowerCase() === b.replace(/\\/g, '/').toLowerCase()
 
-/** The song open in Orfeo right now is this file — or, for a Guitar Pro /
- *  MusicXML file, its converted copy (what Orfeo actually opens) */
+/** The song open in Pliage right now is this file — or, for a Guitar Pro /
+ *  MusicXML file, its converted copy (what Pliage actually opens) */
 export function isOpenSong(songPath: string): boolean {
   const { midi, libraryFolder } = useStore.getState()
   const open = (midi as any)?._filePath as string | undefined

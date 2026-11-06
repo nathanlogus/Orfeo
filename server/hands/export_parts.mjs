@@ -1,10 +1,10 @@
-// Main piano part of every one-part song, in the exact order Orfeo's parser keeps notes.
+// Main piano part of every one-part song, in the exact order Pliage's parser keeps notes.
 import { createRequire } from 'node:module'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 const REPO = resolve(import.meta.dirname, '../..')
-const DATA = process.env.ORFEO_DATA
-if (!DATA) { console.error('Set ORFEO_DATA to the private folder that holds the catalog data'); process.exit(1) }
+const DATA = process.env.PLIAGE_DATA
+if (!DATA) { console.error('Set PLIAGE_DATA to the private folder that holds the catalog data'); process.exit(1) }
 const { Midi } = createRequire(join(REPO, 'package.json'))('@tonejs/midi')
 const LIB = process.argv[2]
 const hands = JSON.parse(readFileSync(join(DATA, 'hands.json'), 'utf8'))
@@ -14,7 +14,7 @@ for (const [rel, e] of Object.entries(hands)) {
   if (e.kind !== 'one-stream' || /Weimar Solos/.test(rel)) continue
   const b = readFileSync(join(LIB, rel))
   const midi = new Midi(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength))
-  const parsed = midi.tracks.filter(t => t.notes.length > 0)  // Orfeo's index counts only tracks with notes
+  const parsed = midi.tracks.filter(t => t.notes.length > 0)  // Pliage's index counts only tracks with notes
   const pianos = parsed.map((t, index) => ({ t, index })).filter(({ t }) => t.channel !== 9 && t.instrument.number <= 7)
   if (!pianos.length) continue
   const { t, index } = pianos.sort((a, c) => c.t.notes.length - a.t.notes.length)[0]

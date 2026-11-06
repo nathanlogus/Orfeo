@@ -1,6 +1,6 @@
 import { readdirSync, statSync, writeFileSync } from './fs'
 
-const B = (window as any).OrfeoBridge
+const B = (window as any).PliageBridge
 export const mkdir = async (p: string, _o?: unknown) => B.mkdir(p)
 export const access = async (p: string) => { statSync(p) }
 export const copyFile = async (a: string, b: string) => B.copy(a, b)

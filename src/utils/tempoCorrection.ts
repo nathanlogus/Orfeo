@@ -293,7 +293,7 @@ export function sanitizeCorrections(x: unknown): Record<string, SongTempoCorrect
   if (!x || typeof x !== 'object') return out
   for (const [key, v] of Object.entries(x as Record<string, any>)) {
     if (!v || !Array.isArray(v.segments) || v.segments.length === 0 || !v.segments.every(validSeg)) {
-      console.warn(`[Orfeo] ignoring invalid tempo correction for ${key}`)
+      console.warn(`[Pliage] ignoring invalid tempo correction for ${key}`)
       continue
     }
     out[key] = { segments: v.segments.map((s: TempoSegment) => ({ ...s })) }

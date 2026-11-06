@@ -3,10 +3,10 @@
 # Run: python -I fetch_authors.py [--sample N]
 import json, os, random, re, sqlite3, sys, time, unicodedata, urllib.error, urllib.parse as up, urllib.request as ur
 
-DATA = os.environ.get('ORFEO_DATA') or sys.exit('Set ORFEO_DATA to the private folder that holds the catalog data')
+DATA = os.environ.get('PLIAGE_DATA') or sys.exit('Set PLIAGE_DATA to the private folder that holds the catalog data')
 CACHE = os.path.join(DATA, 'art_cache', 'musicbrainz.json')
 OUT = os.path.join(DATA, 'authors.json')
-UA = {'User-Agent': 'OrfeoCatalog/0.1 ( personal music catalog )'}
+UA = {'User-Agent': 'PliageCatalog/0.1 ( personal music catalog )'}
 API = 'https://musicbrainz.org/ws/2/work/'
 DELAY = 1.2  # MusicBrainz allows one request a second
 MIN_RECORDINGS = 5  # below this a same-named obscure song is too likely

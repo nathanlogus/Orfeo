@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
-import OrfeoMark from '../OrfeoMark'
+import PliageMark from '../PliageMark'
+import PliageLogo from '../PliageLogo'
 import { HeldKeys } from '../Lessons/MiniStaff'
 
 type Pick = 'demo' | 'folder' | 'server'
@@ -21,7 +22,7 @@ function fallingNotes() {
   })
 }
 
-// ── A new install's first two pages: what Orfeo is, then a keyboard and songs ──
+// ── A new install's first two pages: what Pliage is, then a keyboard and songs ──
 export default function FirstRun({ pickFolder, onDone }: { pickFolder: () => Promise<boolean>; onDone: (server: boolean) => void }) {
   const [step, setStep] = useState<'welcome' | 'setup'>('welcome')
   return (
@@ -40,7 +41,7 @@ function Welcome({ onStart, onSkip }: { onStart: () => void; onSkip: () => void 
   return (
     <div className="first-welcome">
       <div className="first-welcome-text">
-        <span className="lib-logo" style={{ alignSelf: 'flex-start' }}><span className="lib-logo-disc"><OrfeoMark height={18} /></span>Orfeo</span>
+        <span className="lib-logo" style={{ alignSelf: 'flex-start' }}><span className="lib-logo-disc"><PliageMark height={20} tone="sun" /></span><PliageLogo height={26} tone="night" /></span>
         <span className="o-spacer" />
         <h1 className="first-headline">{t`From MIDI to mastery.`}</h1>
         <p className="first-lead">{t`Turn any MIDI file into a piano lesson. Notes fall onto the keys, the keys light up as they play, and you set the pace.`}</p>
@@ -67,7 +68,7 @@ function Setup({ pickFolder, onBack, onDone }: { pickFolder: () => Promise<boole
   const name = useStore(s => s.midiDeviceName)
   const [pick, setPick] = useState<Pick>('demo')
   const options: { id: Pick; title: string; sub: string }[] = [
-    { id: 'demo', title: t`Start with the demo songs`, sub: t`A few pieces come with Orfeo, ready to play.` },
+    { id: 'demo', title: t`Start with the demo songs`, sub: t`A few pieces come with Pliage, ready to play.` },
     { id: 'folder', title: t`Choose a song folder`, sub: t`MIDI, MusicXML, Guitar Pro and karaoke files.` },
     { id: 'server', title: t`Connect a home server`, sub: t`Browse a big song collection from your computer.` },
   ]

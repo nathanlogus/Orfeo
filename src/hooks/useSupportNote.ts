@@ -3,8 +3,8 @@ import { create } from 'zustand'
 import { useStore } from '../store'
 import type { SupportNoteInfo } from '../types'
 
-// ── The "Enjoying Orfeo?" note (components/SupportNote.tsx) and the Store
-// build's Rate Orfeo star. Main decides which build this is and whether the
+// ── The "Enjoying Pliage?" note (components/SupportNote.tsx) and the Store
+// build's Rate Pliage star. Main decides which build this is and whether the
 // note is due this launch (note:info in electron/main.ts). ─────────────────
 // `preview`: shown from the test-build button in Settings › Appearance — which
 // version's note, and closing it saves nothing
@@ -12,7 +12,7 @@ export const useSupportNote = create<SupportNoteInfo & { noteOpen: boolean; prev
   store: false, prompt: false, noteOpen: false, preview: null,
 }))
 
-// Not at startup: the note appears once Orfeo has been open a little while
+// Not at startup: the note appears once Pliage has been open a little while
 const NOTE_DELAY_MS = 30_000
 
 // Test builds: show either version's note right away, over the app
@@ -27,7 +27,7 @@ export function useSupportNoteService() {
     window.electronAPI.getSupportNoteInfo().then((info) => {
       useSupportNote.setState(info)
       if (info.prompt) timer = setTimeout(() => {
-        // Settings › Appearance › Enjoying Orfeo? can switch it off
+        // Settings › Appearance › Enjoying Pliage? can switch it off
         if (useStore.getState().supportNoteEnabled) useSupportNote.setState({ noteOpen: true })
       }, NOTE_DELAY_MS)
     }).catch(() => {})

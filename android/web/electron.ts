@@ -3,8 +3,8 @@
 import { ask } from './native'
 import { setPageZoom } from './globals'
 
-const B = (window as any).OrfeoBridge
-const files = (globalThis as any).__orfeoFilesDir as string
+const B = (window as any).PliageBridge
+const files = (globalThis as any).__pliageFilesDir as string
 
 const handlers = new Map<string, Function>()
 const listeners = new Map<string, Function[]>()
@@ -33,7 +33,7 @@ export class BrowserWindow {
     send, on() {}, postMessage() {}, toggleDevTools() {}, setVisualZoomLevelLimits() {},
     setZoomFactor: setPageZoom,
   }
-  constructor(_o: unknown) { windowCreated(); (window as any).__orfeoBack = () => this.close() }
+  constructor(_o: unknown) { windowCreated(); (window as any).__pliageBack = () => this.close() }
   on(ev: string, fn: Function) { this.ls.set(ev, fn) }
   once() {}
   loadFile() {}
@@ -55,7 +55,7 @@ export const app = {
   isPackaged: true,
   setName() {}, setPath() {}, quit() { B.exit() }, on() {},
   whenReady: () => Promise.resolve(),
-  getName: () => 'Orfeo',
+  getName: () => 'Pliage',
   getVersion: () => __APP_VERSION__,
   getAppPath: () => files,
   getPath: (name: string) => `${files}/${name === 'userData' ? 'userData' : 'Music'}`,
@@ -75,7 +75,7 @@ export const dialog = {
   showSaveDialog: async (o: any) => ({ canceled: false, filePath: o.defaultPath }),
   async showMessageBox(_win: unknown, o: any) {
     const text = [o.message, o.detail].filter(Boolean).join('\n\n')
-    return { response: await ask<number>(id => B.message(id, o.title ?? 'Orfeo', text, JSON.stringify(o.buttons ?? ['OK']))) }
+    return { response: await ask<number>(id => B.message(id, o.title ?? 'Pliage', text, JSON.stringify(o.buttons ?? ['OK']))) }
   },
 }
 

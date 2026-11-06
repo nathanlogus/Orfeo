@@ -325,7 +325,7 @@ async function connect(): Promise<void> {
     syncDevices()
     access.onstatechange = () => syncDevices()
   } catch (e) {
-    console.warn('[Orfeo MIDI] Web MIDI access denied or unavailable:', e)
+    console.warn('[Pliage MIDI] Web MIDI access denied or unavailable:', e)
     useMidiSettings.setState({ accessError: String((e as any)?.message ?? e) })
   }
 }

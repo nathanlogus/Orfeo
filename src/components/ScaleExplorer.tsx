@@ -6,7 +6,7 @@ import { getNoteName } from '../utils/noteNames'
 import { formatChordSuffix, detectChordStructured } from '../utils/chordDetection'
 import type { NoteNaming, Accidentals, ChordNamingStyle } from '../types'
 import SpeedControl from './SpeedControl'
-import OrfeoMark from './OrfeoMark'
+import PliageMark from './PliageMark'
 import ExplorerMenu from './ExplorerMenu'
 import ExplorerMiniKeyboard from './ExplorerMiniKeyboard'
 import { useFocusTrap } from '../hooks/useFocusTrap'
@@ -422,7 +422,7 @@ export default function ScaleExplorer() {
     if (scaleExplorerOpen) {
       // unless switched off: Settings › Playback › Explorers pause playback
       if (useStore.getState().playbackState === 'playing' && useStore.getState().explorerPausesPlayback) {
-        ;(window as any).__orfeoPlayer?.pause?.()
+        ;(window as any).__pliagePlayer?.pause?.()
         useStore.getState().setPlaybackState('paused')
       }
       // ── Default to C major, as if it were already clicked — keeps the modal
@@ -486,7 +486,7 @@ export default function ScaleExplorer() {
   useEffect(() => {
     if (!scaleExplorerOpen || selectedRoot === null) return
     clearScalePlayTimers()
-    const playNote = (window as any).__orfeoPlayNote
+    const playNote = (window as any).__pliagePlayNote
     const rootMidi = lowRoot + selectedRoot
     const noteMidis = [...scale.intervals.map(iv => rootMidi + iv), rootMidi + 12]
       .filter(m => m >= EXPLORER_RANGE.min && m <= EXPLORER_RANGE.max)
@@ -775,12 +775,12 @@ export default function ScaleExplorer() {
       aria-modal="true"
       aria-label="Scales Explorer"
       data-instant
-      className="orfeo-modal-glow touch-explorer theme-studio xp-full xp-scales"
+      className="pliage-modal-glow touch-explorer theme-studio xp-full xp-scales"
       style={{ display: scaleExplorerMinimized ? 'none' : 'flex' }}
     >
       <div className="xp-full-head">
         <button className="xp-back" aria-label={t`Back to practice`} onClick={close}><ArrowLeft size={16} />{t`Practice`}</button>
-        <OrfeoMark height={22} />
+        <PliageMark height={22} tone="night" />
         <div className="xp-seg" data-accent role="group" aria-label={t`Explorers`}>
           <button aria-pressed={false} onClick={() => { setScaleExplorerOpen(false); setChordExplorerOpen(true) }}>{t`Chords`}</button>
           <button aria-pressed={true}>{t`Scales`}</button>

@@ -42,6 +42,6 @@ jobs:
 
       - name: Check the app signatures
         run: |
-          for app in release/mac/Orfeo.app release/mac-arm64/Orfeo.app; do
+          for app in release/mac/Pliage.app release/mac-arm64/Pliage.app; do
             codesign --verify --deep --strict "$app"
           done

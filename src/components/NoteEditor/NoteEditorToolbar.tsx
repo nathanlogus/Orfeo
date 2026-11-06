@@ -128,7 +128,7 @@ export default function NoteEditorToolbar() {
     // anything and saving silently discarded whatever hand tags existed.
     const editMidi = NES.editMidi
     const keptMeta = ((editMidi.header as any).meta ?? []).filter(
-      (m: any) => !(typeof m.text === 'string' && (m.text.startsWith('ORFEO_HAND_MAP:') || m.text.startsWith('ORFEO_TRACK_HAND:')))
+      (m: any) => !(typeof m.text === 'string' && (m.text.startsWith('PLIAGE_HAND_MAP:') || m.text.startsWith('PLIAGE_TRACK_HAND:')))
     )
     ;(editMidi.header as any).meta = keptMeta
     editMidi.tracks.forEach(track => {
@@ -136,7 +136,7 @@ export default function NoteEditorToolbar() {
       // (track as any).index — the compacted (non-empty-tracks-only) index
       // midiToEditableCopy() stamps on this exact object, NOT the raw
       // forEach position. restoreHandTagsFromHints() on reload matches
-      // ORFEO_HAND_MAP's trackIndex against ParsedTrack.index, which is
+      // PLIAGE_HAND_MAP's trackIndex against ParsedTrack.index, which is
       // that same compacted numbering — using the raw loop index here
       // (as this used to) wrote the hint under the wrong track whenever an
       // empty filler track preceded the real one, so the manual/computed
@@ -158,7 +158,7 @@ export default function NoteEditorToolbar() {
 
     const saveSummary = buildNoteEditSummary(NES.history.appliedDescriptions())
 
-    // Silent auto-version into the source's sibling Orfeo/ folder — same
+    // Silent auto-version into the source's sibling Pliage/ folder — same
     // convention as the Playback Editor and Mixer Console saves, no save
     // dialog (a dialog defaulting to a not-yet-created folder can silently
     // fall back to wherever the OS last had one open, e.g. Downloads).
@@ -379,7 +379,7 @@ export default function NoteEditorToolbar() {
       role="toolbar"
       aria-label="Note Editor toolbar"
       data-instant
-      className="orfeo-modal-glow theme-studio xp-ne"
+      className="pliage-modal-glow theme-studio xp-ne"
       style={{ left: dock.left, minHeight: dock.height }}
     >
       {/* ── Yellow header — what's selected and its hand, the track, undo/redo, save ── */}
@@ -400,7 +400,7 @@ export default function NoteEditorToolbar() {
         <button className="xp-ne-round" aria-label="Undo" onClick={doUndo} disabled={!canUndo} {...hintHandlers('Undo — revert the last edit (Ctrl+Z)')}><Undo2 size={18} /></button>
         <button className="xp-ne-round" aria-label="Redo" onClick={doRedo} disabled={!canRedo} {...hintHandlers('Redo — reapply the last undone edit (Ctrl+Y)')}><Redo2 size={18} /></button>
         <button className="xp-ne-link" onClick={() => void doReset()} {...hintHandlers('Reset — discard all edits and restore original')}>Reset</button>
-        <button className="xp-ne-save" onClick={() => void handleSave()} {...hintHandlers('Save & Reload — save edits as a new versioned copy (_ORFEO_vN)')}><Save size={16} /> Save &amp; Reload</button>
+        <button className="xp-ne-save" onClick={() => void handleSave()} {...hintHandlers('Save & Reload — save edits as a new versioned copy (_PLIAGE_vN)')}><Save size={16} /> Save &amp; Reload</button>
         <button className="xp-ne-round" aria-label="Close" onClick={() => void doClose()} {...hintHandlers('Close — exit edit mode')}><X size={18} /></button>
       </div>
 

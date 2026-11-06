@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Orfeo GitHub stats collector.
+Pliage GitHub stats collector.
 
 Runs once a day from .github/workflows/stats.yml and keeps a permanent record
 on the `stats` branch, because GitHub itself only keeps:
@@ -51,7 +51,7 @@ def api(path, token, params=""):
         req = urllib.request.Request(url)
         req.add_header("Accept", "application/vnd.github+json")
         req.add_header("X-GitHub-Api-Version", "2022-11-28")
-        req.add_header("User-Agent", "orfeo-stats")
+        req.add_header("User-Agent", "pliage-stats")
         if token:
             req.add_header("Authorization", f"Bearer {token}")
         with urllib.request.urlopen(req, timeout=30) as res:
@@ -268,7 +268,7 @@ def build_report(repo, info, dl_rows, traffic, traffic_error):
     last7 = {k: total[k] - base.get(k, 0) for k in kinds}
 
     L = []
-    L.append(f"# Orfeo on GitHub: downloads and traffic\n")
+    L.append(f"# Pliage on GitHub: downloads and traffic\n")
     zone = "CEST" if NOW.utcoffset() == dt.timedelta(hours=2) else "CET"
     L.append(f"**Last updated: {NOW.day}. {NOW.month}. {NOW.year} at {NOW:%H:%M}** Ljubljana time ({zone}) · updates daily from 07:00\n")
     L.append(
@@ -277,7 +277,7 @@ def build_report(repo, info, dl_rows, traffic, traffic_error):
         f"{info.get('subscribers_count', 0)} watching\n"
     )
     L.append(
-        "> Orfeo is a free, open-source (GPL-3.0) cross-platform app for learning piano with MIDI files. "
+        "> Pliage is a free, open-source (GPL-3.0) cross-platform app for learning piano with MIDI files. "
         "It is distributed through GitHub Releases for Windows, macOS and Linux (experimental), and through the Microsoft Store "
         "(Store installs aren't counted here). "
         "Download totals come straight from GitHub's release statistics and cover every release since the first one; "
@@ -290,8 +290,8 @@ def build_report(repo, info, dl_rows, traffic, traffic_error):
     L.append("|---|---:|---:|")
     dl7 = sum(last7[k] for k in DL_KINDS)
     L.append(f"| **Downloads** (all systems) | {hi('**' + fmt(downloads) + '**')} | {hi('**' + fmt(dl7) + '**')} |")
-    L.append(f"| — Windows installer (`Orfeo-Setup-x.y.z.exe`) | {fmt(total['installer'])} | {fmt(last7['installer'])} |")
-    L.append(f"| — Windows portable (`Orfeo-x.y.z-portable.exe`) | {fmt(total['portable'])} | {fmt(last7['portable'])} |")
+    L.append(f"| — Windows installer (`Pliage-Setup-x.y.z.exe`) | {fmt(total['installer'])} | {fmt(last7['installer'])} |")
+    L.append(f"| — Windows portable (`Pliage-x.y.z-portable.exe`) | {fmt(total['portable'])} | {fmt(last7['portable'])} |")
     L.append(f"| — macOS (`.dmg`, `.zip`) | {fmt(total['mac'])} | {fmt(last7['mac'])} |")
     L.append(f"| — Linux (`.AppImage`, `.deb`, `.rpm`) | {fmt(total['linux'])} | {fmt(last7['linux'])} |")
     L.append(f"| App starts checking for updates (`latest.yml`) | {fmt(total['launch'])} | {fmt(last7['launch'])} |")
@@ -310,7 +310,7 @@ def build_report(repo, info, dl_rows, traffic, traffic_error):
     L.append("")
     L.append(
         "*Downloads* count each time a release file was downloaded. *App starts* count installed copies (Windows installer version) "
-        "checking GitHub for a newer version when Orfeo starts, so they show the app being used, not just downloaded. "
+        "checking GitHub for a newer version when Pliage starts, so they show the app being used, not just downloaded. "
         "The Windows portable, macOS and Linux versions do not check automatically.\n"
     )
     L.append(

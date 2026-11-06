@@ -1,7 +1,7 @@
 // macOS and Linux side of scripts/build-native.mjs: the Native engine add-on, and
 // FluidSynth built from source, because its project publishes no macOS or Linux
 // binaries. Everything lands in native/build/ (gitignored), as on Windows:
-//   native/build/orfeo_audio.node                  the add-on (macOS: arm64 + x86_64 in one file)
+//   native/build/pliage_audio.node                  the add-on (macOS: arm64 + x86_64 in one file)
 //   native/build/fluidsynth/libfluidsynth.3.dylib  macOS, arm64 + x86_64 in one file
 //   native/build/fluidsynth/libfluidsynth.so.3     Linux
 //
@@ -43,7 +43,7 @@ const SOURCES = {
   sndfile: { url: gh('libsndfile/libsndfile', 'releases/download/1.2.2/libsndfile-1.2.2.tar.xz'), sha256: '3799ca9924d3125038880367bf1468e53a1b7e3686a934f098b7e1d286cdb80e', dir: 'libsndfile-1.2.2',
     args: ['-DBUILD_PROGRAMS=OFF', '-DBUILD_EXAMPLES=OFF', '-DBUILD_TESTING=OFF', '-DENABLE_CPACK=OFF', '-DENABLE_MPEG=OFF', '-DENABLE_EXTERNAL_LIBS=ON', '-DINSTALL_PKGCONFIG_MODULE=OFF'] },
   fluidsynth: { url: gh('FluidSynth/fluidsynth', 'archive/refs/tags/v2.5.7.tar.gz'), sha256: 'ce27840221ab00dd59bf27e85ecbba480c6c2a7c9fbec4243658f68f59c07f4a', dir: 'fluidsynth-2.5.7',
-    // the synth only: Orfeo renders it itself, so none of its audio or MIDI drivers
+    // the synth only: Pliage renders it itself, so none of its audio or MIDI drivers
     args: ['-DBUILD_SHARED_LIBS=ON', '-Dosal=cpp11', '-Denable-libsndfile=ON',
       ...['alsa', 'aufile', 'dbus', 'ipv6', 'jack', 'ladspa', 'libinstpatch', 'midishare', 'network', 'openmp', 'oss', 'pipewire', 'pulseaudio', 'readline', 'sdl3', 'systemd', 'coreaudio', 'coremidi', 'framework']
         .map(o => `-Denable-${o}=OFF`)] },
@@ -104,19 +104,19 @@ async function buildFluid(arch) {
 const cargoBin = join(process.env.CARGO_HOME ?? join(homedir(), '.cargo'), 'bin')
 const env = { ...process.env, PATH: `${cargoBin}:${process.env.PATH ?? ''}`, ...(mac ? { MACOSX_DEPLOYMENT_TARGET: MACOS_TARGET } : {}) }
 const profile = debug ? 'debug' : 'release'
-const cargoBuild = (...extra) => run('cargo', ['build', '-p', 'orfeo-audio-node', ...(debug ? [] : ['--release']), ...extra], { cwd: native, env })
+const cargoBuild = (...extra) => run('cargo', ['build', '-p', 'pliage-audio-node', ...(debug ? [] : ['--release']), ...extra], { cwd: native, env })
 mkdirSync(out, { recursive: true })
 console.log(`[native] cargo build (${profile})`)
 if (mac) {
   const targets = ['aarch64-apple-darwin', 'x86_64-apple-darwin']
   run('rustup', ['target', 'add', ...targets], { env })
   for (const t of targets) cargoBuild('--target', t)
-  run('lipo', ['-create', ...targets.map(t => join(native, 'target', t, profile, 'liborfeo_audio_node.dylib')), '-output', join(out, 'orfeo_audio.node')])
+  run('lipo', ['-create', ...targets.map(t => join(native, 'target', t, profile, 'libpliage_audio_node.dylib')), '-output', join(out, 'pliage_audio.node')])
 } else {
   cargoBuild()
-  copyFileSync(join(native, 'target', profile, 'liborfeo_audio_node.so'), join(out, 'orfeo_audio.node'))
+  copyFileSync(join(native, 'target', profile, 'libpliage_audio_node.so'), join(out, 'pliage_audio.node'))
 }
-console.log('[native] native/build/orfeo_audio.node')
+console.log('[native] native/build/pliage_audio.node')
 
 // ── 2. FluidSynth ───────────────────────────────────────────────────────────
 const fluidDir = join(out, 'fluidsynth')

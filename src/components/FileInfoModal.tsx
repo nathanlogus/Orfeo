@@ -23,7 +23,7 @@ import '../styles/redesign-settings.css'
 interface FileLogEvent { type: string; timestamp: number; summary: string }
 interface FileVersion { name: string; path: string; version: number; mtime: number }
 
-// ── 'en-GB' pinned deliberately — this is Orfeo-internal bookkeeping, not
+// ── 'en-GB' pinned deliberately — this is Pliage-internal bookkeeping, not
 // user-facing content, and a system locale abbreviating "Aug" as "avg." (or
 // similar) reads as broken here regardless of the user's actual language. ──
 function formatLogDate(ts: number): string {
@@ -85,7 +85,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
       const other = readSong(bytes, name)
       const share = matchSongs(other, me)?.share ?? 0
       return share >= SAME_SONG ? { name, bytes, share, bars: describeBars(other) } : null
-    } catch { return null }  // not a MIDI file Orfeo can read
+    } catch { return null }  // not a MIDI file Pliage can read
   }
 
   const findVersions = async () => {
@@ -100,7 +100,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
         const v = me && file ? compare(me, base64ToBytes(file.base64), f.name) : null
         if (v) found.push(v)
       }
-    } catch (e) { console.error('[Orfeo] comparing versions failed:', e) }
+    } catch (e) { console.error('[Pliage] comparing versions failed:', e) }
     setOtherVersions(found.sort((a, b) => b.share - a.share))
   }
 
@@ -251,7 +251,7 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="orfeo-modal-glow app-no-drag theme-paper o-window fi-window"
+        className="pliage-modal-glow app-no-drag theme-paper o-window fi-window"
         style={{ width: 'min(1040px, calc(100vw - 32px))', height: `min(704px, ${MODAL_MAX_HEIGHT})`, boxSizing: 'border-box', ...placed }}
         onMouseDown={e => e.stopPropagation()}
       >
@@ -324,8 +324,8 @@ export default function FileInfoModal({ filePath, fileName, onClose, onRenamed, 
 
           {meta && (
             <section className="fi-right">
-              {/* Orfeo History — real edits (Playback Editor, Note Editor, tempo/key,
-                  mixer saves) are embedded in the .mid file as ORFEO_HISTORY text
+              {/* Pliage History — real edits (Playback Editor, Note Editor, tempo/key,
+                  mixer saves) are embedded in the .mid file as PLIAGE_HISTORY text
                   meta-events, so they travel with the file across installs/copies.
                   Renames/moves stay in a local sidecar JSON (electron/main.ts) since
                   they don't rewrite the file's bytes; fileinfo:getLog merges both. */}

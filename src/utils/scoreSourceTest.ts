@@ -37,9 +37,9 @@ export function runScoreSourceTest(): number {
   check(new DataView(tagged.buffer).getUint32(18) === 8, 'the track length grows with the text')
   check([...tagged.subarray(22)].join() === '0,255,1,2,65,66,170,187', 'text goes first, the events follow')
 
-  const source = { midiPaths: ['D:/Lib/Song.mxl', 'D:/Lib/Orfeo/Song_ORFEO_IMPORTED.mid'], bytes: new Uint8Array(1) }
+  const source = { midiPaths: ['D:/Lib/Song.mxl', 'D:/Lib/Pliage/Song_PLIAGE_IMPORTED.mid'], bytes: new Uint8Array(1) }
   check(isScoreFor(source, 'D:/Lib/Song.mxl'), 'the source itself has its score')
-  check(isScoreFor(source, 'D:/Lib/Orfeo/Song_ORFEO_IMPORTED.mid'), 'its saved copy keeps the score')
+  check(isScoreFor(source, 'D:/Lib/Pliage/Song_PLIAGE_IMPORTED.mid'), 'its saved copy keeps the score')
   check(!isScoreFor(source, 'D:/Lib/Other.mid'), 'another song never shows this score')
   check(!isScoreFor(source, undefined), 'a song with no path has no score')
   check(!isScoreFor(null, 'D:/Lib/Song.mxl'), 'no source, no score')
@@ -50,8 +50,8 @@ export function runScoreSourceTest(): number {
     { name: 'Song.mxl', path: 'D:/Lib/Song.mxl' },
     { name: 'Song 2.gp5', path: 'D:/Lib/Song 2.gp5' },
   ]
-  check(findImportSource('D:\\Lib\\Orfeo\\Song_ORFEO_IMPORTED.mid', files, notation)?.path === 'D:/Lib/Song.mxl', 'copy finds its notation source, not a same-named MIDI')
-  check(findImportSource('D:/Lib/Orfeo/Gone_ORFEO_IMPORTED.mid', files, notation) === null, 'source no longer in the library')
+  check(findImportSource('D:\\Lib\\Pliage\\Song_PLIAGE_IMPORTED.mid', files, notation)?.path === 'D:/Lib/Song.mxl', 'copy finds its notation source, not a same-named MIDI')
+  check(findImportSource('D:/Lib/Pliage/Gone_PLIAGE_IMPORTED.mid', files, notation) === null, 'source no longer in the library')
   check(findImportSource('D:/Lib/Song.mid', files, notation) === null, 'an ordinary MIDI is not a copy')
 
   console.log(`${pass} passed, ${fail} failed`)

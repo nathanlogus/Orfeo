@@ -47,7 +47,7 @@ function TouchVolume() {
           <div
             role="dialog"
             aria-label={t`Volume`}
-            className="touch-volume-pop orfeo-modal-glow"
+            className="touch-volume-pop pliage-modal-glow"
             onClick={e => e.stopPropagation()}
             style={{
               top: anchor.bottom + 8,
@@ -63,7 +63,7 @@ function TouchVolume() {
             <input
               type="range" min={0} max={100} step={1} value={pct}
               aria-label={t`Volume`}
-              className="orfeo-slider-amber orfeo-slider-big"
+              className="pliage-slider-amber pliage-slider-big"
               onChange={e => setMasterVolume(Number(e.target.value) / 100)}
               style={{ '--fill': `${pct}%` } as CSSProperties}
             />
@@ -98,7 +98,7 @@ function SliderVolume() {
         />
         <input
           type="range" min={0} max={100} step={1} value={pct}
-          aria-label={t`Volume`} className="orfeo-slider-amber"
+          aria-label={t`Volume`} className="pliage-slider-amber"
           onPointerDown={() => setIsDragging(true)} onPointerUp={() => setIsDragging(false)}
           onChange={e => setMasterVolume(Number(e.target.value) / 100)}
           style={{ '--fill': `${pct}%` } as CSSProperties}

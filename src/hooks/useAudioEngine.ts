@@ -1,7 +1,7 @@
 import { Midi } from '@tonejs/midi'
 // ── Combined audio engine dispatcher ─────────────────────────────────────────
 // Routes to the active backend (gm | samples). Each backend self-gates on its
-// own audioEngine value. The click handler (window.__orfeoPlayNote) forwards to
+// own audioEngine value. The click handler (window.__pliagePlayNote) forwards to
 // whichever backend is currently selected.
 
 import { useEffect, useRef } from 'react'
@@ -22,9 +22,9 @@ let _jzzInitP: Promise<void> | null = null
 let _JZZ: any = null
 let _port: any = null
 // jzz-synth-tiny instance, kept once created so switching the GM output back
-// to Orfeo's own synth doesn't build a second audio context
+// to Pliage's own synth doesn't build a second audio context
 let _tinyPort: any = null
-// Name of the MIDI output port actually open ('' = Orfeo's built-in synth)
+// Name of the MIDI output port actually open ('' = Pliage's built-in synth)
 let _openOutput = ''
 let _player: any = null
 // ── Module-level muted channel set — updated in-place so the live filter reads it ──
@@ -68,7 +68,7 @@ function initJZZ(): Promise<void> {
       await new Promise<void>((resolve) => {
         engine.and(function(this: any) { resolve() }).or(() => resolve())
       })
-      // ── Output: Orfeo's own synth unless the player chose a MIDI output in
+      // ── Output: Pliage's own synth unless the player chose a MIDI output in
       // Settings → MIDI Keyboard. This used to be openMidiOut() with no
       // name = "first MIDI output there is". Chromium hides Windows' GS
       // Wavetable Synth, so with a USB keyboard plugged in, the first output
@@ -82,13 +82,13 @@ function initJZZ(): Promise<void> {
         if (_tinyPort) { _port = _tinyPort; _openOutput = ''; _jzzReady = true; resolve(); return }
         _JZZ.synth.Tiny().and(function(this: any) {
           _port = _tinyPort = this; _openOutput = ''; _jzzReady = true
-          console.log('[Orfeo GM] jzz-synth-tiny active')
+          console.log('[Pliage GM] jzz-synth-tiny active')
           // Diagnostic for the audio/visual sync fix — see
           // getOutputLatencySec() above.
-          console.log('[Orfeo GM] measured output latency:', getMeasuredOutputLatencySec(), 's')
+          console.log('[Pliage GM] measured output latency:', getMeasuredOutputLatencySec(), 's')
           resolve()
         }).or((e: any) => {
-          console.error('[Orfeo GM] built-in synth failed:', e)
+          console.error('[Pliage GM] built-in synth failed:', e)
           _jzzReady = true; resolve()
         })
       })
@@ -96,10 +96,10 @@ function initJZZ(): Promise<void> {
         await new Promise<void>((resolve) => {
           _JZZ().openMidiOut(wanted).and(function(this: any) {
             _port = this; _openOutput = wanted; _jzzReady = true
-            console.log('[Orfeo GM] MIDI out:', this.name())
+            console.log('[Pliage GM] MIDI out:', this.name())
             resolve()
           }).or(() => {
-            console.warn('[Orfeo GM] chosen MIDI output not available, using the built-in synth:', wanted)
+            console.warn('[Pliage GM] chosen MIDI output not available, using the built-in synth:', wanted)
             openTiny().then(resolve)
           })
         })
@@ -108,7 +108,7 @@ function initJZZ(): Promise<void> {
       }
     } catch (e) {
       _jzzInitP = null
-      console.error('[Orfeo GM] JZZ init error:', e)
+      console.error('[Pliage GM] JZZ init error:', e)
       throw e
     }
   })()
@@ -129,7 +129,7 @@ function ensureClickChannel() {
   try {
     _port.send([0xCE, 0])
   } catch (e) {
-    console.warn('[Orfeo GM] ensureClickChannel error:', e)
+    console.warn('[Pliage GM] ensureClickChannel error:', e)
   }
 }
 
@@ -141,7 +141,7 @@ function ensureHardwareChannel() {
   try {
     _port.send([0xCF, liveProgram()])
   } catch (e) {
-    console.warn('[Orfeo GM] ensureHardwareChannel error:', e)
+    console.warn('[Pliage GM] ensureHardwareChannel error:', e)
   }
 }
 
@@ -180,7 +180,7 @@ function clearLightSchedule() {
 function destroyPlayer() {
   try { _player?.stop() } catch {}
   _player = null
-  ;(window as any).__orfeoPlayer = null
+  ;(window as any).__pliagePlayer = null
   _warmupPromise = null   // allow re-warm on next edit-mode entry
 }
 
@@ -275,9 +275,9 @@ async function prepareStart() {
     const raw = currentRaw()
     if (!raw || _prepared?.raw === raw) return
     _prepared = { raw, player: new _JZZ.MIDI.SMF(new Uint8Array(raw)).player() }
-  } catch (e) { console.warn('[Orfeo GM] prepareStart failed:', e) }
+  } catch (e) { console.warn('[Pliage GM] prepareStart failed:', e) }
 }
-;(window as any).__orfeoPrepareStart = () => { if (useStore.getState().audioEngine === 'gm') void prepareStart() }
+;(window as any).__pliagePrepareStart = () => { if (useStore.getState().audioEngine === 'gm') void prepareStart() }
 
 function buildPlayer(startSec: number) {
   if (!_jzzReady || !_port) return
@@ -288,7 +288,7 @@ function buildPlayer(startSec: number) {
     // inside the try so a re-encode failure logs instead of silently
     // aborting the whole rebuild (previously computed before the try block).
     const raw = currentRaw()
-    if (!raw) { console.warn('[Orfeo GM] buildPlayer: no raw bytes available, dirty=', NES.dirty, 'editMidi=', !!NES.editMidi); return }
+    if (!raw) { console.warn('[Pliage GM] buildPlayer: no raw bytes available, dirty=', NES.dirty, 'editMidi=', !!NES.editMidi); return }
     destroyPlayer(); clearAllKeys(); clearLightSchedule()
     const { tracks, bpm, originalBpm, detectedKey, hitEffectScope } = useStore.getState()
     const transpose = detectedKey?.transpose ?? 0
@@ -325,13 +325,13 @@ function buildPlayer(startSec: number) {
     })
     player.onEnd = () => {
       useStore.setState({ playbackState: 'stopped', currentTime: 0 })
-      ;(window as any).__orfeoPlayer = null
+      ;(window as any).__pliagePlayer = null
       clearAllKeys()
     }
     player.speed(ratio)
     player.play()
     // when playback really started (the count-in learns this delay)
-    ;(window as any).__orfeoEngineStartedAt = performance.now()
+    ;(window as any).__pliageEngineStartedAt = performance.now()
     // Seeking while "playing" (jumpMS below) makes the SMF player run its own
     // sndOff(), which sends MIDI "Reset All Controllers" on every channel —
     // the software synth recomputes each channel's gain from its own internal
@@ -342,7 +342,7 @@ function buildPlayer(startSec: number) {
     if (startSec > 0.1) player.jumpMS(Math.floor(startSec * 1000))
     applyMasterVolume(useStore.getState().masterVolume)
     _player = player
-    setTimeout(() => { ;(window as any).__orfeoPlayer = player }, 50)
+    setTimeout(() => { ;(window as any).__pliagePlayer = player }, 50)
 
     for (const track of midiData.tracks) {
       const ts = tracks.find((t: any) => t.index === track.index)
@@ -368,7 +368,7 @@ function buildPlayer(startSec: number) {
       }
     }
   } catch (e) {
-    console.error('[Orfeo GM] buildPlayer error:', e)
+    console.error('[Pliage GM] buildPlayer error:', e)
   }
 }
 
@@ -453,7 +453,7 @@ async function warmupEditChannels() {
       // 150 ms is ample time for all of them to reach the synthesizer.
       await new Promise<void>(r => setTimeout(r, 150))
       try { wPlayer.stop() } catch {}
-    } catch (e) { console.warn('[Orfeo GM] warmupEditChannels error:', e) }
+    } catch (e) { console.warn('[Pliage GM] warmupEditChannels error:', e) }
   })()
   return _warmupPromise
 }
@@ -493,11 +493,11 @@ export function useAudioEngine() {
         return
       }
       if (audioEngine === 'samples') {
-        const fn = (window as any).__orfeoPlayNoteSamples
+        const fn = (window as any).__pliagePlayNoteSamples
         if (fn) { fn(midiNum, vel, durMs, channel, visual, color); return }
       }
       // GM: ch 14 is the dedicated preview channel (piano). Track channels have
-      // correct programs after __orfeoWarmupEditChannels runs on edit-mode enter.
+      // correct programs after __pliageWarmupEditChannels runs on edit-mode enter.
       const ch = channel ?? 14
       try {
         // If a channel warmup is in flight, wait for it before sending note-on
@@ -518,18 +518,18 @@ export function useAudioEngine() {
           try { _port.send([0x80 | ch, midiNum, 0]) } catch {}
         }, durMs))
         if (visual) lightKey(midiNum, color ?? amberHex(), durMs + 100)
-      } catch (e) { console.error('[Orfeo GM] playNote error:', e) }
+      } catch (e) { console.error('[Pliage GM] playNote error:', e) }
     }
-    ;(window as any).__orfeoPlayNote = playNote
+    ;(window as any).__pliagePlayNote = playNote
 
     // ── Warm up GM channels via a temporary silent SMF player ────────────────
-    ;(window as any).__orfeoWarmupEditChannels = () => {
+    ;(window as any).__pliageWarmupEditChannels = () => {
       if (useStore.getState().audioEngine === 'gm') warmupEditChannels()
     }
 
     return () => {
-      delete (window as any).__orfeoPlayNote
-      delete (window as any).__orfeoWarmupEditChannels
+      delete (window as any).__pliagePlayNote
+      delete (window as any).__pliageWarmupEditChannels
       stopAudio()
     }
   }, [])

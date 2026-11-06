@@ -27,7 +27,7 @@ export function MetronomePopover({ x, y, onClose }: { x: number; y: number; onCl
           {t`Click volume`} · {pct}%
           {volume !== 1 && <button className="o-link" onClick={() => store.setMetronomeVolume(1)}>{t`Reset to 100%`}</button>}
         </span>
-        <input type="range" min={0} max={150} step={5} value={pct} aria-label={t`Click volume`} className="orfeo-slider-amber"
+        <input type="range" min={0} max={150} step={5} value={pct} aria-label={t`Click volume`} className="pliage-slider-amber"
           onChange={(e) => store.setMetronomeVolume(Number(e.target.value) / 100)}
           style={{ '--fill': `${pct / 1.5}%` } as React.CSSProperties} />
         <span className="pr-metro-small">{t`Goes up to 150%, for loud rooms.`}</span>

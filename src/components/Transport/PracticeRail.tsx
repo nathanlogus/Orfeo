@@ -13,7 +13,7 @@ import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
 import { confirmDiscardDirtyTempoKey } from '../../utils/tempoKeySave'
 import { isScoreFor } from '../../utils/scoreSource'
 import { touchScreen } from '../../utils/touchScreen'
-import OrfeoMark from '../OrfeoMark'
+import PliageMark from '../PliageMark'
 import Tooltip from '../Tooltip'
 
 const NEXT_SCORE_MODE = { roll: 'both', both: 'score', score: 'roll' } as const
@@ -94,7 +94,7 @@ export default function PracticeRail() {
     <nav className="pr-rail app-no-drag touch-hit" aria-label={t`Practice controls`}>
       <Tooltip title="Home" description={"Find another song.\nYour open song stays as it is."} placement="right" wrapperStyle={{ flexShrink: 0 }}>
         <button className="pr-rail-home" aria-label={t`Home`} onClick={() => useStore.getState().setHomeOpen(true)}>
-          <OrfeoMark height={24} />
+          <PliageMark height={24} tone="sun" />
         </button>
       </Tooltip>
       <Tooltip title="Play / Pause (Space)" oneLine placement="right" wrapperStyle={{ flexShrink: 0 }}>

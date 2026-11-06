@@ -7,14 +7,15 @@ import { t } from '../../utils/i18n'
 import { deviceSongs, filterSongs, lastPlayedAt, matchesSearch, songCard, songFacets, sortSongs, type FilterOption, type LastPlayed } from '../../utils/homeSongs'
 import { genreFill, genreLabel, type SongSort } from '../../utils/songCatalog'
 import { base64ToBytes } from '../../utils/foreignFormatImport'
-import { playPreview } from '../../hooks/useAudioEngine'
+import { playSongPreview } from '../../audio/engine'
 import { ARRANGEMENT_LABEL, Art, CARD_FILLS, Downloading, HANDS_LABEL, Card, FilterSelect, PreviewCover, PreviewDeck, StatusTag, Toggle, masteryLabel, songSortOptions, type SongStatus } from '../SongBrowser/SongBrowser'
 import { SettingsDropdown } from '../Settings/controls'
 import { NewVersionDot } from '../Settings/NewVersionDot'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { openFolders, openSongMenu, useFoldersPage } from '../SettingsPanel/foldersPage'
 import { resumeSong, songKey } from '../../utils/practiceSession'
-import OrfeoMark from '../OrfeoMark'
+import PliageMark from '../PliageMark'
+import PliageLogo from '../PliageLogo'
 import LearnHome from '../Lessons/LearnHome'
 import FirstRun from './FirstRun'
 import type { SongServerList, SongServerSong } from '../../types'
@@ -281,7 +282,7 @@ export default function HomePage() {
       const file = await window.electronAPI.loadMidiFromPath(path)
       if (!file) throw new Error('unreadable')
       if (run !== previewRun.current) return
-      const stop = await playPreview(base64ToBytes(file.base64), () => { if (run === previewRun.current) stopPreview() })
+      const stop = await playSongPreview(base64ToBytes(file.base64), () => { if (run === previewRun.current) stopPreview() })
       if (run !== previewRun.current) { stop(); return }
       stopPreviewSound.current = stop
       setPreview({ song, state: 'playing' })
@@ -340,8 +341,8 @@ export default function HomePage() {
 
   return (
     <div className="theme-paper lib-page">
-      <header className="lib-header orfeo-rise-in">
-        <span className="lib-logo"><span className="lib-logo-disc"><OrfeoMark height={18} /></span>Orfeo</span>
+      <header className="lib-header pliage-rise-in">
+        <span className="lib-logo"><span className="lib-logo-disc"><PliageMark height={20} tone="sun" /></span><PliageLogo height={26} tone="night" /></span>
         <div role="tablist" aria-label={t`Sections`} className="lib-seg">
           <button role="tab" aria-selected={section === 'library'} onClick={() => changeSection('library')}>{t`Library`}</button>
           <button role="tab" aria-selected={section === 'learn'} onClick={() => changeSection('learn')}>{t`Learn`}</button>
@@ -370,7 +371,7 @@ export default function HomePage() {
         />
       ) : (
         <div className="lib-scroll">
-          {view === 'cards' && <section className="lib-hero orfeo-rise-in orfeo-rise-in-2">
+          {view === 'cards' && <section className="lib-hero pliage-rise-in pliage-rise-in-2">
             <h1 className="o-display lib-headline">{t`What are we playing?`}</h1>
             <div className="lib-hero-side">
               {sourceSwitch}
@@ -381,7 +382,7 @@ export default function HomePage() {
             </div>
           </section>}
 
-          <div className="lib-tools orfeo-rise-in orfeo-rise-in-2">
+          <div className="lib-tools pliage-rise-in pliage-rise-in-2">
             <div className="lib-filters">
               {view === 'cards' && <FilterSelect title={t`Genre`} all={t`All genres`} value={genre ?? ''} options={asFacet(shownFacets.genres)} onChange={v => { setGenre(v || null); setArtist(null) }} label={genreLabel} />}
               {view === 'cards' && <FilterSelect title={t`Composer`} all={t`All composers`} value={artist ?? ''} options={asFacet(shownFacets.artists)} onChange={v => setArtist(v || null)} />}
@@ -415,7 +416,7 @@ export default function HomePage() {
             {isServer && <button className="o-link" onClick={() => setConnected(false)}>{t`Change server`}</button>}
           </div>}
 
-          <div className="lib-body orfeo-rise-in orfeo-rise-in-3">
+          <div className="lib-body pliage-rise-in pliage-rise-in-3">
             {view === 'list' && <nav aria-label={t`Filters`} className="lib-nav">
               {sourceSwitch}
               {isServer && <div className="theme-studio lib-server">
@@ -532,7 +533,7 @@ function NoFolder({ demos, onChoose, onDemo }: { demos: boolean; onChoose: () =>
       <span className="o-triangle" style={{ right: 30, top: 30, width: 90, height: 80, background: 'var(--paint-lime)' }} aria-hidden />
       <span className="lib-panel-label">{t`No song folder yet`}</span>
       <span className="o-title-lg" style={{ marginTop: 'auto' }}>{t`Where are your songs?`}</span>
-      <span style={{ color: 'var(--sand)', lineHeight: 1.35 }}>{t`Pick a folder with MIDI, MusicXML, Guitar Pro or karaoke files. Orfeo keeps watching it, so new songs show up by themselves.`}</span>
+      <span style={{ color: 'var(--sand)', lineHeight: 1.35 }}>{t`Pick a folder with MIDI, MusicXML, Guitar Pro or karaoke files. Pliage keeps watching it, so new songs show up by themselves.`}</span>
       <button className="o-btn-primary o-btn-lg" onClick={onChoose}>{t`Choose your song folder`}</button>
       {demos && <button className="o-btn o-btn-lg" onClick={onDemo}>{t`Play the demo songs`}</button>}
     </aside>
@@ -567,7 +568,7 @@ function ConnectServer({ address, setAddress, searching, error, sourceSwitch, on
   return (
     <div className="lib-scroll">
       <div className="lib-connect-top">{sourceSwitch}</div>
-      <div className="lib-connect orfeo-rise-in orfeo-rise-in-2">
+      <div className="lib-connect pliage-rise-in pliage-rise-in-2">
         <form className="lib-connect-form" onSubmit={e => { e.preventDefault(); onConnect() }}>
           <h1 className="o-display">{t`Connect a home server`}</h1>
           <p className="lib-connect-lead">{t`Browse a big song collection from your computer. Songs download when you open them, and stay on this device.`}</p>

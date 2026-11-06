@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ── Sends one Orfeo package to the Microsoft Store ─────────────────────────
+// ── Sends one Pliage package to the Microsoft Store ─────────────────────────
 //
 // Used by .github/workflows/store.yml (Actions → Microsoft Store), after the
 // release is out on GitHub. Talks to the Partner Center submission API
@@ -8,7 +8,7 @@
 // it, and sends it for certification — or, with --draft, leaves it for you to
 // check and submit in Partner Center.
 //
-// Usage: node scripts/store-submit.mjs <path/to/Orfeo-X.Y.Z.appx> [--draft]
+// Usage: node scripts/store-submit.mjs <path/to/Pliage-X.Y.Z.appx> [--draft]
 // Env:   AZURE_AD_TENANT_ID, AZURE_AD_APPLICATION_CLIENT_ID,
 //        AZURE_AD_APPLICATION_SECRET, MS_STORE_PRODUCT_ID
 // Writes a short report to $GITHUB_STEP_SUMMARY when it is set.
@@ -73,7 +73,7 @@ if (pending?.id) {
       console.log(`Deleted the open draft ${pending.id} to start a fresh one.`)
     } catch (e) {
       fail(
-        'An update you started in Partner Center is still open (Apps and games → Orfeo).',
+        'An update you started in Partner Center is still open (Apps and games → Pliage).',
         'Submit it or delete it there, then run this again.',
       )
     }
@@ -109,7 +109,7 @@ const up = await fetch(updated.fileUploadUrl, {
 if (!up.ok) fail(`Uploading the package failed: HTTP ${up.status} ${(await up.text()).slice(0, 300)}`)
 
 if (draft) {
-  summary('### Microsoft Store: draft ready', `${name} is uploaded. Check it in Partner Center (Apps and games → Orfeo) and press **Submit for certification**.`)
+  summary('### Microsoft Store: draft ready', `${name} is uploaded. Check it in Partner Center (Apps and games → Pliage) and press **Submit for certification**.`)
   process.exit(0)
 }
 
@@ -126,4 +126,4 @@ for (let i = 0; i < 80; i++) {
   summary('### Microsoft Store: submitted', `${name} is accepted and in certification (status: ${s.status}). That takes a few hours to 3 business days; Store users then get the update automatically.`)
   process.exit(0)
 }
-summary('### Microsoft Store: submitted, still checking', `${name} was sent; Microsoft is still checking the package. Follow it in Partner Center (Apps and games → Orfeo).`)
+summary('### Microsoft Store: submitted, still checking', `${name} was sent; Microsoft is still checking the package. Follow it in Partner Center (Apps and games → Pliage).`)

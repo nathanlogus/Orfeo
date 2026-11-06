@@ -7,7 +7,7 @@ import { packNativeJob } from './exportNative'
 import { TAIL_SEC } from './exportEncode'
 
 // Packs a demo song for the native engine and renders it through the built
-// add-on (native/build/orfeo_audio.node — `npm run native:build` first)
+// add-on (native/build/pliage_audio.node — `npm run native:build` first)
 const file = (p: string) => { const b = readFileSync(p); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer }
 
 export async function runExportNativeTest(): Promise<number> {
@@ -31,7 +31,7 @@ export async function runExportNativeTest(): Promise<number> {
 
   // 2. Through the real add-on
   const req = createRequire(resolve('package.json'))
-  const { OfflineRender } = req(resolve('native/build/orfeo_audio.node'))
+  const { OfflineRender } = req(resolve('native/build/pliage_audio.node'))
   const real = packNativeJob(song, { fluidDir: resolve('native/build/fluidsynth'), soundfonts: [resolve('public/GeneralUser-GS.sf2')], masterGain: 1.37 })
   const r = new OfflineRender(real.job, real.times, real.tracks, real.bytes, real.trackCount, real.duration)
   let out: Float32Array[] | null = null, last = 0

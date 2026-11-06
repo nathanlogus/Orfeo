@@ -1,4 +1,4 @@
-/* Settings window, Export, File info, Enjoying Orfeo?, drop overlay.
+/* Settings window, Export, File info, Enjoying Pliage?, drop overlay.
    Built on the .o-* kit in index.css; everything uses tokens so it follows the
    .theme-paper / .theme-studio scope it sits in. */
 
@@ -186,7 +186,7 @@ button:has(> .set-new-dot) { position: relative; }
 /* â”€â”€ Confirm â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .confirm-disc { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
 
-/* â”€â”€ Enjoying Orfeo? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â”€â”€ Enjoying Pliage? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .note-panel { position: fixed; right: 24px; bottom: 32px; z-index: 9900; display: flex; flex-direction: column; gap: 12px; width: min(380px, calc(100vw - 32px)); padding: 28px; overflow: hidden; border-radius: var(--radius-md); background: var(--ui-surface); color: var(--ui-text); }
 .note-panel > .o-window-head { position: relative; }
 .note-close { display: flex; align-items: center; justify-content: center; width: var(--control-h-lg); height: var(--control-h-lg); padding: 0; border: 0; border-radius: 50%; background: var(--ink); color: #ffffff; cursor: pointer; }

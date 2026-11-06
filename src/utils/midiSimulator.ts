@@ -1,3 +1,5 @@
+import { migrateLocalStorage } from './legacyNames'
+
 // ── Simulated MIDI keyboards — development builds only ───────────────────────
 // Lets the app be seen and tested exactly as a player with a USB keyboard sees
 // it, without one: plugging/unplugging fires the same connection events, and
@@ -5,7 +7,7 @@
 // and lights as a physical key. Wraps navigator.requestMIDIAccess so every
 // caller (keyboard input AND the General MIDI output list) sees real devices
 // plus the simulated ones. Driven from Settings → MIDI Keyboard → Keyboards
-// (dev only) or the console: window.__orfeoSimMidi.
+// (dev only) or the console: window.__pliageSimMidi.
 
 export interface SimModel { key: string; ports: string[]; outPorts: string[]; manufacturer: string }
 
@@ -137,9 +139,9 @@ export const sim = {
 
 // Dev runs and test portables (npm run dist:portable builds in 'test-build'
 // mode); in a release only after the hidden switch below
-const DEV_TOOLS_KEY = 'orfeo-dev-tools'
+const DEV_TOOLS_KEY = 'pliage-dev-tools'
 let _unlocked = false
-try { _unlocked = localStorage.getItem(DEV_TOOLS_KEY) === '1' } catch {}
+try { migrateLocalStorage(localStorage); _unlocked = localStorage.getItem(DEV_TOOLS_KEY) === '1' } catch {}
 export const simAvailable = import.meta.env.DEV || import.meta.env.MODE === 'test-build' || _unlocked
 
 // Hidden switch, any build: Ctrl+Alt+Shift+D turns the dev tools on or off
@@ -154,7 +156,7 @@ if (typeof window !== 'undefined') {
   })
 }
 
-if (simAvailable && typeof navigator !== 'undefined' && navigator.requestMIDIAccess && !(window as any).__orfeoSimMidi) {
+if (simAvailable && typeof navigator !== 'undefined' && navigator.requestMIDIAccess && !(window as any).__pliageSimMidi) {
   const realRequest = navigator.requestMIDIAccess.bind(navigator)
   ;(navigator as any).requestMIDIAccess = async (opts?: MIDIOptions) => {
     let real: MIDIAccess | null = null
@@ -163,5 +165,5 @@ if (simAvailable && typeof navigator !== 'undefined' && navigator.requestMIDIAcc
     _accesses.add(a)
     return a as unknown as MIDIAccess
   }
-  ;(window as any).__orfeoSimMidi = sim
+  ;(window as any).__pliageSimMidi = sim
 }

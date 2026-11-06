@@ -1,5 +1,5 @@
-// Songs whose own hand tracks Orfeo's engine gets wrong: adds the " RH"/" LH" track
-// names Orfeo treats as authoritative. Only track names change, and a file is
+// Songs whose own hand tracks Pliage's engine gets wrong: adds the " RH"/" LH" track
+// names Pliage treats as authoritative. Only track names change, and a file is
 // replaced only if every note survives. Originals go to a sibling folder first.
 // Run: node fix_hands.mjs <library> <backup-dir> [--apply]   (without --apply: dry run)
 import { createRequire } from 'node:module'
@@ -9,8 +9,8 @@ import { dirname, join, resolve } from 'node:path'
 import assert from 'node:assert'
 
 const REPO = resolve(import.meta.dirname, '../..')
-const DATA = process.env.ORFEO_DATA
-if (!DATA) { console.error('Set ORFEO_DATA to the private folder that holds the catalog data'); process.exit(1) }
+const DATA = process.env.PLIAGE_DATA
+if (!DATA) { console.error('Set PLIAGE_DATA to the private folder that holds the catalog data'); process.exit(1) }
 const require = createRequire(join(REPO, 'package.json'))
 const { Midi } = require('@tonejs/midi')
 const { parseMidi, writeMidi } = require('midi-file')

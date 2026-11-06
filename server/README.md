@@ -1,6 +1,6 @@
 # Song server
 
-Serves a folder of songs to Orfeo on your home network, with the card details the
+Serves a folder of songs to Pliage on your home network, with the card details the
 Home page shows and filters on: titles, composers, genres, key, tempo, difficulty,
 hand layout and cover art.
 
@@ -13,7 +13,7 @@ no login, so don't expose it to the internet.
 npm run android:songs -- "<library folder>" 8765
 ```
 
-In Orfeo, open **Home server**. Apps find it by themselves on the same network.
+In Pliage, open **Home server**. Apps find it by themselves on the same network.
 
 `server/songServerTest.mjs` is its test. Run it with `node`.
 
@@ -23,10 +23,10 @@ Nothing below belongs in Git: the songs, lyrics and covers are other people's wo
 
 | Setting | What it holds |
 |---|---|
-| `ORFEO_LIBRARY` (the `<library>` argument) | The songs, `catalog.json` and `.art/` covers the server reads |
-| `ORFEO_DATA` | Everything the catalog is built from: cached pages, lookups, `catalog.sqlite` |
+| `PLIAGE_LIBRARY` (the `<library>` argument) | The songs, `catalog.json` and `.art/` covers the server reads |
+| `PLIAGE_DATA` | Everything the catalog is built from: cached pages, lookups, `catalog.sqlite` |
 
-Set `ORFEO_DATA` before running anything in `catalog/` or `hands/`.
+Set `PLIAGE_DATA` before running anything in `catalog/` or `hands/`.
 
 ## Build the catalog
 
@@ -41,7 +41,7 @@ node $HOOK server/catalog/analyze_hands.mjs "<library>"
 python -I server/catalog/build_catalog.py "<library>"
 ```
 
-`build_catalog.py` writes `catalog.sqlite` to `ORFEO_DATA`, and `catalog.json` to the
+`build_catalog.py` writes `catalog.sqlite` to `PLIAGE_DATA`, and `catalog.json` to the
 library. Lyrics stay in the database and never reach `catalog.json`.
 
 Every script is safe to re-run. Each one skips what it already has.
@@ -71,7 +71,7 @@ python -I server/catalog/build_catalog.py "<library>"
 Run `spotify` and `fast` again after new authors arrive. `itunes` is there for
 completeness: it added nothing in testing and is slow, so `itunes-force` runs it.
 
-Spotify needs a key in `~/.orfeo-spotify.json` (or `ORFEO_SPOTIFY_KEYS`):
+Spotify needs a key in `~/.pliage-spotify.json` (or `PLIAGE_SPOTIFY_KEYS`):
 
 ```json
 { "client_id": "...", "client_secret": "..." }
@@ -83,10 +83,10 @@ the server saves each one to `.art/web/` the first time it's asked for.
 ## Left and right hands
 
 `hands/fix_hands.mjs` renames tracks that are already separate hands to end in ` RH` or
-` LH`, which Orfeo treats as final. Add `--apply` to write; without it nothing changes.
+` LH`, which Pliage treats as final. Add `--apply` to write; without it nothing changes.
 
 `hands/` also runs [piano-hand-assignment](https://github.com/haveyouwantto/piano-hand-assignment)
-over songs with one piano part. It got 92% of notes right against 82% for Orfeo's own
+over songs with one piano part. It got 92% of notes right against 82% for Pliage's own
 engine, on the same 328 songs with their hands merged. Clone it and download its models
 yourself, into a virtual environment with `torch`, then:
 
@@ -97,10 +97,10 @@ node $HOOK server/hands/apply_hand_map.mjs "<library>" "<backup folder>"        
 node $HOOK server/hands/apply_hand_map.mjs "<library>" "<backup folder>" --apply
 ```
 
-Each song is written as an `ORFEO_HAND_MAP` hint, so its notes and sound stay the same.
-A file is replaced only if Orfeo's own parser keeps every note and restores every hand
+Each song is written as an `PLIAGE_HAND_MAP` hint, so its notes and sound stay the same.
+A file is replaced only if Pliage's own parser keeps every note and restores every hand
 from the result. Originals go to the backup folder first, and song ids follow the new
-file contents. Songs the model is unsure about stay with Orfeo's engine.
+file contents. Songs the model is unsure about stay with Pliage's engine.
 
 A hint is ignored if `HAND_ENGINE_VERSION` in `src/utils/handMetadata.ts` changes.
-Re-run `apply_hand_map.mjs` after a bump, or Orfeo goes back to its own split.
+Re-run `apply_hand_map.mjs` after a bump, or Pliage goes back to its own split.

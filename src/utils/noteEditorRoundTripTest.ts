@@ -19,7 +19,7 @@ import { createNoteEditorHistory } from './noteEditorHistory'
 //   (c) parseMidiBuffer() accepts the output without error
 //   (d) undo/redo round-trips correctly
 //
-// Exposed as window.__orfeoNoteEditorRoundTripTest in development mode.
+// Exposed as window.__pliageNoteEditorRoundTripTest in development mode.
 // Non-destructive — does not modify the currently loaded MIDI in the store.
 export function runNoteEditorRoundTripTest(): void {
   const midi = useStore.getState().midi

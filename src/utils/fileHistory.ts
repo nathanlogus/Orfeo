@@ -1,4 +1,4 @@
-// ── File info: which saved version made each history entry. Every _ORFEO_vN
+// ── File info: which saved version made each history entry. Every _PLIAGE_vN
 // file carries the history of the one it came from, so an entry belongs to the
 // lowest version that holds it. shortcut: with an earlier version deleted its
 // entries show under the next one that survives; nothing records the difference. ──

@@ -433,16 +433,16 @@ export function DevModeBadge({ placement = 'top' }: { placement?: 'left' | 'righ
   )
 }
 
-// ── Rate Orfeo — Microsoft Store build only; opens the Store's review window
-// over Orfeo (hooks/useSupportNote.ts). Sits beside the update check. ─────
+// ── Rate Pliage — Microsoft Store build only; opens the Store's review window
+// over Pliage (hooks/useSupportNote.ts). Sits beside the update check. ─────
 export function RateButton({ placement = 'left' }: { placement?: 'left' | 'right' | 'top' | 'bottom' }) {
   const store = useSupportNote((s) => s.store)
   if (!store) return null
   return (
-    <Tooltip title={t`Rate Orfeo in the Microsoft Store`} oneLine wrapperStyle={{ flexShrink: 0 }} placement={placement}>
+    <Tooltip title={t`Rate Pliage in the Microsoft Store`} oneLine wrapperStyle={{ flexShrink: 0 }} placement={placement}>
       <button
         className="o-icon-quiet"
-        aria-label={t`Rate Orfeo in the Microsoft Store`}
+        aria-label={t`Rate Pliage in the Microsoft Store`}
         onClick={() => void requestStoreReview()}
         style={{ marginRight: 6 }}
       >
@@ -461,7 +461,7 @@ export function UpdateButton({ placement = 'left', showStatus = true }: { placem
     <>
       {showStatus && updateInfo.mode === 'auto' && updateStatus.state === 'up-to-date' && (
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ui-text-soft)', whiteSpace: 'nowrap' }}>
-          Orfeo is up to date
+          Pliage is up to date
         </span>
       )}
       {showStatus && updateInfo.mode === 'auto' && updateStatus.state === 'ready' && (
@@ -471,9 +471,9 @@ export function UpdateButton({ placement = 'left', showStatus = true }: { placem
       )}
       <Tooltip
         title={
-          updateStatus.state === 'available'   ? t`Orfeo ${updateStatus.version ?? ''} is out. Click to download` :
+          updateStatus.state === 'available'   ? t`Pliage ${updateStatus.version ?? ''} is out. Click to download` :
           updateInfo.mode === 'manual'         ? t`Check for updates on orfeo.cc` :
-          updateInfo.mode === 'store'          ? t`Updates come from the Microsoft Store — click to open Orfeo there` :
+          updateInfo.mode === 'store'          ? t`Updates come from the Microsoft Store — click to open Pliage there` :
           updateStatus.state === 'checking'    ? 'Checking for updates…' :
           updateStatus.state === 'downloading' ? `Downloading update${updateStatus.percent ? ` — ${Math.round(updateStatus.percent)}%` : '…'}` :
           updateStatus.state === 'ready'       ? `Update ${updateStatus.version ?? ''} ready — click to restart and install` :

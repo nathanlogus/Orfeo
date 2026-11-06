@@ -5,7 +5,7 @@ import { create } from 'zustand'
 // keyboard, and the live part (activity lights, detected pedals) changes on
 // every key press — a separate store keeps those updates from waking every
 // main-store subscriber. Settings persist under one `midiSettings` key in
-// orfeo-prefs.json.
+// pliage-prefs.json.
 
 export type LiveResponse = 'low' | 'balanced' | 'stable'
 export type VelocityCurve = 'soft' | 'normal' | 'hard' | 'fixed'
@@ -30,7 +30,7 @@ export interface MidiPrefs {
   maxVelocity: number             // cap on the resulting loudness
   duplicateFilterMs: number       // 0 = off; a repeat of the same key within this window is dropped
   controls: Record<ControlKind, boolean>
-  gmOutput: string                // '' = Orfeo's built-in General MIDI synth, else a MIDI output port name
+  gmOutput: string                // '' = Pliage's built-in General MIDI synth, else a MIDI output port name
   liveProgram: number             // General MIDI instrument (0-127) your own playing sounds with; 0 = piano
   followProgramChange: boolean    // a keyboard's own sound buttons (Program Change) pick that instrument
   seenDevices: string[]           // keyboards that already got their first-connection Settings pop-up
@@ -50,7 +50,7 @@ export const MIDI_DEFAULTS: MidiPrefs = {
   maxVelocity: 127,
   duplicateFilterMs: 0,
   // Volume is off: many controllers send CC7 from a fader meant for a DAW,
-  // which would silently turn Orfeo down
+  // which would silently turn Pliage down
   controls: {
     sustain: true, sostenuto: true, soft: true, pitchBend: true, modWheel: true,
     channelPressure: true, polyPressure: true, expression: true, volume: false,

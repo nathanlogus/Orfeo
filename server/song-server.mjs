@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Serves a folder of songs to Orfeo on the home network, read-only:
+// Serves a folder of songs to Pliage on the home network, read-only:
 //   node server/song-server.mjs <folder> [port]
 //
 // GET /api/songs?q=&genre=&artist=&arrangement=&difficulty=&key=&classic=1&sort=&offset=&limit=
@@ -8,7 +8,7 @@
 //     default), person, easiest, tempo or length.
 // GET /api/file?path=<path from the list>
 // GET /api/art?path=<art from the list>
-// UDP port 8765: answers "orfeo-songs?" with "orfeo-songs:<port>", so the app can find this server
+// UDP port 8765: answers "pliage-songs?" with "pliage-songs:<port>", so the app can find this server
 //
 // Genre, artist and title come from Genre/Artist/Title.mid paths. A catalog.json in
 // the folder fills in more (see src/utils/songCatalog.ts), and an optional
@@ -78,8 +78,8 @@ function describe(path) {
 function scan(metadata, catalog, dir = root, out = []) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, e.name)
-    // Demo and Orfeo in a library root are the app's own folders
-    if (e.name.startsWith('.') || (dir === root && /^(demo|orfeo)$/i.test(e.name))) continue
+    // Demo and Pliage (Orfeo in older libraries) in a library root are the app's own folders
+    if (e.name.startsWith('.') || (dir === root && /^(demo|pliage|orfeo)$/i.test(e.name))) continue
     if (e.isDirectory()) scan(metadata, catalog, full, out)
     else if (e.isFile() && SONG.test(e.name)) {
       const path = relative(root, full).split(sep).join('/')
@@ -164,7 +164,7 @@ function webArt(link) {
   const path = join(dir, `${createHash('sha256').update(link).digest('hex').slice(0, 32)}.jpg`)
   if (existsSync(path)) return path
   if (!artFetches.has(path)) {
-    const fetching = fetch(url, { signal: AbortSignal.timeout(15000), headers: { 'user-agent': 'Orfeo song server' } }).then(async (r) => {
+    const fetching = fetch(url, { signal: AbortSignal.timeout(15000), headers: { 'user-agent': 'Pliage song server' } }).then(async (r) => {
       const body = Buffer.from(await r.arrayBuffer())
       if (!r.ok || !r.headers.get('content-type')?.startsWith('image/') || body.length > MAX_ART_BYTES) return null
       mkdirSync(dir, { recursive: true })
@@ -187,7 +187,7 @@ function find(rel, allowed) {
 
 const discovery = createSocket('udp4')
 discovery.on('message', (msg, from) => {
-  if (HOME.test(from.address) && msg.toString() === 'orfeo-songs?') discovery.send(`orfeo-songs:${port}`, from.port, from.address)
+  if (HOME.test(from.address) && msg.toString() === 'pliage-songs?') discovery.send(`pliage-songs:${port}`, from.port, from.address)
 })
 discovery.on('error', (e) => console.warn(`Apps can't find this server by themselves: ${e.message}`))
 discovery.bind(DISCOVERY_PORT)
@@ -210,5 +210,5 @@ createServer(async (req, res) => {
 }).listen(Number(port), () => {
   const ips = Object.values(networkInterfaces()).flat().filter(n => n.family === 'IPv4' && !n.internal).map(n => n.address)
   console.log(`Serving ${songs().length} songs from ${root}`)
-  console.log(`In Orfeo, open Home server. If it isn't found, enter ${ips.map(ip => `${ip}:${port}`).join(' or ')}`)
+  console.log(`In Pliage, open Home server. If it isn't found, enter ${ips.map(ip => `${ip}:${port}`).join(' or ')}`)
 })

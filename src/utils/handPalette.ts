@@ -1,5 +1,5 @@
 // ── Hand colours — the user's left/right hand pair (Settings › Appearance).
-// --hand-lh / --hand-rh in index.css hold Orfeo's defaults; applyHandColors()
+// --hand-lh / --hand-rh in index.css hold Pliage's defaults; applyHandColors()
 // overrides them on the document root, so everything drawn with var() follows
 // at once. Canvas code that needs literal hex (piano roll, hit effects, a
 // piano track's starting colour) reads handHex() instead, and checks
@@ -15,11 +15,11 @@ export interface HandPreset { id: string; name: string; lh: string; rh: string; 
 // Bright, Sky and Mint were checked with a colour-blindness simulation
 // (Machado 2009, full severity; OKLab distance): the two hands stay apart, and
 // both stay clear of amber, for normal vision and the three common kinds of
-// colour blindness. (Orfeo's pair is weakest for red-blind eyes.) Scrapbook is
+// colour blindness. (Pliage's pair is weakest for red-blind eyes.) Scrapbook is
 // the redesign's pair and was not checked.
 export const HAND_PRESETS: HandPreset[] = [
   { id: 'scrapbook', name: t`Scrapbook`,  lh: '#6483FF', rh: '#FFDE3B', note: t`This design` },
-  { id: 'orfeo', name: t`Orfeo`,          lh: DEFAULT_HAND_LH, rh: DEFAULT_HAND_RH, note: t`The classic pair` },
+  { id: 'pliage', name: t`Pliage`,          lh: DEFAULT_HAND_LH, rh: DEFAULT_HAND_RH, note: t`The classic pair` },
   { id: 'bright', name: t`Bright`,        lh: '#4F8CFF', rh: '#FF5C8A' },
   { id: 'sky', name: t`Sky`,              lh: '#56B4E9', rh: '#D55E00', note: t`Colour-blind friendly` },  // sky blue & vermilion
   { id: 'mint', name: t`Mint`,            lh: '#5B5FD6', rh: '#4FC6A8', note: t`Colour-blind friendly` },  // indigo & mint
@@ -68,7 +68,7 @@ export const sameHex = (a: string | undefined, b: string | undefined) => !!a && 
 export const isOwnPair = (lh: string, rh: string) => !HAND_PRESETS.some(p => sameHex(p.lh, lh) && sameHex(p.rh, rh))
 
 // ── A piano/organ track on a hand colour follows the user's pair: its
-// current hand colour (prev) or Orfeo's default (also what older saved
+// current hand colour (prev) or Pliage's default (also what older saved
 // versions stored) maps to the new left/right colour; null = leave it ──────
 export function followedHandColor(color: string, prev: { lh: string; rh: string }, next: { lh: string; rh: string }): string | null {
   if (sameHex(color, prev.lh) || sameHex(color, DEFAULT_HAND_LH)) return sameHex(color, next.lh) ? null : next.lh
@@ -77,7 +77,7 @@ export function followedHandColor(color: string, prev: { lh: string; rh: string 
 }
 
 const AMBER = '#E8A027'
-const TOO_ALIKE = 0.1      // Orfeo's own pair is 0.19 apart
+const TOO_ALIKE = 0.1      // Pliage's own pair is 0.19 apart
 const NEAR_AMBER = 0.08
 const TOO_DARK = 0.38      // OKLab lightness; the background is ~0.15
 
@@ -85,7 +85,7 @@ export function handColorWarnings(lh: string, rh: string): string[] {
   if (!isHex(lh) || !isHex(rh)) return []
   const w: string[] = []
   if (dist(lh, rh) < TOO_ALIKE) w.push(t`The two hands look very alike — notes may be hard to tell apart.`)
-  if (dist(lh, AMBER) < NEAR_AMBER || dist(rh, AMBER) < NEAR_AMBER) w.push(t`Close to Orfeo's amber, which marks the Explorers and lock-a-chord.`)
+  if (dist(lh, AMBER) < NEAR_AMBER || dist(rh, AMBER) < NEAR_AMBER) w.push(t`Close to Pliage's amber, which marks the Explorers and lock-a-chord.`)
   if (oklab(lh)[0] < TOO_DARK || oklab(rh)[0] < TOO_DARK) w.push(t`Very dark — may be hard to see on the dark background.`)
   return w
 }

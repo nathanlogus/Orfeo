@@ -6,10 +6,10 @@ import type { Hand, ParsedTrack } from '../types'
 //
 // 1. Internal sidecar — `hand`/`handConfidence` live directly on ParsedNote
 //    (see types/index.ts). That's the authoritative source of truth for as
-//    long as the file stays open in Orfeo. Nothing in this module touches it
+//    long as the file stays open in Pliage. Nothing in this module touches it
 //    beyond restoring it from a hint on load.
 //
-// 2. Portable export hint — for when a file leaves Orfeo. Plain SMF has no
+// 2. Portable export hint — for when a file leaves Pliage. Plain SMF has no
 //    clef meta-event (clef is a notation concept; MIDI has no slot for it),
 //    so there is no "real" way to write hand/clef into a standard MIDI file.
 //    What follows are two breadcrumbs any other tool safely ignores:
@@ -17,17 +17,17 @@ import type { Hand, ParsedTrack } from '../types'
 //    a. Track name suffix " RH" / " LH" — for a track that is
 //       homogeneously one hand (the "split into two tracks" output). Matches
 //       the convention notation software already uses.
-//    b. `ORFEO_HAND_MAP:<trackIndex>:<RLE>` type-0x01 text meta-event, ticks
+//    b. `PLIAGE_HAND_MAP:<trackIndex>:<RLE>` type-0x01 text meta-event, ticks
 //       0 — for a track that mixes both hands note-by-note (the "keep one
 //       track, hand-colored" output). Same convention as the existing
-//       `ORFEO_TRACK_NAME:N:name` hint in electron/main.ts — a harmless
-//       header text event other DAWs skip, that Orfeo recognises on reimport.
+//       `PLIAGE_TRACK_NAME:N:name` hint in electron/main.ts — a harmless
+//       header text event other DAWs skip, that Pliage recognises on reimport.
 //
 // IMPORTANT: neither of these is real MIDI clef data per spec, and must never
 // be called "clef metadata" in UI copy or docs. Clef and hand aren't perfectly
 // equivalent either (cross-staff notation exists in real scores) — treating
 // clef ≈ f(hand) here is a deliberate, acknowledged simplification for
-// Orfeo's purposes, not a claim of notational accuracy.
+// Pliage's purposes, not a claim of notational accuracy.
 //
 // Confidence is never exported: it's a re-derivable diagnostic about how
 // forced the engine's decision was, not authoritative once a human has
@@ -122,7 +122,7 @@ export function decodeSourceRLE(rle: string): ('computed' | 'manual')[] {
 // treat this as "unknown," not "high."
 export const RESTORED_CONFIDENCE = -1
 
-const HAND_MAP_PREFIX = 'ORFEO_HAND_MAP:'
+const HAND_MAP_PREFIX = 'PLIAGE_HAND_MAP:'
 
 // Bump whenever handAssignment.ts's cost function changes meaningfully, OR
 // whenever which tracks feed it changes (e.g. the HAND_ASSIGN_GROUPS fix in

@@ -27,8 +27,8 @@ export function useCountIn() {
       clearTimer: (t) => window.clearTimeout(t as number),
       anchor: setMetronomeAnchor,
       engine: () => useStore.getState().audioEngine,
-      engineStartedAt: () => ((window as any).__orfeoEngineStartedAt ?? null) as number | null,
-      prepare: () => { (window as any).__orfeoPrepareStart?.() },
+      engineStartedAt: () => ((window as any).__pliageEngineStartedAt ?? null) as number | null,
+      prepare: () => { (window as any).__pliagePrepareStart?.() },
       armStart: (songTime, delay) => { if (!native()) return false; nativeArmStart(songTime, delay); return true },
     })
     return () => setCountInDeps(null)

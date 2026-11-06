@@ -186,7 +186,7 @@ function LiveResponseControl() {
               : v === 'balanced'
                 ? t`Your keys go through the song's compressor with it, so they sit in the same mix — about 12 ms later.`
                 : t`A larger sound buffer for computers whose sound crackles — about 10 ms later.`}</HelpText>
-            {started !== null && (v === 'stable') !== started && <HelpText>{t`The sound buffer size changes the next time Orfeo starts.`}</HelpText>}
+            {started !== null && (v === 'stable') !== started && <HelpText>{t`The sound buffer size changes the next time Pliage starts.`}</HelpText>}
           </>
         )}
       </div>
@@ -257,14 +257,14 @@ function GmOutputControl() {
   const outputs = useMidiSettings(s => s.outputs)
   const missing = gmOutput && !outputs.some(o => o.port === gmOutput)
   const options = [
-    { value: '', label: t`Orfeo's built-in synth` },
+    { value: '', label: t`Pliage's built-in synth` },
     ...outputs.map(o => ({ value: o.port, label: o.name })),
     ...(missing ? [{ value: gmOutput, label: t`${gmOutput} (not connected)` }] : []),
   ]
   return (
     <>
       <SettingsDropdown value={gmOutput} options={options} onChange={(v) => { set({ gmOutput: v }); void reopenGmOutput() }} />
-      {missing && <HelpText>{t`That instrument isn't connected — General MIDI uses Orfeo's own synth until it's back.`}</HelpText>}
+      {missing && <HelpText>{t`That instrument isn't connected — General MIDI uses Pliage's own synth until it's back.`}</HelpText>}
       {!!gmOutput && !missing && <HelpText>{t`Pick only an instrument with its own sounds — a keyboard without speakers would play nothing.`}</HelpText>}
     </>
   )
@@ -293,7 +293,7 @@ function KeyboardSoundExtra() {
   return (
     <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
       <SwitchRow label={t`Follow my keyboard's sound buttons`} value={follow} onChange={v => set({ followProgramChange: v })} />
-      <HelpText>{t`When you pick a sound on your keyboard, it tells Orfeo the instrument number and Orfeo switches to it. Turn this off if your keyboard picks odd instruments.`}</HelpText>
+      <HelpText>{t`When you pick a sound on your keyboard, it tells Pliage the instrument number and Pliage switches to it. Turn this off if your keyboard picks odd instruments.`}</HelpText>
       {program !== 0 && <ActionBtn onClick={() => set({ liveProgram: 0 })}>{t`Back to piano`}</ActionBtn>}
     </div>
   )
@@ -375,7 +375,7 @@ function PedalsControl() {
   )
 }
 function PedalsExtra() {
-  return <HelpText>{t`The volume slider is off at first: many keyboards send it from a fader meant for recording software, which would quietly turn Orfeo down.`}</HelpText>
+  return <HelpText>{t`The volume slider is off at first: many keyboards send it from a fader meant for recording software, which would quietly turn Pliage down.`}</HelpText>
 }
 
 // ── Delay check ──────────────────────────────────────────────────────────────
@@ -417,15 +417,15 @@ function DelayCheckControl() {
         </div>
       )}
       <div style={{ display: 'grid', gap: 2 }}>
-        {line(t`Key reaching Orfeo`, st.avgInputMs !== null ? `${ms(st.avgInputMs, 1)} (${t`worst`} ${ms(st.worstInputMs, 1)})`
+        {line(t`Key reaching Pliage`, st.avgInputMs !== null ? `${ms(st.avgInputMs, 1)} (${t`worst`} ${ms(st.worstInputMs, 1)})`
           : st.implausibleInputs ? t`not measurable` : '—', 'var(--paint-blue)')}
-        {line(t`Orfeo handling the key`, st.avgHandleMs === null ? '—' : `${ms(st.avgHandleMs, 1)} (${t`worst`} ${ms(st.worstHandleMs, 1)})`, 'var(--paint-yellow)')}
+        {line(t`Pliage handling the key`, st.avgHandleMs === null ? '—' : `${ms(st.avgHandleMs, 1)} (${t`worst`} ${ms(st.worstHandleMs, 1)})`, 'var(--paint-yellow)')}
         {line(t`Synth getting its turn`, b.externalOutput ? t`external` : `≤ ${ms(b.synthBlockMs, 1)}`, 'var(--paint-rose)')}
         {line(engine === 'samples' ? t`Compressor & limiter` : t`Sound processing`, ms(b.chainMs), 'var(--paint-olive)')}
         {line(shared ? t`Sound output (shared with other apps)` : t`Sound output (system + sound card)`, b.outputMs === null ? t`not measurable` : ms(b.outputMs), 'var(--paint-lime)')}
         {line(t`Notes measured`, st.notes ? String(st.notes) : t`none yet`)}
       </div>
-      {st.implausibleInputs > 0 && <HelpText>{t`Notes from a keyboard whose time stamps can't be when its keys arrived (one was over a second old; seen with Bluetooth MIDI on macOS): ${st.implausibleInputs}. They're left out of the time a key takes to reach Orfeo; the saved log keeps them.`}</HelpText>}
+      {st.implausibleInputs > 0 && <HelpText>{t`Notes from a keyboard whose time stamps can't be when its keys arrived (one was over a second old; seen with Bluetooth MIDI on macOS): ${st.implausibleInputs}. They're left out of the time a key takes to reach Pliage; the saved log keeps them.`}</HelpText>}
     </div>
   )
 }

@@ -20,8 +20,8 @@ import { fileURLToPath } from 'node:url'
 
 const registerHooks = nodeModule.registerHooks
 if (typeof registerHooks !== 'function') {
-  console.error(`[Orfeo] npm test needs Node 22.15 or newer (module.registerHooks) — this is ${process.version}.`)
-  console.error('[Orfeo] Use the official build from nodejs.org; the tests themselves need no other setup.')
+  console.error(`[Pliage] npm test needs Node 22.15 or newer (module.registerHooks) — this is ${process.version}.`)
+  console.error('[Pliage] Use the official build from nodejs.org; the tests themselves need no other setup.')
   process.exit(1)
 }
 
@@ -41,7 +41,7 @@ const STUBS = {
 const APP_VERSION = JSON.stringify(JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')).version)
 
 let stubCount = 0
-const stubUrl = (kind) => `orfeo-test-stub:${kind}:${stubCount++}`
+const stubUrl = (kind) => `pliage-test-stub:${kind}:${stubCount++}`
 
 const asPath = (url) => { try { return fileURLToPath(url) } catch { return '' } }
 // A resolved specifier must be a file: existsSync() also says yes to a
@@ -105,7 +105,7 @@ registerHooks({
   },
 
   load(url, context, nextLoad) {
-    if (url.startsWith('orfeo-test-stub:')) {
+    if (url.startsWith('pliage-test-stub:')) {
       const kind = url.split(':')[1]
       return { format: 'module', source: STUBS[kind] ?? STUBS.worker, shortCircuit: true }
     }
