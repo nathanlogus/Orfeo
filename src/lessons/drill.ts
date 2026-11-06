@@ -13,8 +13,8 @@ export type Prompt =
 const LETTERS = 'CDEFGAB'
 const SEMITONES = [0, 2, 4, 5, 7, 9, 11]
 // How far a Drill reaches back, and how often a recent miss comes up again
-const EARLIER_SHARE = 0.3
-const MISSED_SHARE = 0.4
+export const EARLIER_SHARE = 0.3
+export const MISSED_SHARE = 0.4
 const SHAPE_LENGTH = 4
 
 const ACCIDENTAL: Record<string, number> = { '#': 1, b: -1, '': 0 }
