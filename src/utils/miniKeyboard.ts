@@ -2,8 +2,8 @@
 // Full-screen Explorers cover the real keyboard, so they carry a small one that
 // lights the same notes. It starts on the C at or below the lowest note and
 // shows two octaves, more if the chord reaches further.
+import { isBlackKey } from './keyLayout'
 
-const BLACK_PCS = new Set([1, 3, 6, 8, 10])
 const DEFAULT_LOW = 48 // C3, where the Explorers' roots start
 
 export interface MiniKey { midi: number; x: number }
@@ -20,7 +20,7 @@ export function miniKeyboardLayout(notes: number[]): { whites: MiniKey[]; blacks
   const whites: MiniKey[] = []
   const pending: number[] = []
   for (let m = low; m < high; m++) {
-    if (BLACK_PCS.has(m % 12)) pending.push(m, whites.length)
+    if (isBlackKey(m)) pending.push(m, whites.length)
     else whites.push({ midi: m, x: whites.length })
   }
   const blacks: MiniKey[] = []

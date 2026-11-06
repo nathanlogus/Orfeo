@@ -310,11 +310,6 @@ export function midiToKeyIndex(midi: number): number {
   return midi - 21
 }
 
-export function isBlackKey(midi: number): boolean {
-  const note = midi % 12
-  return [1, 3, 6, 8, 10].includes(note)
-}
-
 // ── Notes actually sounding at a given playback time ──────────────────────────
 // Every note whose [onset, onset+duration) window contains `time`, across every
 // non-drum track, transpose-adjusted the same way chord detection is
