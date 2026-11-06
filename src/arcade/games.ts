@@ -40,6 +40,7 @@ import { t } from '../utils/i18n'
 import type { HudState, KeysState } from './hud'
 import { drillSteps } from './chordRush/run'
 import { STAGES as HOLLOW_STAGES } from './chordRush/stages'
+import { STAGES as DEEP_STAGES } from './echo/stages'
 
 const ART = './arcade/art'
 
@@ -137,7 +138,20 @@ export const GAMES: GameDef[] = [
   soon('frontier', t`Sight Line`, t`Frontier Express`, t`sight-reading`, 'card-sight-line.svg'),
   soon('orbit', t`Pocket`, t`Orbit Station`, t`timing`, 'card-pocket.jpg'),
   soon('midnight', t`Soft Touch`, t`The Midnight Job`, t`dynamic control`, 'card-soft-touch.jpg'),
-  soon('deepsong', t`Echo`, t`Deep Song`, t`ear training`, 'card-echo.jpg'),
+  {
+    id: 'deepsong',
+    game: t`Echo`,
+    world: t`Deep Song`,
+    skill: t`ear training`,
+    description: t`A small submarine explores a glowing ocean of whale song. You are its listener: a whale sings a phrase, and playing it back brings the whale closer and lights up more of the sea.`,
+    art: `${ART}/card-echo.jpg`,
+    scene: `${ART}/scene-deep-song.jpg`,
+    sceneAlt: t`Deep Song: a yellow paper submarine in a reef of kelp and coral, a whale above`,
+    assist: t`The first note is given and the whale sings slower.`,
+    figure: { name: t`The Listener`, art: `${ART}/figure-listener.svg` },
+    stages: DEEP_STAGES,
+    Game: lazy(() => import('./echo/Echo')),
+  },
   soon('kites', t`Split`, t`Kite Festival`, t`hand independence`, 'card-split.jpg'),
   soon('summit', t`Scale Climb`, t`The Summit`, t`scales`, 'card-scale-climb.jpg'),
 ]
