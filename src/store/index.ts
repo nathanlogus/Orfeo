@@ -13,6 +13,7 @@ import type { ForeignFormat } from '../utils/foreignFormatImport'
 import type { ScoreSource } from '../utils/scoreSource'
 import type { ProgressionVoicing } from '../utils/voiceLeading'
 import type { PracticeResult } from '../utils/practiceResult'
+import type { SetRun } from '../utils/setSession'
 import { detectKeyFromTracks, parseKeySignature } from '../utils/keyDetection'
 import { isKeyboardInstrument } from '../utils/gmInstruments'
 import { parseMidiBuffer } from '../utils/midiParser'
@@ -245,6 +246,8 @@ interface PliageStore {
   // The lesson being taken, and the lessons passed (lessons/session.ts)
   lessonRun: { id: string; step: LessonStep; percent: number | null; clean: number } | null
   lessonPassed: string[]
+  // The set being played, songs back to back (utils/setSession.ts)
+  setRun: SetRun | null
   setHomeOpen: (open: boolean) => void
   // A song to open the way a Library click does (SettingsPanel owns that path)
   songToOpen: string | null
@@ -911,6 +914,7 @@ export const useStore = create<PliageStore>((set, get) => ({
   homeOpen: false,
   lessonRun: null,
   lessonPassed: [],
+  setRun: null,
   setHomeOpen: (homeOpen) => set({ homeOpen }),
   songToOpen: null,
   openSong: (songToOpen, cover) => set((s) => ({ songToOpen, presentationMode: false, songCovers: cover ? { ...s.songCovers, [songToOpen]: cover } : s.songCovers })),

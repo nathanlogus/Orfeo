@@ -7,6 +7,7 @@ import { isCountingIn, cancelCountIn } from '../../utils/countInRunner'
 import { ContextMenu, ContextMenuItem, useMenuDismiss } from '../ContextMenu'
 import { MetronomePopover } from './MetronomePopover'
 import { endPractice } from '../../utils/practiceSession'
+import { endSet } from '../../utils/setSession'
 import { useNewVersionDot } from '../../hooks/useUpdateCheck'
 import { t } from '../../utils/i18n'
 import { confirmDiscardDirtyNoteEdits } from '../../utils/noteEditorState'
@@ -147,7 +148,7 @@ export default function PracticeRail() {
         title="Reset" description={"Closes the file and resets tempo,\ntranspose, and playback to defaults."} onClick={handleReset} />
       <Tile label={t`End`} icon={<Square size={20} strokeWidth={1.8} />} disabled={!midi}
         title={t`End practice`} description={t`Stops the song, and shows how it went if you played along.`}
-        onClick={() => { if (isCountingIn()) cancelCountIn(); endPractice(); stop() }} />
+        onClick={() => { if (useStore.getState().setRun) { endSet(); return } if (isCountingIn()) cancelCountIn(); endPractice(); stop() }} />
       <Tooltip title={t`Open Setup`} description={t`The everyday switches — sound engine, note names, keyboard, piano roll and more.`} placement="right" wrapperStyle={{ flexShrink: 0 }}>
         <button className="pr-rail-setup" aria-label={newVersion ? t`Setup and settings, new version available` : t`Setup and settings`} aria-expanded={settingsPanelOpen}
           onClick={() => useStore.getState().setSettingsPanelOpen(!settingsPanelOpen)}>

@@ -448,3 +448,16 @@ button.pr-comp:disabled { opacity: 0.4; cursor: default; }
   .pr-result-map div { height: 20px; }
 }
 @media (max-width: 1000px) { .pr-result-main { flex-direction: column; align-items: stretch; } .pr-result-disc { align-self: center; } .pr-result-tag { flex-basis: auto; } }
+
+/* A set: the quiet strip, what's next, and the short score between songs */
+.set-bar { position: absolute; z-index: 21; left: 16px; bottom: 16px; max-width: 60%; box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 4px 6px 4px 14px; border-radius: var(--radius-pill); background: rgba(0, 0, 0, 0.6); color: var(--sand); font-size: var(--text-base); opacity: 0.6; transition: opacity 0.15s; }
+.set-bar:hover, .set-bar:focus-within { opacity: 1; }
+.set-bar-song { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.set-bar button { flex-shrink: 0; min-height: 32px; padding: 0 10px; border: 0; border-radius: var(--radius-pill); background: none; color: #ffffff; font: inherit; cursor: pointer; text-decoration: underline; }
+.set-next { position: absolute; left: 0; bottom: calc(100% + 6px); width: min(320px, calc(100vw - 32px)); box-sizing: border-box; margin: 0; padding: 12px 12px 12px 32px; border-radius: var(--radius-sm); background: rgba(0, 0, 0, 0.85); color: #ffffff; }
+.set-next li { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.6; }
+.set-next li.o-note { margin-left: -20px; list-style: none; color: var(--sand); }
+.set-score { position: absolute; z-index: 20; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 32px); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 40px; border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.78); color: #ffffff; text-align: center; pointer-events: none; }
+.set-score .o-note { color: var(--sand); }
+.set-score-pct { font-size: min(96px, 16vh); line-height: 1; letter-spacing: -0.03em; }
+.set-row-title { flex: 1; min-width: 0; overflow: hidden; font-size: 20px; letter-spacing: var(--tracking-tight); white-space: nowrap; text-overflow: ellipsis; }
