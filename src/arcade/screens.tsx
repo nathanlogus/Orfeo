@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Crown, Lock, Play, Volume2 } from 'lucide-react'
 import { useStore } from '../store'
 import { t } from '../utils/i18n'
 import { ringChord } from '../utils/explorerShared'
-import { chordLabel, noteLabel, onKeyDown, onPianoTap } from './keys'
+import { chordLabel, noteLabel, onKeyDown, onPianoTap, spelledLabels } from './keys'
 import { findInLibrary, type LibraryMatch } from './findInLibrary'
 import { stageOrder, type DrillStep, type GameDef, type GameResult, type StageDef } from './games'
 import { ArcadeKeys, KEYS_START } from './hud'
@@ -190,7 +190,7 @@ export function MeetIt({ def, stage, connected, assist, onStart, onBack }: {
           <div className="ac-stacks" style={{ '--cards': cards.length } as React.CSSProperties}>
             {cards.map((card, i) => (
               <div key={card.label} className="ac-stack" data-on={i === step || undefined}>
-                <div>{[...card.keys].reverse().map(key => <span key={key} data-root={key % 12 === card.root || undefined}>{noteLabel(key)}</span>)}</div>
+                <div>{[...card.keys].reverse().map(key => <span key={key} data-root={key % 12 === card.root || undefined}>{card.names ? spelledLabels(card.keys, card.names)[card.keys.indexOf(key)] : noteLabel(key)}</span>)}</div>
                 <b>{card.label}</b>
               </div>
             ))}

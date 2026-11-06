@@ -40,6 +40,7 @@ import { t } from '../utils/i18n'
 import type { HudState, KeysState } from './hud'
 import { drillSteps } from './chordRush/run'
 import { STAGES as HOLLOW_STAGES } from './chordRush/stages'
+import { STAGES as SUMMIT_STAGES, drillSteps as summitDrill } from './scaleClimb/stages'
 
 const ART = './arcade/art'
 
@@ -47,6 +48,7 @@ const ART = './arcade/art'
 export interface MeetCard {
   label: string
   keys: number[]            // low to high; Hear plays them together
+  names?: string[]          // their names, in `keys` order, when a scale spells them its own way
   root: number              // the pitch class to mark in the stack
 }
 
@@ -139,7 +141,21 @@ export const GAMES: GameDef[] = [
   soon('midnight', t`Soft Touch`, t`The Midnight Job`, t`dynamic control`, 'card-soft-touch.jpg'),
   soon('deepsong', t`Echo`, t`Deep Song`, t`ear training`, 'card-echo.jpg'),
   soon('kites', t`Split`, t`Kite Festival`, t`hand independence`, 'card-split.jpg'),
-  soon('summit', t`Scale Climb`, t`The Summit`, t`scales`, 'card-scale-climb.jpg'),
+  {
+    id: 'summit',
+    game: t`Scale Climb`,
+    world: t`The Summit`,
+    skill: t`scales`,
+    description: t`An expedition up a folded-paper mountain. You are the lead climber: every right note of the scale is a step up, even steps climb faster, and a wrong note slips you back. At the top, the scale you climbed turns into music.`,
+    art: `${ART}/card-scale-climb.jpg`,
+    scene: `${ART}/scene-the-summit.jpg`,
+    sceneAlt: t`The Summit: a climber halfway up a pleated paper cliff, snowy paper peaks behind`,
+    assist: t`The next key lights up, and your grip lasts longer.`,
+    figure: { name: t`The Summit Climber`, art: `${ART}/figure-summit-climber.svg` },
+    stages: SUMMIT_STAGES,
+    Game: lazy(() => import('./scaleClimb/ScaleClimb')),
+    drill: summitDrill,
+  },
 ]
 
 // Three stages and a boss, three stars each. Endless has a best, not stars.
