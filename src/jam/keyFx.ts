@@ -1,28 +1,23 @@
 // ── The keyboard comes alive: a canvas over the keys, so no note re-renders React ──
 // Held keys stay plain DOM marks and never wait for this layer. Here: sparks from what
-// the player hits, the scale breathing on the beat, a sweep of chord tones when the
-// chord changes, and the band's own notes. The lick's next note is left alone, so its
-// pink stays the strongest thing on the keyboard.
+// the player hits, and a thin line over each key the band is playing, so it can't be
+// taken for the chord. The lick's next note is left alone, so its pink stays strongest.
 import { onLiveNote } from '../hooks/useMidiInput'
 
 interface Sounding { midi: number; at: number; until: number }
 interface Spark { x: number; y: number; rise: number; drift: number; born: number; color: string }
 
-export interface KeyState { beat: number; scale: Set<number>; rootPc: number; tones: Set<number>; target: number | null }
+export interface KeyState { scale: Set<number>; target: number | null }
 
 const MAX_SOUNDING = 48
 const MAX_SPARKS = 60
 const SPARKS_PER_NOTE = 5
 const SPARK_MS = 520
-const BREATH_MS = 260
-const SWEEP_MS = 420
-const SWEEP_SPREAD_MS = 200  // left to right across the keyboard
-const BLACK_KEY_DEPTH = 0.6
+const BAND_LINE_PX = 4
+const BAND_LINE_GAP_PX = 2
 const IN_SCALE = '#b7f000'
 const OUTSIDE = '#a9b8ff'    // softer, and never an alarm: nothing here is scored
 const BAND = '#35c6ff'
-const SWEEP = '#ffffff'
-const BREATH = '#ffffff'
 
 const sounding: Sounding[] = []
 
@@ -43,10 +38,6 @@ export function startKeyFx(canvas: HTMLCanvasElement, keys: HTMLElement, read: (
   const rects = new Map<number, DOMRect>()
   let sparks: Spark[] = []
   let raf = 0
-  let beat = -1
-  let beatAt = 0
-  let chord = ''
-  let chordAt = -Infinity
   let keysTop = 0
 
   const measure = () => {
@@ -57,9 +48,7 @@ export function startKeyFx(canvas: HTMLCanvasElement, keys: HTMLElement, read: (
     rects.clear()
     for (const key of keys.querySelectorAll<HTMLElement>('[data-midi]')) {
       const r = key.getBoundingClientRect()
-      // A white key lights only below the black keys, which it would otherwise paint over
-      const under = key.tagName === 'I' ? r.height * BLACK_KEY_DEPTH : 0
-      rects.set(Number(key.dataset.midi), new DOMRect(r.left - box.left, r.top - box.top + under, r.width, r.height - under))
+      rects.set(Number(key.dataset.midi), new DOMRect(r.left - box.left, r.top - box.top, r.width, r.height))
     }
   }
   const resize = new ResizeObserver(measure)
@@ -86,24 +75,11 @@ export function startKeyFx(canvas: HTMLCanvasElement, keys: HTMLElement, read: (
   const frame = (now: number) => {
     raf = requestAnimationFrame(frame)
     const state = read()
-    if (state.beat !== beat) { beat = state.beat; beatAt = now }
-    const tones = [...state.tones].sort().join()
-    if (tones !== chord) { chord = tones; chordAt = now }
-
     pen.clearRect(0, 0, canvas.width, canvas.height)
-    const breath = Math.exp(-(now - beatAt) / BREATH_MS)
-    for (const [midi, r] of rects) {
-      if (midi === state.target) continue
-      const pc = midi % 12
-      if (state.scale.has(pc)) fill(r, BREATH, breath * (pc === state.rootPc ? 0.42 : 0.2))
-      if (state.tones.has(pc)) {
-        const age = now - chordAt - SWEEP_SPREAD_MS * r.x / canvas.width
-        if (age > 0 && age < SWEEP_MS * 3) fill(r, SWEEP, 0.75 * Math.exp(-age / SWEEP_MS))
-      }
-    }
     for (const n of soundingAt(now)) {
       const r = rects.get(n.midi)
-      if (r && n.midi !== state.target) fill(r, BAND, 0.5 * Math.min(1, (n.until - now) / 200 + 0.4))
+      if (!r || n.midi === state.target) continue
+      fill(new DOMRect(r.x, keysTop - BAND_LINE_PX - BAND_LINE_GAP_PX, r.width, BAND_LINE_PX), BAND, Math.min(1, (n.until - now) / 200 + 0.5))
     }
     sparks = sparks.filter(s => now - s.born < SPARK_MS)
     for (const s of sparks) {

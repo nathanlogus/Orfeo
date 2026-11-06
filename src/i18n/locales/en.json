@@ -1262,7 +1262,7 @@
   "The note was {{v0}}, a half step higher.": "The note was {{v0}}, a half step higher.",
   "The note was {{v0}}, a half step lower.": "The note was {{v0}}, a half step lower.",
   "The notes are hidden. Play the bar you just read.": "The notes are hidden. Play the bar you just read.",
-  "The notes of the scale, lit on the keyboard": "The notes of the scale, lit on the keyboard",
+  "The notes of the chord, lit on the keyboard, under a rail of the scale's notes": "The notes of the chord, lit on the keyboard, under a rail of the scale's notes",
   "The Rite of Spring chord": "The Rite of Spring chord",
   "The same chords, restacked, in all 12 keys": "The same chords, restacked, in all 12 keys",
   "The same sound sets as Studio, played by Pliage's own engine straight to your sound card: the shortest delay from key to sound. Windows only.": "The same sound sets as Studio, played by Pliage's own engine straight to your sound card: the shortest delay from key to sound. Windows only.",

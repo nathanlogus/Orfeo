@@ -6,7 +6,7 @@ import { useStore } from '../store'
 import { onLiveNote } from '../hooks/useMidiInput'
 import { t } from '../utils/i18n'
 import { localizeChord } from '../utils/chordDetection'
-import { miniKeyboardLayout } from '../utils/miniKeyboard'
+import { miniKeyboardLayout, type MiniKey } from '../utils/miniKeyboard'
 import { SettingsDropdown } from '../components/Settings/controls'
 import { BEATS_PER_BAR, noteName, progressionChords, scaleNotes, scalePitchClasses, type JamStyle } from './band'
 import { licksFor } from './licks'
@@ -224,6 +224,24 @@ function Listening() {
   )
 }
 
+// The scale, as a rail of markers over the keys: black keys' in the upper row. A note
+// of the chord fills in, and the home note is ringed. Each beat restarts their pulse.
+function ScaleRail({ whites, blacks, scale, tones, keyPc }: { whites: MiniKey[]; blacks: MiniKey[]; scale: Set<number>; tones: Set<number>; keyPc: number }) {
+  const beat = useJam(s => s.beat)
+  const mark = (k: MiniKey, left: number, up: boolean) => scale.has(k.midi % 12) && (
+    <span
+      key={k.midi} className="jam-mark" data-up={up || undefined} data-chord={tones.has(k.midi % 12) || undefined} data-root={k.midi % 12 === keyPc || undefined}
+      style={{ left: `${left}%`, width: `${70 / whites.length}%`, '--hue': (k.midi % 12) * 30 } as React.CSSProperties}
+    />
+  )
+  return (
+    <div key={beat} className="jam-rail" aria-hidden>
+      {whites.map(k => mark(k, (k.x + 0.5) * 100 / whites.length, false))}
+      {blacks.map(k => mark(k, k.x, true))}
+    </div>
+  )
+}
+
 function Keys({ target }: { target: number | null }) {
   const scaleName = useJam(s => s.scale)
   const keyPc = useJam(s => s.keyPc)
@@ -235,24 +253,25 @@ function Keys({ target }: { target: number | null }) {
   const { whites, blacks } = useMemo(() => miniKeyboardLayout(KEYBOARD_ENDS), [])
   const down = new Set(held)
   const tones = new Set(chord.semis.map(s => (chord.rootPc + s) % 12))
-  const lit = (midi: number) => (midi % 12 === keyPc ? 'root' : scale.has(midi % 12) ? 'on' : undefined)
+  const name = useChordName()
   const marks = (midi: number) => ({
-    'data-midi': midi, 'data-lit': lit(midi), 'data-chord': tones.has(midi % 12) || undefined, 'data-held': down.has(midi) || undefined,
+    'data-midi': midi, 'data-chord': tones.has(midi % 12) || undefined, 'data-chord-root': midi % 12 === chord.rootPc || undefined, 'data-held': down.has(midi) || undefined,
     'data-outside': !scale.has(midi % 12) || undefined, 'data-target': midi === target || undefined,
   })
   const splitAt = whites.findIndex(k => k.midi === SPLIT_NOTE) * 100 / whites.length
   const fx = useRef<HTMLCanvasElement>(null)
   const board = useRef<HTMLDivElement>(null)
-  const state = useRef({ beat: 0, scale, rootPc: keyPc, tones, target })
-  Object.assign(state.current, { scale, rootPc: keyPc, tones, target })
+  const state = useRef({ scale, target })
+  Object.assign(state.current, { scale, target })
   useEffect(() => {
     if (!live || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    return startKeyFx(fx.current!, board.current!, () => ({ ...state.current, beat: useJam.getState().beat }))
+    return startKeyFx(fx.current!, board.current!, () => state.current)
   }, [live])
   return (
     <div className="jam-keywrap">
-      <div ref={board} className="xp-mini jam-keys" role="img" aria-label={t`The notes of the scale, lit on the keyboard`}>
-        {whites.map(k => <i key={k.midi} {...marks(k.midi)} />)}
+      <ScaleRail whites={whites} blacks={blacks} scale={scale} tones={tones} keyPc={keyPc} />
+      <div ref={board} className="xp-mini jam-keys" role="img" aria-label={t`The notes of the chord, lit on the keyboard, under a rail of the scale's notes`}>
+        {whites.map(k => <i key={k.midi} {...marks(k.midi)}><em>{name(noteName(k.midi % 12))}</em></i>)}
         {blacks.map(k => <b key={k.midi} {...marks(k.midi)} style={{ left: `${k.x}%`, width: `${62 / whites.length}%` }} />)}
         {leftHand && <span className="jam-split" style={{ left: `${splitAt}%` }} />}
       </div>
@@ -268,8 +287,8 @@ function ScaleLine() {
   const name = useChordName()
   return (
     <div className="jam-scale">
-      <span><strong>{`${name(noteName(keyPc))} ${scaleLabel(scale)}`}</strong>{` ${scaleNotes(scale, keyPc).map(name).join(' ')}`}</span>
-      <span><strong>{t`Chord tones`}</strong>{` ${chord.semis.map(s => name(noteName((chord.rootPc + s) % 12))).join(' ')}`}</span>
+      <span><i className="jam-swatch" data-kind="scale" aria-hidden /><strong>{`${name(noteName(keyPc))} ${scaleLabel(scale)}`}</strong>{` ${scaleNotes(scale, keyPc).map(name).join(' ')}`}</span>
+      <span><i className="jam-swatch" data-kind="chord" aria-hidden /><strong>{t`Chord tones`}</strong>{` ${chord.semis.map(s => name(noteName((chord.rootPc + s) % 12))).join(' ')}`}</span>
     </div>
   )
 }
