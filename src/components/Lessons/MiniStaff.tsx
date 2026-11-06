@@ -111,10 +111,12 @@ export function RhythmLine({ tokens, beats, activeBeat }: { tokens: string[]; be
 // ── Two octaves of keys, with the C's marked, for the first lesson ───────────
 export function KeyMap({ highlight }: { highlight: 'c' | 'middle' }) {
   return (
-    <PianoKeys
-      min={48} max={72} role="img" aria-label="Keyboard" style={{ width: 480, maxWidth: '100%', aspectRatio: '332 / 98' }}
-      keyProps={midi => ({ 'data-lit': (highlight === 'middle' ? midi === 60 : midi % 12 === 0) || undefined })}
-    />
+    <div className="lesson-keymap">
+      <PianoKeys
+        min={48} max={72} role="img" aria-label="Keyboard" style={{ height: '100%', maxWidth: '100%', aspectRatio: '332 / 98' }}
+        keyProps={midi => ({ 'data-lit': (highlight === 'middle' ? midi === 60 : midi % 12 === 0) || undefined })}
+      />
+    </div>
   )
 }
 

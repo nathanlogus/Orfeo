@@ -5,7 +5,6 @@ import { isScoreOnly } from '../../utils/scoreSource'
 import { memoryStepAt } from '../../utils/practiceSession'
 import { getNoteLabel, getNoteName } from '../../utils/noteNames'
 import { detectChord, detectChordWithInversion, inversionForKnownChord, formatInversionDisplay, localizeChord, ordinalSuffix, buildCompactVoicing } from '../../utils/chordDetection'
-import { buildKeyLayoutRatios, isBlackKey } from '../../utils/keyLayout'
 import { notesSoundingAt } from '../../utils/midiParser'
 import type { SoundingNote } from '../../utils/midiParser'
 import { buildPitchHandIndex, lookupNoteHandAtTime, detectPerformanceBoundary } from '../../utils/handBoundaries'
@@ -13,12 +12,14 @@ import type { Hand } from '../../types'
 import { isHomogeneousHandTrack, resolveHandAwareColor } from '../../utils/handColors'
 import Tooltip, { useTooltip } from '../Tooltip'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
+import PianoKeys from './PianoKeys'
 import { outputLatencySec } from '../../audio/engine'
 import { isShown } from '../../utils/trackShown'
 
 const HAND_LH = 'var(--hand-lh)'
 const HAND_RH = 'var(--hand-rh)'
 const GLISSANDO_COLOR = 'var(--text-amber)'
+const LIT_LABEL_SHADOW = '0 1px 1px rgba(0,0,0,0.6)' // white names stay readable on a pale key
 
 const LONG_PRESS_MS = 500
 const LONG_PRESS_SLOP = 10
@@ -438,18 +439,6 @@ export default function Keyboard() {
     return () => window.removeEventListener('mouseup', up)
   }, [])
 
-  const keys = useMemo(() => {
-    const list: { midi: number; isBlack: boolean }[] = []
-    for (let m = min; m <= max; m++) list.push({ midi: m, isBlack: isBlackKey(m) })
-    return list
-  }, [min, max])
-  const whiteKeys = keys.filter(k => !k.isBlack)
-
-  // ── Key layout ratios — same formula as PianoRoll and NoteEditorCanvas ────────
-  // buildKeyLayoutRatios is the single canonical source; multiplying by 100 gives
-  // the CSS percentages that position black keys absolutely over the white key flex row.
-  const keyRatios = useMemo(() => buildKeyLayoutRatios(min, max), [min, max])
-
   const allActiveKeys = useMemo(() => {
     const merged = new Set(activeKeys)
     lockedKeys.forEach(k => merged.add(k))
@@ -640,7 +629,7 @@ export default function Keyboard() {
     ro.observe(el)
     window.addEventListener('resize', update)
     return () => { ro.disconnect(); window.removeEventListener('resize', update) }
-  }, [whiteKeys.length, floating, presentationMode])
+  }, [min, max, floating, presentationMode])
 
   // ── Live keyboard top-edge tracking, where notes land ──────────────────────
   // A plain rAF poll covers both docked layout changes and floating-panel drag in one
@@ -867,203 +856,99 @@ export default function Keyboard() {
       </div>}
 
       {/* Piano keys */}
-      <div
-        ref={keyContainerRef}
-        style={{
-          position: 'relative', width: '100%', userSelect: 'none',
-          height: keyHeight, background: '#000000',
+      <PianoKeys
+        ref={keyContainerRef} min={min} max={max} style={{ width: '100%', height: keyHeight }}
+        keyProps={(midi, black) => {
+          const color = getColor(midi)
+          const hand = getHardwareHand(midi)
+          const colorHand = showHandLetters ? getColorHand(color) : null
+          const label = black ? null : color
+            ? (showNoteNamesOnKeyboard ? (getNoteName(midi, noteNaming, accidentals) || null) : null)
+            : (midi % 12 === 0 && showOctaveLabels ? getNoteLabel(midi, noteNaming, accidentals) : null)
+          return {
+            'data-lit': !!color || undefined,
+            'data-held': activeKeys.has(midi) || undefined,
+            // preventDefault suppresses the browser's implicit "focus this
+            // element" default action for mouse clicks specifically —
+            // keyboard Tab-navigation (and its focus-visible amber ring)
+            // is untouched. Without this, clicking a key (e.g. the 3rd
+            // Shift+click that completes a locked chord) leaves real DOM
+            // focus sitting on that key; when Lock-a-Chord's focus trap
+            // later restores focus on close, it reactivates that same
+            // key, and the app-wide `[tabindex]:focus-visible` amber
+            // outline rule (index.css) then renders as a border stuck on
+            // that key indefinitely — see docs/superpowers/specs
+            // (2026-08-20) for the real repro. ─────────────────────────
+            onMouseDown: e => { e.preventDefault(); isMouseDown.current = true; handleKeyClick(midi) },
+            onPointerDown: e => startLockPress(e, midi),
+            onPointerMove: moveLockPress,
+            onPointerUp: cancelLockPress,
+            onPointerCancel: cancelLockPress,
+            onContextMenu: e => e.preventDefault(),
+            onMouseEnter: () => { if (isMouseDown.current) handleKeyClick(midi, true) },
+            tabIndex: 0,
+            role: 'button',
+            'aria-label': `Play ${getNoteLabel(midi, noteNaming, accidentals) || 'note'}`,
+            onKeyDown: e => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleKeyClick(midi) }
+            },
+            // Past the front lip, whatever the keyboard's height
+            style: { '--lit': color ?? undefined, paddingBottom: black ? undefined : Math.round(keyHeight * 0.085) },
+            children: <>
+              {hand && (
+                <span style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                  background: hand === 'L' ? HAND_LH : HAND_RH, pointerEvents: 'none',
+                  borderRadius: black ? '2px 2px 0 0' : undefined,
+                }} />
+              )}
+              {/* ── Hand letter badge — sized as a percentage of THIS key's own
+                  rendered width (not a fixed px), so it scales correctly whether
+                  the keyboard shows 61, 73, or 88 keys — key width is inversely
+                  tied to key count, not the other way around, so a fixed size
+                  risks being oversized on wide keys or cramped on narrow ones.
+                  clamp() keeps it within sane bounds either way. On a white key:
+                  dark square, white letter, at top:68% (just past the black keys'
+                  own height of 65%), not a top-corner — a corner badge sat directly
+                  under the overlapping black key and was half-hidden; this band
+                  between the black keys' bottom edge and the note-name label below
+                  is always fully exposed white key, on every key. On a black key
+                  it inverts (light square + dark letter, black keys are already
+                  dark), with a larger relative size since they're narrower still. ── */}
+              {colorHand && (
+                <span style={{
+                  position: 'absolute', top: black ? 2 : '68%', left: '50%', transform: 'translateX(-50%)',
+                  width: black ? 'clamp(7px, 70%, 11px)' : 'clamp(8px, 42%, 13px)', height: black ? 'clamp(7px, 70%, 11px)' : 'clamp(8px, 42%, 13px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: 2, background: black ? 'var(--text-white)' : 'var(--text-near-black)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                  fontSize: black ? 7 : 8, fontWeight: 700, lineHeight: 1,
+                  fontFamily: 'var(--font-mono)', color: black ? 'var(--text-near-black)' : 'var(--text-white)',
+                  userSelect: 'none', pointerEvents: 'none',
+                }}>
+                  {colorHand}
+                </span>
+              )}
+              {label && (
+                <span style={{ pointerEvents: 'none', color: color ? 'var(--text-white)' : '#000000', textShadow: color ? LIT_LABEL_SHADOW : undefined, fontSize: 'var(--text-xs)' }}>
+                  {label}
+                </span>
+              )}
+              {black && color && showNoteNamesOnKeyboard && noteNaming !== 'hidden' && (
+                <span style={{
+                  position: 'absolute', bottom: '13%', left: '50%',
+                  transform: 'translateX(-50%)',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--key-note-name-color)', textShadow: LIT_LABEL_SHADOW, pointerEvents: 'none',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {getNoteName(midi, noteNaming, accidentals)}
+                </span>
+              )}
+            </>,
+          }
         }}
-      >
-        {/* White keys */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-          {whiteKeys.map((k, i) => {
-            const color = getColor(k.midi)
-            const hand = getHardwareHand(k.midi)
-            const colorHand = showHandLetters ? getColorHand(color) : null
-            const locked = lockedKeys.has(k.midi)
-            const isC = k.midi % 12 === 0
-            const label = color
-              ? (showNoteNamesOnKeyboard ? (getNoteName(k.midi, noteNaming, accidentals) || null) : null)
-              : (isC && showOctaveLabels ? getNoteLabel(k.midi, noteNaming, accidentals) : null)
-            return (
-              <div
-                key={k.midi}
-                // preventDefault suppresses the browser's implicit "focus this
-                // element" default action for mouse clicks specifically —
-                // keyboard Tab-navigation (and its focus-visible amber ring)
-                // is untouched. Without this, clicking a key (e.g. the 3rd
-                // Shift+click that completes a locked chord) leaves real DOM
-                // focus sitting on that key; when Lock-a-Chord's focus trap
-                // later restores focus on close, it reactivates that same
-                // key, and the app-wide `[tabindex]:focus-visible` amber
-                // outline rule (index.css) then renders as a border stuck on
-                // that key indefinitely — see docs/superpowers/specs
-                // (2026-08-20) for the real repro. ─────────────────────────
-                onMouseDown={e => { e.preventDefault(); isMouseDown.current = true; handleKeyClick(k.midi) }}
-                onPointerDown={e => startLockPress(e, k.midi)}
-                onPointerMove={moveLockPress}
-                onPointerUp={cancelLockPress}
-                onPointerCancel={cancelLockPress}
-                onContextMenu={e => e.preventDefault()}
-                onMouseEnter={() => { if (isMouseDown.current) handleKeyClick(k.midi, true) }}
-                tabIndex={0}
-                role="button"
-                aria-label={`Play ${getNoteLabel(k.midi, noteNaming, accidentals) || 'note'}`}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleKeyClick(k.midi) }
-                }}
-                style={{
-                  position: 'relative', flex: '1 1 0%', display: 'flex', flexDirection: 'column',
-                  justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 4, cursor: 'pointer',
-                  background: color ?? 'var(--key-white-bg)',
-                  borderRight: !color ? '1px solid var(--key-white-border)' : allActiveKeys.has(whiteKeys[i + 1]?.midi) ? '1px solid var(--key-active-border)' : '1px solid transparent',
-                  borderLeft: color && allActiveKeys.has(whiteKeys[i - 1]?.midi) ? '1px solid var(--key-active-border)' : 'none',
-                  borderRadius: '0 0 5px 5px',
-                  minWidth: 0,
-                  }}
-              >
-                {hand && (
-                  <span style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                    background: hand === 'L' ? HAND_LH : HAND_RH, pointerEvents: 'none',
-                  }} />
-                )}
-                {/* ── Hand letter badge — dark square + white letter, sized as a
-                    percentage of THIS key's own rendered width (not a fixed px),
-                    so it scales correctly whether the keyboard shows 61, 73, or 88
-                    keys — key width is inversely tied to key count, not the other
-                    way around, so a fixed size risks being oversized on wide keys
-                    or cramped on narrow ones. clamp() keeps it within sane bounds
-                    either way. Vertically at top:68% (just past the black keys'
-                    own height:'65%'), not a top-corner — a corner badge sat
-                    directly under the overlapping black key and was half-hidden;
-                    this band between the black keys' bottom edge and the note-name
-                    label below is always fully exposed white key, on every key. ── */}
-                {colorHand && (
-                  <span style={{
-                    position: 'absolute', top: '68%', left: '50%', transform: 'translateX(-50%)',
-                    width: 'clamp(8px, 42%, 13px)', height: 'clamp(8px, 42%, 13px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: 2, background: 'var(--text-near-black)',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                    fontSize: 8, fontWeight: 700, lineHeight: 1,
-                    fontFamily: 'var(--font-mono)', color: 'var(--text-white)',
-                    userSelect: 'none', pointerEvents: 'none',
-                  }}>
-                    {colorHand}
-                  </span>
-                )}
-                {label && (
-                  <span
-                    style={{ pointerEvents: 'none', color: color ? 'var(--text-white)' : '#000000', fontSize: 'var(--text-xs)' }}>
-                    {label}
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Black keys */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
-          {keys.filter(k => k.isBlack).map((k) => {
-            // ── Positions come from the same buildKeyLayoutRatios as PianoRoll ──
-            const ratio = keyRatios[k.midi - min]
-            if (!ratio) return null
-            const leftPct  = ratio.x * 100
-            const widthPct = ratio.width * 100
-            const color = getColor(k.midi)
-            const hand = getHardwareHand(k.midi)
-            const colorHand = showHandLetters ? getColorHand(color) : null
-            const locked = lockedKeys.has(k.midi)
-            return (
-              <div
-                key={k.midi}
-                // preventDefault suppresses the browser's implicit "focus this
-                // element" default action for mouse clicks specifically —
-                // keyboard Tab-navigation (and its focus-visible amber ring)
-                // is untouched. Without this, clicking a key (e.g. the 3rd
-                // Shift+click that completes a locked chord) leaves real DOM
-                // focus sitting on that key; when Lock-a-Chord's focus trap
-                // later restores focus on close, it reactivates that same
-                // key, and the app-wide `[tabindex]:focus-visible` amber
-                // outline rule (index.css) then renders as a border stuck on
-                // that key indefinitely — see docs/superpowers/specs
-                // (2026-08-20) for the real repro. ─────────────────────────
-                onMouseDown={e => { e.preventDefault(); isMouseDown.current = true; handleKeyClick(k.midi) }}
-                onPointerDown={e => startLockPress(e, k.midi)}
-                onPointerMove={moveLockPress}
-                onPointerUp={cancelLockPress}
-                onPointerCancel={cancelLockPress}
-                onContextMenu={e => e.preventDefault()}
-                onMouseEnter={() => { if (isMouseDown.current) handleKeyClick(k.midi, true) }}
-                tabIndex={0}
-                role="button"
-                aria-label={`Play ${getNoteLabel(k.midi, noteNaming, accidentals) || 'note'}`}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleKeyClick(k.midi) }
-                }}
-                style={{
-                  position: 'absolute', top: 0, cursor: 'pointer', pointerEvents: 'auto',
-                  left: `${leftPct}%`, width: `${widthPct}%`, height: '65%',
-                  background: color ?? '#000000',
-                  borderRadius: '0 0 5px 5px',
-                  // Longhand per side (not `border` shorthand + `borderTop`
-                  // override) — mixing them made React warn "conflicting
-                  // style property" on every re-render, and this element
-                  // re-renders on every key-light color change during
-                  // playback, so that warning (and its cost — DevTools
-                  // formats a full stack trace per occurrence) fired
-                  // continuously while a file played.
-                  borderLeft:   color ? '1px solid var(--key-black-active-border)' : '1px solid #000000',
-                  borderRight:  color ? '1px solid var(--key-black-active-border)' : '1px solid #000000',
-                  borderBottom: color ? '1px solid var(--key-black-active-border)' : '1px solid #000000',
-                  borderTop: 'none',
-                  zIndex: 2,
-                }}
-              >
-                {hand && (
-                  <span style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                    background: hand === 'L' ? HAND_LH : HAND_RH, pointerEvents: 'none',
-                    borderRadius: '2px 2px 0 0',
-                  }} />
-                )}
-                {/* ── Hand letter badge — inverted from the white-key version (light
-                    square + dark letter, black keys are already dark) so it reads
-                    at a glance which key type it's on. Sized off this key's own
-                    width (black keys are narrower still — 60% of a white key's
-                    share — hence the larger relative percentage here). ── */}
-                {colorHand && (
-                  <span style={{
-                    position: 'absolute', top: 2, left: '50%', transform: 'translateX(-50%)',
-                    width: 'clamp(7px, 70%, 11px)', height: 'clamp(7px, 70%, 11px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: 2, background: 'var(--text-white)',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                    fontSize: 7, fontWeight: 700, lineHeight: 1,
-                    fontFamily: 'var(--font-mono)', color: 'var(--text-near-black)',
-                    userSelect: 'none', pointerEvents: 'none',
-                  }}>
-                    {colorHand}
-                  </span>
-                )}
-                {color && showNoteNamesOnKeyboard && noteNaming !== 'hidden' && (
-                  <span style={{
-                    position: 'absolute', bottom: 3, left: '50%',
-                    transform: 'translateX(-50%)',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--key-note-name-color)', pointerEvents: 'none',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {getNoteName(k.midi, noteNaming, accidentals)}
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      />
 
       {chordCtxMenu && (
         <ContextMenu ref={chordCtxMenuRef} x={chordCtxMenu.x} y={chordCtxMenu.y} minWidth={190} ariaLabel="Chord actions">
