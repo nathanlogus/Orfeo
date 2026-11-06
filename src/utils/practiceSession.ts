@@ -32,6 +32,8 @@ let _runs = new Map<number, PhraseRun>()
 let _masteryBefore = 0
 
 export function setPracticeSteps(stepsAt: () => ScoredStep[]) { _stepsAt = stepsAt }
+let _songEnded = () => {}
+export function onSongEnded(fn: () => void) { _songEnded = fn }
 
 const fresh = (): PhraseProgress => ({ level: FIRST_AUTO_LEVEL, wins: 0, best: 0 })
 const starts = () => phraseStarts(useStore.getState().midi?._barTimes ?? [])
@@ -198,5 +200,5 @@ useStore.subscribe((s, prev) => {
   // The last phrase has no next one to cross into. The engine can end a song by
   // putting the clock back to 0, so go by where it was.
   if (s.playbackState === 'stopped' && prev.playbackState === 'playing' && s.midi
-    && Math.max(s.currentTime, prev.currentTime) >= (_stepsAt().at(-1)?.time ?? s.midi.duration - 0.01)) { finishPhrase(); showResult() }
+    && Math.max(s.currentTime, prev.currentTime) >= (_stepsAt().at(-1)?.time ?? s.midi.duration - 0.01)) { finishPhrase(); showResult(); _songEnded() }
 })

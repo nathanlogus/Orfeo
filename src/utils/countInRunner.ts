@@ -67,9 +67,10 @@ function firstNoteTime(): number {
   return Number.isFinite(first) ? first : 0
 }
 
-export function startCountIn(): boolean {
+// force: a set counts in every song, without touching the user's setting
+export function startCountIn(force = false): boolean {
   const s = useStore.getState()
-  if (!deps || !s.countInEnabled || !s.midi || active || isTapCapturing()) return false
+  if (!deps || !(s.countInEnabled || force) || !s.midi || active || isTapCapturing()) return false
   const m = s.midi as any
   const ratio = s.originalBpm > 0 ? s.bpm / s.originalBpm : 1
   const plan = countInPlan({

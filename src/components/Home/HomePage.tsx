@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, FolderOpen, LayoutGrid, List, Loader2, MoreHorizontal, Search, Settings, Wifi, X } from 'lucide-react'
+import { ArrowLeft, Check, FolderOpen, LayoutGrid, List, Loader2, MoreHorizontal, Play, Search, Settings, Wifi, X } from 'lucide-react'
 import '../../styles/redesign-home.css'
 import { useStore } from '../../store'
 import { useMidiFile } from '../../hooks/useMidiFile'
@@ -14,6 +14,7 @@ import { NewVersionDot } from '../Settings/NewVersionDot'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { openFolders, openSongMenu, useFoldersPage } from '../SettingsPanel/foldersPage'
 import { resumeSong, songKey } from '../../utils/practiceSession'
+import { playSet } from '../../utils/setSession'
 import PliageMark from '../PliageMark'
 import PliageLogo from '../PliageLogo'
 import LearnHome from '../Lessons/LearnHome'
@@ -51,6 +52,7 @@ export default function HomePage() {
   const openFailed = useFoldersPage(s => s.failed)
   const midiConnected = useStore(s => s.midiDeviceConnected)
   const midiName = useStore(s => s.midiDeviceName)
+  const lessonActive = useStore(s => !!s.lessonRun)
 
   const [section, setSection] = useState<Section>(remembered.section ?? 'library')
   const [source, setSource] = useState<Source>(remembered.source ?? 'device')
@@ -292,6 +294,14 @@ export default function HomePage() {
   }
   const previewOf = (s: SongServerSong) => (preview?.song.path === s.path ? preview.state : undefined)
 
+  // shortcut: a server set is the songs loaded so far, not the whole list; page the rest in here if sets outgrow that
+  const playAll = () => {
+    stopPreview()
+    void playSet(isServer
+      ? serverSongs.map(s => ({ path: s.path, title: s.title, size: s.size, server: address, cover: { art: s.art ?? null, people: s.people ?? [] } }))
+      : filteredDevice.map(s => ({ path: s.path, title: s.title, size: s.size })))
+  }
+
   const open = async (song: SongServerSong, fromServer = isServer) => {
     if (opening) return
     stopPreview()
@@ -401,6 +411,7 @@ export default function HomePage() {
               {loading && isServer && <Loader2 size={15} className="home-spin" aria-label={t`Loading`} />}
               <span className="o-spacer" />
               {filtered && <button className="o-link" onClick={clearFilters}>{t`Clear filters`}</button>}
+              {songs.length > 1 && !lessonActive && <button className="o-btn" onClick={playAll}><Play size={14} fill="currentColor" aria-hidden />{t`Play all`}</button>}
               {isServer
                 ? <button className="o-link" onClick={() => setConnected(false)}>{t`Change server`}</button>
                 : <>

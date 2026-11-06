@@ -4,6 +4,8 @@ import TopBar from './components/Transport/TopBar'
 import PracticeRail from './components/Transport/PracticeRail'
 import PresentationBar from './components/Transport/PresentationBar'
 import ResultsScreen from './components/Transport/ResultsScreen'
+import { SetBar, SetSummary } from './components/Transport/SetBar'
+import { closeSet } from './utils/setSession'
 import PianoRoll from './components/PianoRoll/PianoRoll'
 import ScoreView from './components/ScoreView'
 import { isScoreFor } from './utils/scoreSource'
@@ -422,6 +424,10 @@ export default function App() {
         if (e.key === 'Escape') useStore.setState({ practiceResult: null })
         return
       }
+      if (useStore.getState().setRun?.stage === 'summary') {
+        if (e.key === 'Escape') closeSet()
+        return
+      }
       // Settings window open: only Esc (it closes itself) and Ctrl + , get through
       if (useStore.getState().settingsWindowOpen && e.key !== 'Escape' && !(e.ctrlKey && e.key === ',')) return
       const { playbackState } = useStore.getState()
@@ -607,6 +613,7 @@ export default function App() {
             {!presentationMode && <StepPill />}
             <LockHint />
             <CountInOverlay />
+            <SetBar />
           </div>
           {keyboardMode === 'docked' && <div className="pr-playbar" aria-hidden="true" />}
           {keyboardMode === 'docked' && <Keyboard />}
@@ -675,6 +682,7 @@ export default function App() {
       <MixerConsole />
 
       <ResultsScreen />
+      <SetSummary />
 
       {/* ── MIDI Playback Editor — floating modal, opened via Track Panel pencil icon ── */}
       <MidiEditor />
