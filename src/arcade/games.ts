@@ -40,6 +40,8 @@ import { t } from '../utils/i18n'
 import type { HudState, KeysState } from './hud'
 import { drillSteps } from './chordRush/run'
 import { STAGES as HOLLOW_STAGES } from './chordRush/stages'
+import { drillSteps as frontierDrill } from './sightLine/run'
+import { STAGES as FRONTIER_STAGES } from './sightLine/stages'
 
 const ART = './arcade/art'
 
@@ -134,7 +136,21 @@ export const GAMES: GameDef[] = [
     Game: lazy(() => import('./chordRush/ChordRush')),
     drill: drillSteps,
   },
-  soon('frontier', t`Sight Line`, t`Frontier Express`, t`sight-reading`, 'card-sight-line.svg'),
+  {
+    id: 'frontier',
+    game: t`Sight Line`,
+    world: t`Frontier Express`,
+    skill: t`sight-reading`,
+    description: t`A stagecoach crosses the desert and the staff lines are its trails. Each note is a fork: play it and the coach rolls on. You are the driver, and three misses at the line end the run.`,
+    art: `${ART}/card-sight-line.jpg`,
+    scene: `${ART}/scene-frontier-express.jpg`,
+    sceneAlt: t`Frontier Express: a paper stagecoach rolling across a desert of mesas and cacti under a low sun`,
+    assist: t`The stagecoach rolls slower.`,
+    figure: { name: t`The Stagecoach Driver`, art: `${ART}/figure-stagecoach-driver.svg` },
+    stages: FRONTIER_STAGES,
+    Game: lazy(() => import('./sightLine/SightLine')),
+    drill: frontierDrill,
+  },
   soon('orbit', t`Pocket`, t`Orbit Station`, t`timing`, 'card-pocket.jpg'),
   soon('midnight', t`Soft Touch`, t`The Midnight Job`, t`dynamic control`, 'card-soft-touch.jpg'),
   soon('deepsong', t`Echo`, t`Deep Song`, t`ear training`, 'card-echo.jpg'),
