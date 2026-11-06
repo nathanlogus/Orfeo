@@ -162,7 +162,7 @@ export function holdForNotes(now: number): boolean {
 export function advanceIfPlayed(): void {
   const s = useStore.getState()
   practiceClock(s.currentTime)
-  if (!s.waitForNotes || !s.midi || s.playbackState === 'playing') return
+  if (!s.waitForNotes || !s.midi || s.homeOpen || s.playbackState === 'playing') return
   if (_holding) {
     const list = steps()
     const step = list[indexAtOrAfter(list, _waitFrom)]

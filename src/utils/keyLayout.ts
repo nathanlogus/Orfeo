@@ -1,6 +1,8 @@
-import { isBlackKey } from './midiParser'
-
 export interface KeyLayout { x: number; width: number }
+
+export function isBlackKey(midi: number): boolean {
+  return [1, 3, 6, 8, 10].includes(((midi % 12) + 12) % 12)
+}
 
 // ── RANGES ────────────────────────────────────────────────────────────────────
 // Single source of truth — Keyboard.tsx imports from here so they can't drift.
@@ -28,14 +30,14 @@ export function fitKeyRange(low: number, high: number): { min: number; max: numb
 // THE canonical key-layout formula — extracted verbatim from Keyboard.tsx.
 // Returns { x, width } as fractions of total container width (0–1 range).
 //
-// Keyboard.tsx renders:
-//   white keys  → flex-1 children, each exactly 1/n of the container width
+// PianoKeys.tsx renders:
+//   white keys  → position: absolute, each exactly 1/n of the container width
 //   black keys  → position: absolute
 //                 left  = ((whiteIdx + 0.70) / n) * 100%   (whiteIdx = whites before this key)
 //                 width = (0.60 / n) * 100%
 //
 // This function encodes that same arithmetic in one place so all three consumers
-// (Keyboard.tsx, PianoRoll.tsx, NoteEditorCanvas.tsx) run identical code.
+// (PianoKeys.tsx, PianoRoll.tsx, NoteEditorCanvas.tsx) run identical code.
 // Never duplicate or hand-re-derive this formula elsewhere.
 export function buildKeyLayoutRatios(midiMin: number, midiMax: number): KeyLayout[] {
   const whites: number[] = []
@@ -63,7 +65,7 @@ export function buildKeyLayoutRatios(midiMin: number, midiMax: number): KeyLayou
 
 // ── buildKeyLayout ────────────────────────────────────────────────────────────
 // Pixel version: multiplies buildKeyLayoutRatios output by the canvas width W.
-// PianoRoll.tsx and NoteEditorCanvas.tsx call this; Keyboard.tsx calls
+// PianoRoll.tsx and NoteEditorCanvas.tsx call this; PianoKeys.tsx calls
 // buildKeyLayoutRatios directly and multiplies by 100 for CSS percentages.
 export function buildKeyLayout(W: number, midiMin: number, midiMax: number): KeyLayout[] {
   return buildKeyLayoutRatios(midiMin, midiMax).map(k => ({ x: k.x * W, width: k.width * W }))

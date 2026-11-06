@@ -1,0 +1,73 @@
+/* The one piano look. A surface sets only --lit (the colour) and its own attribute
+   for what is lit. No transitions and no filters: a key changes in a single repaint
+   of itself, so 88 keys and the Arcade's live keys stay cheap. Stops are percentages
+   so the look holds from 64px tall to 240px. */
+.piano-keys {
+  --lit: var(--paint-yellow);
+  position: relative;
+  overflow: hidden;
+  contain: layout paint;
+  user-select: none;
+  background: #18120d; /* the gaps, and the well the keys sit in */
+}
+
+.piano-keys > i, .piano-keys > b {
+  position: absolute;
+  top: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  font-style: normal;
+  font-weight: 400;
+  transform-origin: top;
+}
+
+.piano-keys > i {
+  --lip: 93%;
+  height: 98.5%; /* the rest is room to dip into */
+  border-right: 1px solid transparent; /* the gap */
+  border-radius: 0 0 11% 11% / 0 0 2.6% 2.6%;
+  background-clip: padding-box;
+  background-color: var(--key-white-bg);
+  background-image: linear-gradient(to bottom,
+    rgba(58, 38, 18, 0.42) 0, rgba(58, 38, 18, 0.14) 2.5%, rgba(58, 38, 18, 0.05) 12%,
+    rgba(255, 255, 255, 0) 45%, rgba(58, 38, 18, 0.1) calc(var(--lip) - 1%), rgba(58, 38, 18, 0.2) var(--lip),
+    rgba(255, 255, 255, 0.85) var(--lip), rgba(58, 38, 18, 0.08) calc(var(--lip) + 2%), rgba(58, 38, 18, 0.36) 100%);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.55), inset -1px 0 0 rgba(58, 38, 18, 0.12), inset 0 -1px 0 rgba(96, 54, 22, 0.55);
+}
+
+.piano-keys > b {
+  --lip: 89%;
+  height: 65%;
+  z-index: 2;
+  border-radius: 0 0 14% 14% / 0 0 3% 3%;
+  background-color: #141215;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 20% 74%, rgba(0, 0, 0, 0.5)),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0.05) var(--lip),
+      rgba(255, 255, 255, 0.2) var(--lip), rgba(255, 255, 255, 0.07) 100%);
+  box-shadow: 1px 2px 3px rgba(20, 12, 4, 0.5);
+}
+
+/* Lit, whichever colour: the key glows from within, deepest at the back */
+.piano-keys > :is([data-lit], [data-held], [data-sun], [data-chord], [data-target]) {
+  z-index: 1;
+  background-color: var(--lit);
+  background-image: linear-gradient(to bottom,
+    color-mix(in srgb, var(--lit) 85%, #000) 0, var(--lit) 30%, color-mix(in srgb, var(--lit) 84%, #fff) var(--lip),
+    color-mix(in srgb, var(--lit) 62%, #fff) var(--lip), color-mix(in srgb, var(--lit) 72%, #000) 100%);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--lit) 60%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.piano-keys > b:is([data-lit], [data-held], [data-sun], [data-chord], [data-target]) { z-index: 3; }
+
+/* Pressed: hinged at the back, the front drops into the room left for it */
+.piano-keys > i[data-held] { scale: 1 1.015; }
+.piano-keys > b[data-held] { scale: 1 1.025; }
+
+.piano-keys > [role='button'] { cursor: pointer; }
+.piano-keys > i:focus-visible, .piano-keys > b:focus-visible { z-index: 4; outline-offset: -2px; }
+
+/* Split lines and the like, over the keys */
+.piano-keys > :not(i, b) { position: absolute; z-index: 5; pointer-events: none; }

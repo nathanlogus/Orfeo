@@ -247,6 +247,16 @@ export function liveNoteOff(midiNum: number): void {
   if (!_synth || !_synthReady) return
   _synth.noteOff(LIVE_CH, midiNum)
 }
+// ── Jam's band: a MIDI message at an exact time on the synth's own clock.
+// The worklet holds it and plays it at the block that time falls in. ────────
+export function samplesClock(): number | null {
+  if (!_synth || !_synthReady) return null
+  wakeContext()
+  return _synth.currentTime
+}
+export function samplesSendAt(bytes: number[], time: number): void {
+  _synth?.sendMessage(bytes, 0, { time })
+}
 // Pedals, wheels, pressure — on the live channel
 export function liveControl(cc: number, value: number): void {
   if (!_synth || !_synthReady) return

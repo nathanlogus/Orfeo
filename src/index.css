@@ -587,10 +587,7 @@ button, input, select, textarea {
 /* ── Keyboard-specific tones ── */
 --text-chord-placeholder: #6b635b;  /* Keyboard.tsx — empty chord-bar "— — —" placeholder text */
 --key-white-bg: #fbf8f5;            /* Keyboard.tsx — white key default (unlit) fill */
---key-white-border: #000000;        /* Keyboard.tsx — white key default (unlit) right border */
 --key-label-dim: #4a4540;           /* Keyboard.tsx — note-name label on an unlit key */
---key-active-border: rgba(0,0,0,0.12); /* Keyboard.tsx — white key divider border between two lit neighbors */
---key-black-active-border: rgba(0,0,0,0.18); /* Keyboard.tsx — black key border when lit */
 --key-note-name-color: rgba(255,255,255,0.88); /* Keyboard.tsx — black key note-name label text */
 --text-key-hover: #ffffff;          /* KeyboardControls.tsx — key-size selector button hover text */
 

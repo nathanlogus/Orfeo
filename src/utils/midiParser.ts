@@ -112,6 +112,7 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath 
       midi: n.midi,
       time: n.time,
       duration: n.duration,
+      ticks: n.ticks,
       velocity: n.velocity,
       trackIndex: tracks.length,
     }))
@@ -307,11 +308,6 @@ export function formatTime(seconds: number): string {
 
 export function midiToKeyIndex(midi: number): number {
   return midi - 21
-}
-
-export function isBlackKey(midi: number): boolean {
-  const note = midi % 12
-  return [1, 3, 6, 8, 10].includes(note)
 }
 
 // ── Notes actually sounding at a given playback time ──────────────────────────

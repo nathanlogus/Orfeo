@@ -4,10 +4,12 @@ import { EyeOff } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import { metronomeContext, scheduleMetronomeClick } from '../../hooks/useMetronome'
-import { earlierNotes, midiOf, missedNote, nextPrompt, noteLabel, promptCount, tapBeats, type Prompt } from '../../lessons/drill'
-import { EXERCISES, LESSONS } from '../../lessons/courseData'
-import { PASS, tapMarks, tapScore, type TapMark } from '../../lessons/progress'
-import type { Check, Lesson } from '../../lessons/course'
+import { onLiveNote } from '../../hooks/useMidiInput'
+import { useMidiSettings } from '../../store/midiSettings'
+import { chordPress, earlierNotes, midiOf, missedNote, nextPrompt, noteLabel, promptCount, tapBeats, touchScore, type Prompt, type Struck } from '../../lessons/drill'
+import { COURSE, EXERCISES } from '../../lessons/courseData'
+import { PASS, tapMarks, tapScore, trackUnits, type TapMark } from '../../lessons/progress'
+import { allLessons, type Check, type Lesson, type TouchStyle } from '../../lessons/course'
 import MiniStaff, { KeyMap, RhythmLine } from './MiniStaff'
 
 const SHOW_SHAPE_MS = 3000
@@ -17,6 +19,7 @@ const SHOW_ANSWER_MS = 1100
 // Long enough to read why, or which taps were off
 const SHOW_MISS_MS = 2200
 const SHOW_TAPS_MS = 1800
+const EAR_GAP_MS = 750
 const TAP_BPM = 76
 const TAP_WINDOW_SEC = 0.16
 
@@ -32,6 +35,9 @@ const DRILL_TAG = (check: Check): [string, string] => {
   switch (check.kind) {
     case 'tap': return [t`Rhythm`, 'var(--paint-lime)']
     case 'shapes': return [t`Memory`, 'var(--paint-rose)']
+    case 'touch': return [t`Touch`, 'var(--paint-lime)']
+    case 'chords': return [t`Chords`, 'var(--paint-yellow)']
+    case 'quiz': return [t`Theory`, 'var(--sand)']
     case 'intervals': case 'chunks': return [t`Shape`, 'var(--paint-blue)']
     case 'scan': return [t`Scan`, 'var(--sand)']
     default: return [t`Notes`, 'var(--paint-yellow)']
@@ -52,8 +58,9 @@ const namesOf = (prompt: Prompt): string | null => (prompt.kind === 'note' ? pro
 
 export default function DrillStep({ lesson, check, onPass }: { lesson: Lesson; check: Check; onPass: (percent: number) => void }) {
   const total = promptCount(check)
-  const earlier = useMemo(() => earlierNotes(LESSONS, lesson), [lesson])
+  const earlier = useMemo(() => earlierNotes(allLessons(trackUnits(COURSE, lesson.id)), lesson), [lesson])
   const missed = useRef<string[]>([])
+  const lastPhrase = useRef<Struck[] | null>(null)
   const context = (index: number) => ({ index, earlier, missed: missed.current, exercises: EXERCISES, rng: Math.random })
   const [index, setIndex] = useState(0)
   const [prompt, setPrompt] = useState(() => nextPrompt(check, context(0)))
@@ -122,7 +129,7 @@ export default function DrillStep({ lesson, check, onPass }: { lesson: Lesson; c
         <span className="lesson-so-far">{`${answered ? t`${Math.round((score / answered) * 100)}% so far` : ''}${answered ? ' · ' : ''}${t`90% to pass`}`}</span>
       </div>
       <div className="lesson-stage">
-        <PromptView key={index} prompt={prompt} answer={answer} onScore={scorePrompt} />
+        <PromptView key={index} prompt={prompt} answer={answer} lastPhrase={lastPhrase} onScore={scorePrompt} />
         <p aria-live="polite" className="lesson-answer" data-answer={answer ?? undefined}>
           {answer && <><span className="lesson-answer-word">{answer === 'right' ? t`Right` : t`Not quite`}</span>{noteName && <span>{noteName}</span>}</>}
         </p>
@@ -140,11 +147,11 @@ export default function DrillStep({ lesson, check, onPass }: { lesson: Lesson; c
   )
 }
 
-function PromptView({ prompt, answer, onScore }: { prompt: Prompt; answer: Answer; onScore: Score }) {
+function PromptView({ prompt, answer, lastPhrase, onScore }: { prompt: Prompt; answer: Answer; lastPhrase: { current: Struck[] | null }; onScore: Score }) {
   switch (prompt.kind) {
     case 'keys': return <KeysPrompt prompt={prompt} onScore={onScore} />
     case 'note': return <NotePrompt prompt={prompt} onScore={onScore} />
-    case 'pair': return <PairPrompt prompt={prompt} onScore={onScore} />
+    case 'chord': return <ChordPrompt prompt={prompt} onScore={onScore} />
     case 'shape': return <ShapePrompt prompt={prompt} answer={answer} onScore={onScore} />
     case 'choice': return (
       <>
@@ -155,6 +162,8 @@ function PromptView({ prompt, answer, onScore }: { prompt: Prompt; answer: Answe
     )
     case 'scan': return <ScanPrompt prompt={prompt} answer={answer} onScore={onScore} />
     case 'tap': return <TapPrompt prompt={prompt} onScore={onScore} />
+    case 'touch': return <TouchPrompt prompt={prompt} lastPhrase={lastPhrase} onScore={onScore} />
+    case 'quiz': return <QuizPrompt prompt={prompt} answer={answer} onScore={onScore} />
   }
 }
 
@@ -183,17 +192,98 @@ function NotePrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'note
   )
 }
 
-function PairPrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'pair' }>; onScore: Score }) {
-  const want = [midiOf(prompt.left), midiOf(prompt.right)]
+function ChordPrompt({ prompt, onScore }: { prompt: Extract<Prompt, { kind: 'chord' }>; onScore: Score }) {
   useKeyPress(key => {
-    if (!want.includes(key)) { onScore(0); return }
-    const held = useStore.getState().midiHeldKeys
-    if (want.every(k => held.has(k))) onScore(1)
+    const result = chordPress(prompt, key, useStore.getState().midiHeldKeys)
+    if (result !== 'more') onScore(result === 'done' ? 1 : 0)
   })
+  const title = prompt.name ? t`Play ${prompt.name}` : prompt.notes.length === 2 ? t`Press both notes together` : t`Press these notes together`
   return (
     <>
-      <h2 className="lesson-prompt">{t`Press both notes together`}</h2>
-      <MiniStaff clef="grand" columns={[[prompt.left, prompt.right]]} label={t`Press both notes together`} />
+      <h2 className="lesson-prompt">{title}</h2>
+      {prompt.name ? <p className="o-note">{t`Any octave, any inversion.`}</p> : <MiniStaff clef={prompt.clef} columns={[prompt.notes]} label={title} />}
+    </>
+  )
+}
+
+const TOUCH_ASK = (): Record<TouchStyle, string> => ({
+  soft: t`Play these softly`, loud: t`Play these loudly`, even: t`Play these evenly`,
+  legato: t`Play these smoothly`, staccato: t`Play these short and light`, pedal: t`Play these, changing the pedal after each note`,
+})
+
+const TOUCH_MISS = (): Record<TouchStyle, string> => ({
+  soft: t`Softer than the last phrase: a slower press, from close to the keys.`,
+  loud: t`Louder than the last phrase: a quicker key, with the arm's weight behind it.`,
+  even: t`Keep every note the same loudness and the same distance apart.`,
+  legato: t`Hold each key until the next one goes down, then let go.`,
+  staccato: t`Let each key spring back up well before the next note.`,
+  pedal: t`After each note, lift the pedal and press it down again.`,
+})
+
+const TOUCH_UNSEEN = (): Partial<Record<TouchStyle, string>> => ({
+  soft: t`Your keyboard sends the same touch for every note, so this passes on the notes alone.`,
+  loud: t`Your keyboard sends the same touch for every note, so this passes on the notes alone.`,
+  pedal: t`No pedal has been heard, so this passes on the notes alone.`,
+})
+
+// Other keys are ignored: this drill is about the touch, and the play steps check the notes
+function TouchPrompt({ prompt, lastPhrase, onScore }: { prompt: Extract<Prompt, { kind: 'touch' }>; lastPhrase: { current: Struck[] | null }; onScore: Score }) {
+  const struck = useRef<Struck[]>([])
+  const pedal = useRef(0)
+  const [count, setCount] = useState(0)
+  const [note, setNote] = useState('')
+  useEffect(() => {
+    const unlisten = onLiveNote((key, vel) => {
+      if (struck.current.length === prompt.notes.length || key !== midiOf(prompt.notes[struck.current.length])) return
+      struck.current.push({ vel, on: performance.now(), pedal: pedal.current })
+      pedal.current = 0
+      setCount(struck.current.length)
+      if (struck.current.length < prompt.notes.length) return
+      const { detected } = useMidiSettings.getState()
+      const { value, seen } = touchScore(prompt.style, struck.current, lastPhrase.current, !!detected.sustain)
+      lastPhrase.current = struck.current
+      if (!seen) setNote(TOUCH_UNSEEN()[prompt.style] ?? '')
+      else if (value < 1) setNote(TOUCH_MISS()[prompt.style])
+      onScore(value, { holdMs: !seen || value < 1 ? SHOW_MISS_MS : undefined })
+    })
+    const unkeys = useStore.subscribe((s, prev) => {
+      if (s.midiHeldKeys === prev.midiHeldKeys) return
+      for (const key of prev.midiHeldKeys) {
+        if (s.midiHeldKeys.has(key)) continue
+        const open = struck.current.findIndex((n, i) => n.off === undefined && midiOf(prompt.notes[i]) === key)
+        if (open >= 0) struck.current[open].off = performance.now()
+      }
+    })
+    const unpedal = useMidiSettings.subscribe((s, prev) => { if (s.sustainDown !== prev.sustainDown) pedal.current++ })
+    return () => { unlisten(); unkeys(); unpedal() }
+  }, [])
+  const ask = TOUCH_ASK()[prompt.style]
+  return (
+    <>
+      <h2 className="lesson-prompt">{ask}</h2>
+      <MiniStaff clef={prompt.clef} columns={prompt.notes.map(n => [n])} label={ask} />
+      <p className="o-note" aria-live="polite">{note || t`${count} of ${prompt.notes.length} notes`}</p>
+    </>
+  )
+}
+
+function QuizPrompt({ prompt, answer, onScore }: { prompt: Extract<Prompt, { kind: 'quiz' }>; answer: Answer; onScore: Score }) {
+  const timers = useRef<number[]>([])
+  const hear = () => {
+    timers.current.forEach(clearTimeout)
+    timers.current = (prompt.hear ?? []).map((notes, i) => window.setTimeout(() => {
+      for (const n of notes) (window as any).__pliagePlayNote?.(midiOf(n), 90, EAR_GAP_MS, undefined, false)
+    }, i * EAR_GAP_MS))
+  }
+  useEffect(() => {
+    hear()
+    return () => timers.current.forEach(clearTimeout)
+  }, [])
+  return (
+    <>
+      <h2 className="lesson-prompt">{prompt.question}</h2>
+      {prompt.hear && <button className="o-btn o-btn-lg" onClick={hear}>{t`Hear it again`}</button>}
+      <Options options={prompt.options} answer={answer} onPick={o => onScore(o === prompt.answer ? 1 : 0)} />
     </>
   )
 }

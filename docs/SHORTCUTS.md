@@ -22,6 +22,7 @@ combinations, modifiers, and gestures that are not obvious from the UI.
 - [Mixer — Console Mixer and Track Panel](#mixer--console-mixer-and-track-panel)
 - [Track Panel](#track-panel)
 - [Library](#library)
+- [Jam](#jam)
 - [Playback Editor / File Info modal](#playback-editor--file-info-modal)
 - [Modals — everywhere](#modals--everywhere)
 
@@ -32,7 +33,8 @@ combinations, modifiers, and gestures that are not obvious from the UI.
 | Shortcut | Action |
 |---|---|
 | `Space` | Play / Pause (ignored while the Chord or Scale Explorer is open). During a count-in it stops the count-in. While tapping in a Tap Tempo session it's a tap instead; once the result is showing it plays/pauses as usual so you can listen back |
-| `Escape` | Stop playback. During a count-in it cancels the count-in; during a Tap Tempo session it cancels the session instead. If Presentation Mode, the Chord Explorer, the Scale Explorer, or the Locked-Chord modal is open, that closes first instead — without stopping playback |
+| `Escape` | On the Home menu, back to the open song; in the Library or Learn, back to the menu. Otherwise: stop playback. During a count-in it cancels the count-in; during a Tap Tempo session it cancels the session instead. If Presentation Mode, the Chord Explorer, the Scale Explorer, or the Locked-Chord modal is open, that closes first instead — without stopping playback |
+| `↑` / `↓`, `Enter` | Home menu: move and select. On a MIDI keyboard: C4 up, D4 down, E4 select |
 | `→` / `←` | Step to the next / previous played moment: a single note or a whole chord sounds, lights up and the playhead moves there. Notes that start within 30 ms count as one step; tracks not shown on the piano roll (hidden, muted, or not the soloed one) and drums are skipped. Pressed while playing, it pauses on the next one; `Space` plays on from there. Ignored while a fader or knob has focus |
 | `Shift+→` / `Shift+←` | Step to the first note of the next / previous bar |
 | Click the amber ← / → in the keyboard bar | Same as `←` / `→` (Shift+click: a bar). Step Through can be switched off in Settings → Practice, which hides the arrows and frees the arrow keys |
@@ -143,6 +145,15 @@ Available on the Piano Roll once Note Editor edit mode is active.
 | `Shift` + click | Select a range from the last-clicked row |
 | Drag file(s) | Move them into a folder |
 | Right-click | Context menu — rename, delete, move, show in folder, and more |
+
+---
+
+## Jam
+
+| Key | Action |
+|---|---|
+| `[` | Previous scene |
+| `]` | Next scene |
 
 ---
 

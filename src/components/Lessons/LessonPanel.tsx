@@ -2,10 +2,11 @@ import { ArrowLeft, ArrowRight, Check as CheckIcon, Play } from 'lucide-react'
 import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import { COURSE, LESSONS, lessonById } from '../../lessons/courseData'
-import { isOpen } from '../../lessons/progress'
+import { isOpen, trackUnits } from '../../lessons/progress'
 import { drillPassed, exitLesson, lessonScores, nextStep, startLesson, stepsOf, type LessonStep } from '../../lessons/session'
-import type { Check, Clef, Lesson } from '../../lessons/course'
+import { allLessons, type Check, type Clef, type Lesson } from '../../lessons/course'
 import DrillStep from './DrillStep'
+import { EXPLORE_TOOLS } from './exploreTools'
 import MiniStaff, { HeldKeys, KeyMap, RhythmLine } from './MiniStaff'
 
 const plain = (text: string) => text.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*/g, '')
@@ -17,6 +18,7 @@ function LearnPicture({ lesson }: { lesson: Lesson }) {
   if (check?.kind === 'keys') return <KeyMap highlight="c" />
   if (check?.kind === 'tap') return <RhythmLine tokens={check.patterns[1] ?? check.patterns[0]} beats={check.beats} />
   if (check?.kind === 'notes') return <MiniStaff clef={check.clef} columns={check.notes.map(n => [n])} keyName={check.key} label={lesson.title} />
+  if (check?.kind === 'chords' && !check.chords[0].name) return <MiniStaff clef={check.clef} columns={check.chords.map(c => c.notes)} label={lesson.title} />
   if (lesson.tex && lesson.notes) {
     const key = lesson.tex.match(/\\ks (\w+)/)?.[1]
     return <MiniStaff clef={texClef(lesson.tex)} columns={lesson.notes.map(n => [n])} keyName={key} label={lesson.title} />
@@ -81,11 +83,11 @@ function Passed({ lesson, canGoOn, after }: { lesson: Lesson; canGoOn: boolean; 
             <span style={{ color: 'var(--stone)', fontSize: 'var(--text-base)' }}>{t`Next`}</span>
             <span className="lesson-next-title">{`${after.id} ${after.title}`} <span className="lesson-next-goal">{`· ${after.goal}`}</span></span>
           </span>
-          <button className="o-btn o-btn-lg" onClick={exitLesson}>{t`Back to Learn`}</button>
+          <button className="o-btn o-btn-lg" onClick={exitLesson}>{t`Back to menu`}</button>
           <button className="o-btn-primary o-btn-lg" onClick={() => void startLesson(after.id)}>{t`Next lesson`}<ArrowRight size={16} aria-hidden /></button>
         </> : <>
           <span className="o-spacer" />
-          <button className="o-btn-primary o-btn-lg" onClick={exitLesson}>{t`Back to Learn`}</button>
+          <button className="o-btn-primary o-btn-lg" onClick={exitLesson}>{t`Back to menu`}</button>
         </>}
       </div>
     </div>
@@ -101,8 +103,11 @@ export default function LessonPanel() {
   if (!lesson || (run.step !== 'learn' && run.step !== 'drill' && run.step !== 'done')) return null
 
   const index = LESSONS.indexOf(lesson)
-  const after = LESSONS[index + 1]
+  const next = LESSONS[index + 1]
+  // The end of a track is the end: the next lesson over is a different course
+  const after = allLessons(trackUnits(COURSE, lesson.id)).includes(next) ? next : undefined
   const canGoOn = !!after && isOpen(COURSE, passed, after.id)
+  const tool = EXPLORE_TOOLS.find(x => x.id === lesson.tool)
   return (
     <div className="lesson-page">
       {/* alphaTab's cursor sits above everything, so it would show through */}
@@ -127,14 +132,15 @@ export default function LessonPanel() {
               <p className="lesson-learn-text">{plain(lesson.learn ?? '')}</p>
               <div className="lesson-stage"><LearnPicture lesson={lesson} /></div>
               {lesson.after && <p className="o-note">{plain(lesson.after)}</p>}
+              {tool && <button className="o-link" style={{ alignSelf: 'flex-start' }} onClick={tool.open}>{t`Try it in ${tool.name()}`}</button>}
               <button className="o-btn-primary o-btn-lg" style={{ alignSelf: 'flex-start' }} onClick={nextStep}>{t`Continue`}</button>
             </>}
             {run.step === 'drill' && lesson.check && <>
-              {!connected && lesson.check.kind !== 'chunks' && lesson.check.kind !== 'scan' && lesson.check.kind !== 'intervals' && <div role="alert" className="lesson-alert"><span className="o-dot o-dot-alert" />{t`This drill needs a MIDI keyboard. Connect one and press a key.`}</div>}
+              {!connected && lesson.check.kind !== 'chunks' && lesson.check.kind !== 'scan' && lesson.check.kind !== 'intervals' && lesson.check.kind !== 'quiz' && <div role="alert" className="lesson-alert"><span className="o-dot o-dot-alert" />{t`This drill needs a MIDI keyboard. Connect one and press a key.`}</div>}
               <DrillStep key={lesson.id} lesson={lesson} check={lesson.check} onPass={percent => { drillPassed(percent); nextStep() }} />
             </>}
           </div>
-          <HeldKeys height={200} className="lesson-keys" />
+          <HeldKeys className="lesson-keys" />
         </main>
       </>}
     </div>

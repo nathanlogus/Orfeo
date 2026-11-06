@@ -105,6 +105,12 @@ export function runCountInRunnerTest(): number {
   timers[0].fn()
   check(S().playbackState !== 'playing' && !isCountingIn(), 'loading a song cancels the count-in')
 
+  // a set counts in with the setting off
+  S().setMidi(fakeMidi())
+  S().setCountInEnabled(false)
+  check(startCountIn() === false && startCountIn(true) === true, 'a set forces the count-in')
+  cancelCountIn()
+
   console.log(`countInRunner: ${pass} passed, ${fail} failed`)
   console.groupEnd()
   return fail

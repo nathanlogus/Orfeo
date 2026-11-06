@@ -6,9 +6,14 @@ import { usePlayback } from '../hooks/usePlayback'
 import { fingerEvents } from '../utils/fingering'
 import { handHex } from '../utils/handPalette'
 import { NES } from '../utils/noteEditorState'
-import { dropSelfTies, isScoreFor, leftHandChannels, partsToShow, staffHands, stavesToShow, transposeKeySignature } from '../utils/scoreSource'
+import { dropSelfTies, isScoreFor, leftHandChannels, offLevel, partsToShow, staffHands, stavesToShow, tickKey, ticksInLevel, transposeKeySignature } from '../utils/scoreSource'
 import { playedBars, sheetFromMidi, type SheetBar } from '../utils/sheetFromNotes'
 import { noteSelection } from './NoteEditor/noteSelection'
+import { inPracticeLevel } from '../utils/practiceLevels'
+import { FULL_LEVEL } from '../utils/practiceScore'
+import { AUTO_LEVEL } from '../utils/practiceSession'
+
+const OFF_LEVEL_INK = '#c9c2b6'
 
 // ── Score view ────────────────────────────────────────────────────────────
 // Engraves the notation file a song was imported from. alphaTab has no sound
@@ -25,6 +30,8 @@ const TOOLBAR_HINT_PX = 28
 const LIVE_SCALE = 0.8
 const ALPHATAB_PPQ = 960
 
+// Below the full level, what the level leaves out is dimmed: taking it off would
+// rewrite the bars.
 export default function ScoreView({ bytes, live = false, style }: { bytes: Uint8Array | null; live?: boolean; style: React.CSSProperties }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
@@ -41,6 +48,8 @@ export default function ScoreView({ bytes, live = false, style }: { bytes: Uint8
     let drawn = ''
     let score: any = null
     let at: any = null
+    let barStarts: Map<unknown, number[]> | null = null
+    let dimmed: any[] = []
     const fileView = new Map<any, number>()
     let cancelled = false
 
@@ -102,6 +111,46 @@ export default function ScoreView({ bytes, live = false, style }: { bytes: Uint8
       })
       suggested = true
     }
+    // Each playing of a bar, repeats unrolled: alphaTab's own lookup, the same
+    // generator the song's MIDI came from
+    const playings = () => {
+      if (barStarts) return barStarts
+      const generator = new at.midi.MidiFileGenerator(score, api.settings, new at.midi.AlphaSynthMidiFileHandler(new at.midi.MidiFile()))
+      generator.generate()
+      barStarts = new Map()
+      for (const bar of generator.tickLookup.masterBars) barStarts.set(bar.masterBar, [...(barStarts.get(bar.masterBar) ?? []), bar.start])
+      return barStarts
+    }
+    const dimOffLevel = () => {
+      const { practiceLevel, midi } = useStore.getState()
+      if (live || practiceLevel >= FULL_LEVEL || !midi) return
+      const asked = ticksInLevel(midi.tracks, midi._leadTick ?? 0, inPracticeLevel)
+      const { Color, NoteStyle, NoteSubElement, BeatStyle, BeatSubElement } = at.model
+      const dim = Color.fromJson(OFF_LEVEL_INK)
+      const paint = (style: any, parts: number[]) => parts.forEach(part => style.colors.set(part, dim))
+      for (const part of score.tracks) for (const staff of part.staves) for (const bar of staff.bars) for (const voice of bar.voices) for (const beat of voice.beats) {
+        const off = beat.notes.filter((written: any) => {
+          // A tied note sounds once, from where the tie starts
+          const note = written.tieOrigin ?? written
+          const starts = playings().get(note.beat.voice.bar.masterBar) ?? []
+          return offLevel(asked, starts.map((start: number) => tickKey(note.realValue, start + note.beat.playbackStart)))
+        })
+        for (const note of off) {
+          note.style ??= new NoteStyle()
+          dimmed.push(note)
+          paint(note.style, [NoteSubElement.StandardNotationNoteHead, NoteSubElement.StandardNotationAccidentals, NoteSubElement.StandardNotationEffects])
+        }
+        if (off.length && off.length === beat.notes.length) {
+          beat.style = new BeatStyle()
+          dimmed.push(beat)
+          paint(beat.style, [BeatSubElement.StandardNotationStem, BeatSubElement.StandardNotationFlags, BeatSubElement.StandardNotationBeams])
+        }
+      }
+    }
+    const levelView = () => {
+      const { practiceLevel, phraseLevels } = useStore.getState()
+      return practiceLevel >= FULL_LEVEL ? '' : `${practiceLevel}|${practiceLevel === AUTO_LEVEL ? phraseLevels : ''}`
+    }
     const shownParts = (): any[] => {
       if (live) return score.tracks
       const { tracks, midi } = useStore.getState()
@@ -119,12 +168,15 @@ export default function ScoreView({ bytes, live = false, style }: { bytes: Uint8
       })
       return partsToShow<any>(score.tracks, parts)
     }
-    const viewOf = () => `${useStore.getState().detectedKey?.transpose ?? 0}|${shownParts().map(p => `${p.index}:${p.staves.map((s: any) => +s.showStandardNotation)}`)}`
+    const viewOf = () => `${useStore.getState().detectedKey?.transpose ?? 0}|${levelView()}|${shownParts().map(p => `${p.index}:${p.staves.map((s: any) => +s.showStandardNotation)}`)}`
     const redrawIfChanged = () => {
       if (!score || viewOf() === drawn) return
       drawn = viewOf()
       transposeScore(useStore.getState().detectedKey?.transpose ?? 0)
+      for (const element of dimmed) element.style = undefined
+      dimmed = []
       markHands(useStore.getState().detectedKey?.transpose ?? 0)
+      dimOffLevel()
       api.renderScore(score, shownParts().map(p => p.index))
     }
 
@@ -239,7 +291,9 @@ export default function ScoreView({ bytes, live = false, style }: { bytes: Uint8
       unsubscribe = useStore.subscribe((s, prev) => {
         if (s.currentTime !== prev.currentTime) syncCursor()
         if (live && `${shownTracks()}` !== writtenTracks) NES.onSheetChange?.()
-        else if (s.tracks !== prev.tracks || s.detectedKey !== prev.detectedKey) redrawIfChanged()
+        else if (s.tracks !== prev.tracks || s.detectedKey !== prev.detectedKey || s.practiceLevel !== prev.practiceLevel) redrawIfChanged()
+        // A phrase's Auto level waits for a pause: engraving would stall the song
+        else if (s.playbackState !== 'playing' && (s.phraseLevels !== prev.phraseLevels || prev.playbackState === 'playing')) redrawIfChanged()
       })
       if (live) { rewrite(); return }
       // api.load would draw the first part alone

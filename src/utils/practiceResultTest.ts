@@ -41,6 +41,12 @@ export function runPracticeResultTest(): number {
   const last = buildPracticeResult({ ...base, runs: [run(3, 1)] })!
   eq('nothing after the last phrase', [last.next, last.rows[0].bars], [null, 'Bars 13–14'])
 
+  eq('every run counted', chosen.notCounted, null)
+  const waited = buildPracticeResult({ ...base, runs: [run(0, 1, { uncounted: 'wait' })] })!
+  eq('a run under Wait', [waited.rows[0].tag, waited.rows[0].moved, waited.notCounted?.startsWith('Notes played while Wait')], ['Not counted', false, true])
+  const slower = buildPracticeResult({ ...base, runs: [run(0, 0.95, { levelAfter: 3, uncounted: 'slow' })] })!
+  eq('a slower run still moves up', [slower.rows[0].tag, slower.rows[0].note], ['Moves up to level 3', 'Over 90% twice in a row · under 100% tempo, so mastery stays'])
+
   if (!failures) console.log('[practiceResult] all passed')
   return failures
 }

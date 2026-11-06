@@ -39,6 +39,10 @@ const _known = new Map<string, MidiDeviceInfo>()        // every keyboard seen t
 const _held = new Map<string, Set<number>>()            // device key -> keys currently down
 const _lastOn = new Map<string, number>()               // `${device}:${note}` -> time of last accepted note-on
 const _swallow = new Map<string, number>()              // note-offs to ignore for dropped/ignored note-ons
+// The newest accepted key's own MIDI timestamp: Arcade judges by when a key
+// arrived, not by when a busy page got round to it
+export let lastNoteStamp = 0
+export let lastNoteVelocity = 0
 // Keyboards that were unplugged while "Reconnect automatically" was off —
 // not listened to again until Rescan
 const _waitingForRescan = new Set<string>()
@@ -130,6 +134,13 @@ function setActive(key: string) {
   publishTopBar()
 }
 
+// Who else wants each played note with its touch (Jam's band listens here)
+const _noteListeners = new Set<(note: number, vel: number) => void>()
+export function onLiveNote(fn: (note: number, vel: number) => void): () => void {
+  _noteListeners.add(fn)
+  return () => { _noteListeners.delete(fn) }
+}
+
 // ── Note on / off ────────────────────────────────────────────────────────────
 function noteOn(key: string, note: number, raw: number, stamp: number, t0: number) {
   // During a Tap Tempo session a key press is a tap, not a note
@@ -150,9 +161,12 @@ function noteOn(key: string, note: number, raw: number, stamp: number, t0: numbe
   soundOn(note, vel)
   recordNote(stamp, t0, performance.now(), note, vel, key)
   heldBy(key).add(note)
+  lastNoteStamp = stamp
+  lastNoteVelocity = vel
   lightOn(note)
   advanceIfPlayed()
   setActive(key)
+  _noteListeners.forEach(fn => fn(note, vel))
 }
 
 function noteOff(key: string, note: number) {

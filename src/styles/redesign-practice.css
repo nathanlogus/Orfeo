@@ -83,6 +83,14 @@ button.pr-level { height: 36px; padding: 0 10px 0 6px; border: 0; border-radius:
 button.pr-level:disabled { opacity: 0.45; cursor: default; }
 .pr-level-tag { min-width: 22px; box-sizing: border-box; padding: 1px 6px; border-radius: var(--radius-sm); background: var(--paint-rose); color: #000000; font-size: 15px; text-align: center; }
 .pr-soft { color: var(--stone); }
+.pr-level-moved { padding: 1px 6px; border-radius: var(--radius-sm); background: var(--paint-lime); color: #000000; animation: pr-level-moved 400ms var(--ease-out); }
+@keyframes pr-level-moved { from { opacity: 0; translate: 0 4px; } }
+.pr-memory-map { display: flex; gap: 2px; align-items: center; height: 16px; max-width: 160px; }
+.pr-memory-map i { flex: 1 1 6px; min-width: 2px; max-width: 8px; height: 100%; box-sizing: border-box; border: 1px solid var(--stone); border-radius: 2px; }
+.pr-memory-map [data-step='1'] { background: color-mix(in srgb, var(--paint-lime) 30%, transparent); }
+.pr-memory-map [data-step='2'] { background: color-mix(in srgb, var(--paint-lime) 60%, transparent); }
+.pr-memory-map [data-step='3'] { background: var(--paint-lime); }
+.pr-memory-map [data-step='rest'] { visibility: hidden; }
 button.pr-midi { height: 36px; max-width: 150px; padding: 0; border: 0; display: flex; align-items: center; gap: 8px; background: none; color: #ffffff; font: inherit; font-size: 15px; cursor: pointer; }
 .pr-midi span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr-midi[data-off='true'] { max-width: none; padding: 0 14px; border: 1px solid var(--line-600); border-radius: var(--radius-pill); color: #ffffff; }
@@ -449,3 +457,16 @@ button.pr-comp:disabled { opacity: 0.4; cursor: default; }
   .pr-result-map div { height: 20px; }
 }
 @media (max-width: 1000px) { .pr-result-main { flex-direction: column; align-items: stretch; } .pr-result-disc { align-self: center; } .pr-result-tag { flex-basis: auto; } }
+
+/* A set: the quiet strip, what's next, and the short score between songs */
+.set-bar { position: absolute; z-index: 21; left: 16px; bottom: 16px; max-width: 60%; box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 4px 6px 4px 14px; border-radius: var(--radius-pill); background: rgba(0, 0, 0, 0.6); color: var(--sand); font-size: var(--text-base); opacity: 0.6; transition: opacity 0.15s; }
+.set-bar:hover, .set-bar:focus-within { opacity: 1; }
+.set-bar-song { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.set-bar button { flex-shrink: 0; min-height: 32px; padding: 0 10px; border: 0; border-radius: var(--radius-pill); background: none; color: #ffffff; font: inherit; cursor: pointer; text-decoration: underline; }
+.set-next { position: absolute; left: 0; bottom: calc(100% + 6px); width: min(320px, calc(100vw - 32px)); box-sizing: border-box; margin: 0; padding: 12px 12px 12px 32px; border-radius: var(--radius-sm); background: rgba(0, 0, 0, 0.85); color: #ffffff; }
+.set-next li { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.6; }
+.set-next li.o-note { margin-left: -20px; list-style: none; color: var(--sand); }
+.set-score { position: absolute; z-index: 20; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 32px); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 40px; border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.78); color: #ffffff; text-align: center; pointer-events: none; }
+.set-score .o-note { color: var(--sand); }
+.set-score-pct { font-size: min(96px, 16vh); line-height: 1; letter-spacing: -0.03em; }
+.set-row-title { flex: 1; min-width: 0; overflow: hidden; font-size: 20px; letter-spacing: var(--tracking-tight); white-space: nowrap; text-overflow: ellipsis; }

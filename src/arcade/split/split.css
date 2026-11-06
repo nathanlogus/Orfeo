@@ -1,0 +1,53 @@
+/* Kite Festival: the sky behind the diorama, weather over it, and the lanes. */
+.ac-stage.sp-scene { inset: 0 0 calc(-1 * var(--keys, 150px)); overflow: hidden; background: linear-gradient(#bfe3f2 60%, #2a89b8 60%); }
+.ac-stage.sp-scene[data-storm] { background: linear-gradient(#4b4a66 60%, #1f4f78 60%); }
+
+/* The boss: rain and lightning, light as CSS */
+.sp-weather { position: absolute; inset: 0 0 calc(-1 * var(--keys, 150px)); overflow: hidden; pointer-events: none; }
+.sp-rain { position: absolute; left: 0; top: -200px; width: calc(100% + 96px); height: calc(100% + 400px); opacity: 0.14; animation: sp-rain 0.5s linear infinite;
+  background: repeating-linear-gradient(104deg, transparent 0 22px, #fbf8f5 22px 24px, transparent 24px 66px); }
+@keyframes sp-rain { to { transform: translate(-48px, 200px); } }
+.sp-flash { position: absolute; inset: 0; background: #fbf8f5; opacity: 0; animation: sp-flash 11s linear infinite; }
+@keyframes sp-flash { 0%, 91%, 93%, 95%, 100% { opacity: 0; } 92%, 94% { opacity: 0.4; } }
+
+/* The lanes, as on the board: 560 wide at 1280, 40 from the edge */
+.sp-lanes { position: absolute; left: 3.125%; right: 3.125%; bottom: 64px; display: flex; justify-content: space-between; pointer-events: none; }
+.sp-lane { width: 46.667%; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 14px; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 16px; background: var(--paper-card); box-shadow: 4px 4px 0 var(--ink); --hand: var(--paint-blue); }
+.sp-lane[data-hand='right'] { --hand: var(--paint-pink); }
+.sp-lane[data-resting] .sp-strip { opacity: 0.4; }
+.sp-lane header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 22px; }
+.sp-lane header b { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.sp-lane header i { flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--hand); }
+.sp-lane header span { margin-left: auto; color: var(--ink-soft); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-lane header button { flex-shrink: 0; height: 28px; padding: 0 10px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--paper-card); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; pointer-events: auto; }
+.sp-lane header button[aria-pressed='true'] { background: var(--paint-yellow); }
+
+.sp-strip { position: relative; height: 44px; }
+.sp-clip { position: absolute; inset: 0; overflow: hidden; border-radius: 10px; background: #f1e8de; }
+.sp-track { position: absolute; left: 36px; top: 6px; bottom: 6px; will-change: transform; --gap: 9px; }
+.sp-line { position: absolute; left: 34px; top: -4px; width: 4px; height: 52px; background: var(--ink); }
+.sp-note { position: absolute; top: 0; bottom: 0; min-width: 18px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; overflow: hidden; border: 2px solid var(--ink); border-radius: 8px; background: var(--paper-card); font-weight: 600; letter-spacing: -0.4px; }
+.sp-note[data-state='now'] { background: var(--hand); }
+.sp-note[data-state='done'] { background: var(--hand); opacity: 0.45; }
+.sp-note[data-state='missed'] { border-style: dashed; opacity: 0.45; }
+.sp-note[data-wrong] { outline: 2px solid var(--paint-yellow); }
+
+.sp-split, .sp-bonus { position: absolute; left: 50%; height: 30px; box-sizing: border-box; display: flex; align-items: center; padding: 0 12px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--paint-yellow); font-size: 14px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.sp-split { bottom: 12px; transform: translateX(-50%); }
+.sp-bonus { bottom: 196px; opacity: 0; background: var(--paper-card); }
+.sp-bonus:empty { display: none; }
+
+@media (max-width: 759px) {
+  .sp-lanes { flex-direction: column; gap: 8px; bottom: 50px; }
+  .sp-lane { width: 100%; padding: 8px 12px 10px; gap: 6px; border-radius: 12px; }
+  .sp-lane header b { font-size: 14px; }
+  .sp-lane header span { font-size: 12px; }
+  .sp-track { --gap: 4px; }
+  .sp-note { font-size: 13px; }
+  .sp-bonus { bottom: 260px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-rain { animation: none; }
+  .sp-flash { display: none; }
+}

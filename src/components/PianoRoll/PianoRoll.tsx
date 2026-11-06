@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Application, Graphics } from 'pixi.js'
 import type { Track } from '@tonejs/midi'
 import { useStore, activeKeyRange } from '../../store'
-import { isBlackKey } from '../../utils/midiParser'
+import { isBlackKey } from '../../utils/keyLayout'
 import { buildKeyLayout, type KeyLayout } from '../../utils/keyLayout'
 import { NES } from '../../utils/noteEditorState'
 import { noteSelection, assignSelectedHand, deleteSelectedNotes } from '../NoteEditor/noteSelection'
@@ -15,9 +15,11 @@ import { PENCIL_CURSOR } from '../../utils/cursors'
 import type { Hand } from '../../types'
 import { HAND_LH_CSS, HAND_RH_CSS } from '../../utils/handColors'
 import { HitEffectsRenderer } from './HitEffects'
-import { drainHitEffects } from '../../utils/hitEffectQueue'
+import { drainHitEffects, drainPracticeMarks, resolveCssColor } from '../../utils/hitEffectQueue'
 import { isShown } from '../../utils/trackShown'
 import { inPracticeLevel } from '../../utils/practiceLevels'
+import { memoryStepAt } from '../../utils/practiceSession'
+import { MEMORY_FADE, MEMORY_GONE } from '../../utils/practiceScore'
 
 const VISIBLE_SECONDS  = 6
 const NOTE_RADIUS      = 3
@@ -878,10 +880,12 @@ export default function PianoRoll() {
         if (hitEffectsEnabled) {
           hitEffects.setBloomParams({ threshold: hitEffectBloomThreshold, intensity: hitEffectBloomIntensity, spread: hitEffectBloomSpread })
           const hits = drainHitEffects()
+          // Notes played from memory give nothing away as they sound
+          const unseen = memoryStepAt(currentTime) === MEMORY_GONE
           // hitEffectColor overrides the particle color only — leaves the queued
           // per-track color (and the key glow, a separate render path) untouched.
           const overrideHex = hitEffectColor ? parseInt(hitEffectColor.replace('#', ''), 16) : null
-          for (const hit of hits) {
+          for (const hit of unseen ? [] : hits) {
             const idx = hit.midi - midiMin
             if (idx < 0 || idx >= totalKeys) continue
             const key = keyLayoutRef.current[idx]
@@ -889,6 +893,13 @@ export default function PianoRoll() {
             const colorHex = overrideHex ?? parseInt(hit.color.replace('#', ''), 16)
             hitEffects.spawn(hitEffectPattern, key.x + key.width / 2, py, colorHex)
           }
+        }
+        // What the player's own keys did, hit or missed, whatever the effects setting
+        for (const mark of drainPracticeMarks()) {
+          const key = keyLayoutRef.current[mark.midi - midiMin]
+          if (!key) continue
+          const color = parseInt(resolveCssColor(mark.hit ? 'var(--paint-lime)' : 'var(--paint-rose)').replace('#', ''), 16)
+          hitEffects.spawnPracticeMark(mark.hit, key.x + key.width / 2, py, color)
         }
 
         // ── Edit mode enter/exit — create or destroy NES.editMidi ────────────
@@ -1016,6 +1027,8 @@ export default function PianoRoll() {
           const ts = trackMap.get(note.trackIndex)
           if (ts && !isShown(ts, hasSolo)) continue   // what shows: eye, mute and solo (trackShown.ts)
           if (!noteEditorActive && !inPracticeLevel(note.trackIndex, note.midi, note.time)) continue
+          const fade = MEMORY_FADE[memoryStepAt(note.time)]
+          if (!fade) continue
 
           const idx = (note.midi + transpose) - midiMin
           if (idx < 0 || idx >= totalKeys) continue
@@ -1055,13 +1068,13 @@ export default function PianoRoll() {
 
           const drawW = Math.max(key.width - 2, 1)
           notes.roundRect(key.x + 1, topY, drawW, noteH, NOTE_RADIUS)
-          notes.fill({ color, alpha: 0.9 })
+          notes.fill({ color, alpha: 0.9 * fade })
           if (blackPass) {
             notes.roundRect(key.x + 1, topY, drawW, noteH, NOTE_RADIUS)
-            notes.stroke({ width: 2, color: 0x141210, alpha: 0.9 })
+            notes.stroke({ width: 2, color: 0x141210, alpha: 0.9 * fade })
           }
           notes.rect(key.x + 1, topY, drawW, 2)
-          notes.fill({ color: NOTE_HIGHLIGHT_COLOR, alpha: 0.25 })
+          notes.fill({ color: NOTE_HIGHLIGHT_COLOR, alpha: 0.25 * fade })
 
           // ── Non-color hand signal — a thin edge accent (left = LH, right =
           // RH), not a hue, so a colorblind user keeps the hand cue during
@@ -1070,14 +1083,14 @@ export default function PianoRoll() {
             const edgeW = Math.min(2, drawW)
             const edgeX = note.hand === 'L' ? key.x + 1 : key.x + 1 + drawW - edgeW
             notes.rect(edgeX, topY, edgeW, noteH)
-            notes.fill({ color: 0xffffff, alpha: 0.55 })
+            notes.fill({ color: 0xffffff, alpha: 0.55 * fade })
           }
 
           // The letter sits where the note lands. The Note Editor has its own labels.
           const labelBase = topY + noteH - 3
           if (ctx && !noteEditorActive && drawW >= 9 && (labelY.get(idx) ?? Infinity) - labelBase >= 12) {
             const label = getNoteLabel(note.midi + transpose, noteNaming, accidentals).replace(/-?\d+$/, '')
-            if (label) { ctx.fillText(label, key.x + key.width / 2, labelBase); labelY.set(idx, labelBase) }
+            if (label) { ctx.globalAlpha = fade; ctx.fillText(label, key.x + key.width / 2, labelBase); ctx.globalAlpha = 1; labelY.set(idx, labelBase) }
           }
         }
 

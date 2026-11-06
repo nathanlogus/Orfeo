@@ -34,6 +34,69 @@ const LICENSE_URL = {
   'Python-2.0': 'https://www.python.org/download/releases/2.0/license/',
 };
 
+// Bundled art, music and data: none of it is an npm package, so the report never lists it
+const BUNDLED_CREDITS = `## Groove MIDI Dataset
+
+The drum grooves in Jam (\`src/jam/grooves.ts\`) come from the Groove MIDI Dataset by Magenta, Google: https://magenta.tensorflow.org/datasets/groove
+
+Licensed under the Creative Commons Attribution 4.0 International License: http://creativecommons.org/licenses/by/4.0/
+
+Changes made: twelve performances were cut to two-bar loops and mapped onto the General MIDI drum kit (\`src/jam/buildGrooves.mjs\`).
+
+---
+
+## Arcade art and music
+
+Curated by \`scripts/arcade-assets.mjs\` and \`scripts/arcade-licks.mjs\`. Files live in
+\`public/arcade/\` and \`src/arcade/library/licks.ts\`.
+
+| Used for | Pack | Author | License |
+|---|---|---|---|
+| Monster Hollow graveyard, lanterns | KayKit Halloween Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Monster Hollow village, ground, clouds | KayKit Medieval Hexagon Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Monster Hollow trees, rock, bush | KayKit Forest Nature Pack 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Monster Hollow monsters, converted from FBX, recoloured | Animated Monsters | [Quaternius](https://www.patreon.com/quaternius) | CC0 1.0 |
+
+Arcade riffs and some progressions come from SundayLicks. Riffs were converted to alphaTex and
+their names translated. Some progressions come from free-midi-chords.
+
+<details>
+<summary>SundayLicks and free-midi-chords: MIT license text</summary>
+
+\`\`\`
+MIT License
+
+Copyright (c) 2026 Richard Fossland
+(SundayLicks, https://github.com/richardfossland/sundaylicks)
+
+Copyright (c) 2019 Ludovic Drolez
+(free-midi-chords, https://github.com/ldrolez/free-midi-chords)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+\`\`\`
+
+</details>
+
+---
+
+`;
+
 // Short canonical text per group, shown once inside the collapsed accordion.
 const CANONICAL_TEXT = {
   'MIT': `Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -179,7 +242,7 @@ if (flagged.length) {
   out += `\n`;
 }
 
-out += `---\n\n`;
+out += `---\n\n` + BUNDLED_CREDITS;
 
 for (const groupKey of sortedGroupKeys) {
   const pkgs = groups.get(groupKey).sort(([a], [b]) => a.localeCompare(b));

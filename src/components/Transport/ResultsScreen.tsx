@@ -34,6 +34,7 @@ export default function ResultsScreen() {
           <div className="pr-result-head">
             <span className="o-note">{r.song} · {r.level === 0 ? t`automatic level` : t`level ${r.level}`} · {t`${r.tempoPercent}% tempo`}</span>
             <h1 id="pr-result-title">{r.title}</h1>
+            {r.notCounted && <span className="o-note">{r.notCounted}</span>}
           </div>
 
           <div className="pr-result-main">
@@ -74,7 +75,7 @@ export default function ResultsScreen() {
         </div>
 
         <div className="pr-result-actions">
-          <button className="o-btn-quiet" onClick={() => { closeResult(); useStore.getState().setHomeOpen(true) }}>{t`Back to library`}</button>
+          <button className="o-btn-quiet" onClick={() => { closeResult(); useStore.getState().setHomeOpen(true) }}>{t`Back to menu`}</button>
           <span className="o-spacer" />
           {r.next && <button className="o-btn o-btn-lg" onClick={() => practise(r.next!)}>{t`Next: bars ${r.next.shortLabel}`}</button>}
           <button className="o-btn-primary o-btn-lg" onClick={() => practise(r.again)}>{t`Play bars ${r.again.shortLabel} again`}</button>

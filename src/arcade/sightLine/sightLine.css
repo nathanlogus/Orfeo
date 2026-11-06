@@ -1,0 +1,36 @@
+/* Sight Line. Sizes are multiples of --gap, the space between two staff lines. */
+/* The Arcade zooms its boards whole, so sizes follow the slot (cqh), not the window. Board: 650 tall. */
+.sl-world { position: absolute; inset: 0; overflow: hidden; container-type: size; color: var(--ink); background: #f6d7a8; letter-spacing: -0.4px; }
+.sl-band { --gap: min(22px, 3.385cqh); --line: 23.125%; }
+.sl-world[data-grand] .sl-band { --gap: min(17.6px, 2.71cqh); --band-top: 23cqh; }
+
+
+.sl-band { position: absolute; left: 0; right: 0; top: var(--band-top, 36.3cqh); box-sizing: content-box; border-block: 3px solid var(--ink); background: var(--paper-card); }
+.sl-over { border-color: transparent; background: none; pointer-events: none; }
+.sl-rule { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--ink); }
+.sl-clefs { position: absolute; left: 0; top: 0; height: 100%; overflow: visible; }
+.sl-trail { position: absolute; inset: 0 0 0 calc(var(--line) - var(--gap) * 2); overflow: hidden; }
+.sl-strip { position: absolute; top: 0; bottom: 0; left: calc(var(--gap) * 2); will-change: transform; }
+.sl-line { position: absolute; top: 0; height: 100%; overflow: visible; }
+.sl-line ellipse, .sl-line text { transition: opacity 0.15s; }
+.sl-line [data-state='hit'] { opacity: 0.2; }
+.sl-line [data-state='miss'] { fill: #a3127f; }
+.sl-ring { --span: 0; position: absolute; left: 0; top: 0; width: 0; height: 0; transition: transform 0.12s ease-out; }
+.sl-ring::before { content: ''; position: absolute; left: calc(var(--gap) * -1.23); top: calc(var(--gap) * (-1.23 - var(--span) / 2)); box-sizing: border-box; width: calc(var(--gap) * 2.45); height: calc(var(--gap) * (2.45 + var(--span))); border: 3px solid var(--ink); border-radius: 999px; background: inherit; }
+.sl-ring { background: var(--paint-yellow); }
+.sl-ring span { position: absolute; left: calc(var(--gap) * 1); top: calc(var(--gap) * (1.1 + var(--span) / 2)); padding: 0 4px; border-radius: 4px; background: var(--paper-card); font-size: 14px; font-weight: 600; white-space: nowrap; }
+
+.sl-bar { position: absolute; left: var(--line); top: 0; bottom: 0; width: 6px; margin-left: -5px; border-inline: 2px solid var(--ink); background: var(--paint-yellow); }
+.sl-shade { position: absolute; left: calc(var(--line) - var(--gap) * 7.2); top: 0; width: calc(var(--gap) * 6.4); height: calc(var(--gap) * 0.8); margin-top: calc(var(--gap) * -0.4); border-radius: 50%; background: rgba(120, 70, 40, 0.28); }
+
+.sl-card { position: absolute; top: 72.3cqh; box-sizing: border-box; padding: 12px 16px; border: 2px solid var(--ink); border-radius: 14px; background: var(--paper-card); box-shadow: 3px 3px 0 var(--ink); }
+.sl-tip { left: 40px; display: flex; flex-direction: column; gap: 4px; max-width: 360px; font-size: 14px; line-height: 1.35; color: var(--ink-soft); }
+.sl-tip b { font-size: 15px; font-weight: 600; color: var(--ink); }
+.sl-ahead { right: 40px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 14px; color: var(--ink-soft); }
+.sl-ahead span:last-child { display: flex; gap: 4px; }
+.sl-ahead i { width: 14px; height: 14px; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 4px; }
+.sl-ahead i[data-on] { background: var(--ink); }
+
+@media (max-height: 620px) { .sl-tip { display: none; } .sl-card { top: auto; bottom: 44px; } }
+@media (max-width: 760px) { .sl-band { --line: 34%; } .sl-tip { display: none; } }
+@media (prefers-reduced-motion: reduce) { .sl-ring { transition: none; } }

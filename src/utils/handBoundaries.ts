@@ -1,4 +1,4 @@
-import { isBlackKey } from './midiParser'
+import { isBlackKey } from './keyLayout'
 import type { ParsedMidi, Hand } from '../types'
 import { KEYBOARD_GROUPS } from './keyboardGroups'
 

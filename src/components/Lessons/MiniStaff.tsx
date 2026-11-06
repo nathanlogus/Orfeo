@@ -1,5 +1,6 @@
 import bravuraUrl from '@coderline/alphatab/font/Bravura.woff2?url'
 import { useStore } from '../../store'
+import PianoKeys from '../Keyboard/PianoKeys'
 import { midiOf, noteParts, staffStep, tapBeats, tokenBeats } from '../../lessons/drill'
 import type { Clef } from '../../lessons/course'
 
@@ -109,36 +110,18 @@ export function RhythmLine({ tokens, beats, activeBeat }: { tokens: string[]; be
 
 // ── Two octaves of keys, with the C's marked, for the first lesson ───────────
 export function KeyMap({ highlight }: { highlight: 'c' | 'middle' }) {
-  const WHITE_W = 22, HEIGHT = 96, whites = 15
-  const blacks = [1, 2, 4, 5, 6, 8, 9, 11, 12, 13]
   return (
-    <svg role="img" aria-label="Keyboard" viewBox={`0 0 ${whites * WHITE_W + 2} ${HEIGHT + 2}`} width={480} style={{ maxWidth: '100%' }}>
-      {Array.from({ length: whites }, (_, i) => {
-        const isC = i % 7 === 0
-        const lit = highlight === 'middle' ? i === 7 : isC
-        return <rect key={i} x={i * WHITE_W + 1} y={1} width={WHITE_W} height={HEIGHT} fill={lit ? 'var(--paint-yellow)' : '#fbf8f5'} stroke="#000" />
-      })}
-      {blacks.map(i => <rect key={i} x={i * WHITE_W + 1 - 7} y={1} width={14} height={58} fill="#000" />)}
-    </svg>
+    <div className="lesson-keymap">
+      <PianoKeys
+        min={48} max={72} role="img" aria-label="Keyboard" style={{ height: '100%', maxWidth: '100%', aspectRatio: '332 / 98' }}
+        keyProps={midi => ({ 'data-lit': (highlight === 'middle' ? midi === 60 : midi % 12 === 0) || undefined })}
+      />
+    </div>
   )
 }
 
 // ── Three octaves that show what's held on the MIDI keyboard. Not played, only read ──
-const HELD_LOW = 48, HELD_HIGH = 84
-const IS_BLACK = [1, 3, 6, 8, 10]
-
-export function HeldKeys({ height, className }: { height: number; className?: string }) {
+export function HeldKeys({ className }: { className?: string }) {
   const held = useStore(s => s.midiHeldKeys)
-  const whites: number[] = [], blacks: { key: number; at: number }[] = []
-  for (let key = HELD_LOW; key <= HELD_HIGH; key++) {
-    if (IS_BLACK.includes(key % 12)) blacks.push({ key, at: whites.length })
-    else whites.push(key)
-  }
-  const w = 42
-  return (
-    <svg className={`held-keys ${className ?? ''}`} aria-hidden viewBox={`0 0 ${whites.length * w} ${height}`} preserveAspectRatio="none" width="100%" height={height} style={{ flexShrink: 0, background: '#000' }}>
-      {whites.map((key, i) => <rect key={key} x={i * w} width={w - 1} height={height} rx={3} fill={held.has(key) ? 'var(--paint-yellow)' : '#fbf8f5'} />)}
-      {blacks.map(({ key, at }) => <rect key={key} x={at * w - w * 0.31} width={w * 0.62} height={height * 0.6} rx={3} fill={held.has(key) ? 'var(--paint-yellow)' : '#000'} stroke="#3d3935" />)}
-    </svg>
-  )
+  return <PianoKeys min={48} max={84} className={`held-keys ${className ?? ''}`} aria-hidden keyProps={midi => ({ 'data-held': held.has(midi) || undefined })} />
 }

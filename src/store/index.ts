@@ -13,6 +13,7 @@ import type { ForeignFormat } from '../utils/foreignFormatImport'
 import type { ScoreSource } from '../utils/scoreSource'
 import type { ProgressionVoicing } from '../utils/voiceLeading'
 import type { PracticeResult } from '../utils/practiceResult'
+import type { SetRun } from '../utils/setSession'
 import { detectKeyFromTracks, parseKeySignature } from '../utils/keyDetection'
 import { isKeyboardInstrument } from '../utils/gmInstruments'
 import { parseMidiBuffer } from '../utils/midiParser'
@@ -154,6 +155,8 @@ interface PliageStore {
     v: { rootPitchClass: number; intervals: string[]; voicing?: number[]; inversionCount?: number } | null,
   ) => void
   scaleExplorerOpen: boolean
+  scaleStarmapView: boolean
+  setScaleStarmapView: (on: boolean) => void
   scaleExplorerMinimized: boolean
   setScaleExplorerOpen: (open: boolean) => void
   setScaleExplorerMinimized: (v: boolean) => void
@@ -179,8 +182,11 @@ interface PliageStore {
   // 1-5 is a level you chose, 0 is Auto: each phrase's level follows your playing
   practiceLevel: number
   setPracticeLevel: (level: number) => void
+  memoryMode: boolean
+  setMemoryMode: (on: boolean) => void
   phraseLevels: number[]
-  phraseResult: { percent: number; level: number; mastery: number } | null
+  phraseMemory: (number | null)[]
+  phraseResult: { percent: number; level: number; mastery: number; moved: number } | null
   // The Results screen: set when a song ends, or by End, if keys were played
   practiceResult: PracticeResult | null
   // The Lock-a-Chord hint on the roll
@@ -245,6 +251,8 @@ interface PliageStore {
   // The lesson being taken, and the lessons passed (lessons/session.ts)
   lessonRun: { id: string; step: LessonStep; percent: number | null; clean: number } | null
   lessonPassed: string[]
+  // The set being played, songs back to back (utils/setSession.ts)
+  setRun: SetRun | null
   setHomeOpen: (open: boolean) => void
   // A song to open the way a Library click does (SettingsPanel owns that path)
   songToOpen: string | null
@@ -770,6 +778,8 @@ export const useStore = create<PliageStore>((set, get) => ({
   pendingChordExplorerSeed: null,
   setPendingChordExplorerSeed: (pendingChordExplorerSeed) => set({ pendingChordExplorerSeed }),
   scaleExplorerOpen: false,
+  scaleStarmapView: false,
+  setScaleStarmapView: (scaleStarmapView) => set({ scaleStarmapView }),
   scaleExplorerMinimized: false,
   lockedChordModalOpen: false,
   setLockedChordModalOpen: (lockedChordModalOpen) => set({ lockedChordModalOpen }),
@@ -802,7 +812,10 @@ export const useStore = create<PliageStore>((set, get) => ({
   setWaitForNotes: (waitForNotes) => set({ waitForNotes }),
   practiceLevel: 5,
   setPracticeLevel: (practiceLevel) => set({ practiceLevel }),
+  memoryMode: false,
+  setMemoryMode: (memoryMode) => set({ memoryMode }),
   phraseLevels: [],
+  phraseMemory: [],
   phraseResult: null,
   practiceResult: null,
   lockHintOpen: false,
@@ -914,6 +927,7 @@ export const useStore = create<PliageStore>((set, get) => ({
   homeOpen: false,
   lessonRun: null,
   lessonPassed: [],
+  setRun: null,
   setHomeOpen: (homeOpen) => set({ homeOpen }),
   songToOpen: null,
   openSong: (songToOpen, cover) => set((s) => ({ songToOpen, presentationMode: false, songCovers: cover ? { ...s.songCovers, [songToOpen]: cover } : s.songCovers })),

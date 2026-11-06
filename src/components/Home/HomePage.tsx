@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, FolderOpen, LayoutGrid, List, Loader2, MoreHorizontal, Search, Settings, Wifi, X } from 'lucide-react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft, Check, FolderOpen, LayoutGrid, List, Loader2, MoreHorizontal, Play, Search, Settings, Wifi, X } from 'lucide-react'
 import '../../styles/redesign-home.css'
 import { useStore } from '../../store'
 import { useMidiFile } from '../../hooks/useMidiFile'
@@ -13,11 +13,15 @@ import { SettingsDropdown } from '../Settings/controls'
 import { NewVersionDot } from '../Settings/NewVersionDot'
 import { ContextMenu, ContextMenuItem } from '../ContextMenu'
 import { openFolders, openSongMenu, useFoldersPage } from '../SettingsPanel/foldersPage'
-import { resumeSong, songKey } from '../../utils/practiceSession'
+import { resumePhrase, resumeSong, songKey } from '../../utils/practiceSession'
+import { playSet } from '../../utils/setSession'
+import { phraseStarts, type PhraseProgress } from '../../utils/practiceScore'
+import { usePlayback } from '../../hooks/usePlayback'
 import PliageMark from '../PliageMark'
 import PliageLogo from '../PliageLogo'
 import LearnHome from '../Lessons/LearnHome'
 import FirstRun from './FirstRun'
+import HomeMenu, { GAME_MODES, pageOnTop, type MenuSection } from './HomeMenu'
 import type { SongServerList, SongServerSong } from '../../types'
 
 const PAGE = 100
@@ -27,17 +31,18 @@ const COPIED_MS = 1500
 const SERVER_COMMAND = 'npm run android:songs -- "your song folder"'
 
 type Source = 'device' | 'server'
-type Section = 'learn' | 'library'
+type Section = 'menu' | MenuSection
 
 // ── Where every session starts: find a song, on this device or the home server ──
 // The page closes while a song is open: going back finds it as you left it
 let remembered: Partial<{
-  section: Section; source: Source; q: string; genre: string | null; artist: string | null; arrangement: string; difficulty: string
+  source: Source; q: string; genre: string | null; artist: string | null; arrangement: string; difficulty: string
   songKeyFilter: string; handsFilter: string; classicOnly: boolean; sort: SongSort
 }> = {}
 
 export default function HomePage() {
   const { openFile } = useMidiFile()
+  const { seek, pause } = usePlayback()
   const hasSong = useStore(s => !!s.midi)
   const barTimes = useStore(s => s.midi?._barTimes)
   const loadedPath = useStore(s => (s.midi as any)?._filePath as string | undefined)
@@ -49,13 +54,15 @@ export default function HomePage() {
   const hiddenFiles = useStore(s => s.hiddenLibraryFiles)
   const showHiddenFiles = useStore(s => s.showHiddenLibraryFiles)
   const openFailed = useFoldersPage(s => s.failed)
+  const inLesson = useStore(s => !!s.lessonRun)
   const midiConnected = useStore(s => s.midiDeviceConnected)
   const midiName = useStore(s => s.midiDeviceName)
+  const lessonActive = useStore(s => !!s.lessonRun)
 
-  const [section, setSection] = useState<Section>(remembered.section ?? 'library')
+  const [section, setSection] = useState<Section>('menu')
   const [source, setSource] = useState<Source>(remembered.source ?? 'device')
   const [view, setView] = useState<'cards' | 'list'>('cards')
-  const [progress, setProgress] = useState<Record<string, { mastery?: number }>>({})
+  const [progress, setProgress] = useState<Record<string, { mastery?: number; phrases?: PhraseProgress[] }>>({})
   const [q, setQ] = useState(remembered.q ?? '')
   const [genre, setGenre] = useState<string | null>(remembered.genre ?? null)
   const [artist, setArtist] = useState<string | null>(remembered.artist ?? null)
@@ -67,8 +74,8 @@ export default function HomePage() {
   const [classicOnly, setClassicOnly] = useState(remembered.classicOnly ?? false)
   const [sort, setSort] = useState<SongSort>(remembered.sort ?? 'title')
   useEffect(() => {
-    remembered = { section, source, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort }
-  }, [section, source, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort])
+    remembered = { ...remembered, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort }
+  }, [q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort])
   const [catalog, setCatalog] = useState<unknown>(null)
   const [facets, setFacets] = useState<Pick<SongServerList, 'arrangements' | 'difficulties' | 'keys' | 'hands' | 'classics'>>({ arrangements: [], difficulties: [], keys: [], hands: [], classics: 0 })
 
@@ -89,6 +96,8 @@ export default function HomePage() {
   const [deviceShown, setDeviceShown] = useState(PAGE)
   const [searching, setSearching] = useState(false)
   const [firstRun, setFirstRun] = useState(false)
+  // The menu's first highlight depends on the saved song: nothing shows until that's known
+  const [ready, setReady] = useState(false)
   const latestQuery = useRef(0)
   const lookedForServer = useRef(false)
 
@@ -107,9 +116,8 @@ export default function HomePage() {
       if (p.homeView === 'list') setView('list')
       setProgress(p.practiceProgress ?? {})
       useStore.setState({ lessonPassed: p.lessonPassed ?? [] })
-      if (p.homeSection === 'learn' && !remembered.section) setSection('learn')
       // A song that has since gone from the disk has nothing to go back to
-      if (p.lastPlayed) void window.electronAPI.statFiles([p.lastPlayed.path]).then(found => { if (found.length) setLast(p.lastPlayed) })
+      void (p.lastPlayed ? window.electronAPI.statFiles([p.lastPlayed.path]) : Promise.resolve([])).then(found => { if (found.length) setLast(p.lastPlayed) }).finally(() => setReady(true))
       // Only a truly new install: anyone with a folder, a server or progress already knows the app
       if (!p.firstRunDone && !p.libraryFolder && !p.songServerUrl && !p.practiceProgress && !p.homeView) setFirstRun(true)
       if (!p.songServerUrl) return
@@ -118,6 +126,9 @@ export default function HomePage() {
       if (!remembered.source) setSource('server')
     })
   }, [])
+
+  // A lesson with no music opens over this page, and leaving it comes back to the menu
+  useEffect(() => { if (inLesson) setSection('menu') }, [inLesson])
 
   useEffect(() => {
     window.electronAPI.onSongServerProgress(d => setPercent(d.percent))
@@ -220,16 +231,11 @@ export default function HomePage() {
     void window.electronAPI.setPrefs({ homeView: next })
   }
 
-  const changeSection = (next: Section) => {
-    setSection(next)
-    void window.electronAPI.setPrefs({ homeSection: next })
-  }
-
   const clearFilters = () => {
     setGenre(null); setArtist(null); setArrangement(''); setDifficulty(''); setSongKeyFilter(''); setHandsFilter(''); setClassicOnly(false); setSort('title')
   }
   const switchSource = (next: Source) => {
-    setSource(next); clearFilters(); setError(''); setDeviceShown(PAGE)
+    remembered.source = next; setSource(next); clearFilters(); setError(''); setDeviceShown(PAGE)
   }
   const pickGenre = (name: string | null) => { setGenre(name); setArtist(null); setDeviceShown(PAGE) }
   const filtered = !!(genre || artist || arrangement || difficulty || songKeyFilter || handsFilter || classicOnly || sort !== 'title')
@@ -269,6 +275,24 @@ export default function HomePage() {
   }
   useEffect(() => () => { previewRun.current++; stopPreviewSound.current?.() }, [])
 
+  // A game mode has the sound to itself: the song behind it waits
+  useEffect(() => { if (GAME_MODES.some(m => m.id === section) && useStore.getState().playbackState === 'playing') pause() }, [section, pause])
+
+  const backToMenu = () => { stopPreview(); setSection('menu') }
+  const leave = useRef(backToMenu)
+  leave.current = backToMenu
+  // Capture, so an overlay about to close on Esc is still there to see. A game mode keeps Esc for itself.
+  useEffect(() => {
+    if (section !== 'library' && section !== 'learn') return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.target instanceof HTMLInputElement || !pageOnTop()) return
+      e.stopPropagation()
+      leave.current()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [section])
+
   const togglePreview = async (song: SongServerSong) => {
     const same = preview?.song.path === song.path
     stopPreview()
@@ -292,6 +316,14 @@ export default function HomePage() {
   }
   const previewOf = (s: SongServerSong) => (preview?.song.path === s.path ? preview.state : undefined)
 
+  // shortcut: a server set is the songs loaded so far, not the whole list; page the rest in here if sets outgrow that
+  const playAll = () => {
+    stopPreview()
+    void playSet(isServer
+      ? serverSongs.map(s => ({ path: s.path, title: s.title, size: s.size, server: address, cover: { art: s.art ?? null, people: s.people ?? [] } }))
+      : filteredDevice.map(s => ({ path: s.path, title: s.title, size: s.size })))
+  }
+
   const open = async (song: SongServerSong, fromServer = isServer) => {
     if (opening) return
     stopPreview()
@@ -300,6 +332,23 @@ export default function HomePage() {
     useFoldersPage.setState({ failed: null })
     const path = fromServer ? await fetchSong(song) : song.path
     if (path) useStore.getState().openSong(path, fromServer ? { art: song.art ?? null, people: song.people ?? [], title: song.title } : undefined)
+  }
+
+  const resume = () => {
+    if (hasSong) { useStore.getState().setHomeOpen(false); return }
+    if (!keepGoing || !keepGoingSong) return
+    resumeSong(keepGoing.path, keepGoing.time)
+    void open(keepGoingSong, false)
+  }
+
+  const fixPhrase = (phrase: number) => {
+    if (hasSong) {
+      seek(phraseStarts(barTimes ?? [])[phrase] ?? 0)
+      useStore.getState().setHomeOpen(false)
+    } else if (keepGoing && keepGoingSong) {
+      resumePhrase(keepGoing.path, phrase)
+      void open(keepGoingSong, false)
+    }
   }
 
   // Songs on this device get the Library's menu; one that's only on the server has less to offer
@@ -319,6 +368,8 @@ export default function HomePage() {
   const statusOf = (s: SongServerSong): SongStatus | undefined =>
     opening === s.path ? 'opening' : failed === s.path ? 'failed' : !isServer ? undefined : s.local ? 'local' : 'remote'
 
+  if (!ready) return <div className="theme-paper lib-page" />
+
   if (firstRun) {
     return <FirstRun pickFolder={pickFolder} onDone={server => {
       setFirstRun(false)
@@ -327,6 +378,21 @@ export default function HomePage() {
     }} />
   }
 
+  if (section === 'menu') {
+    const saved = keepGoing && progress[songKey(keepGoing.name)]
+    return (
+      <HomeMenu
+        last={keepGoing && keepGoingSong ? { played: keepGoing, song: keepGoingSong } : null}
+        songs={allDevice} phrases={saved?.phrases} mastery={saved?.mastery ?? 0} masteryOf={masteryOf}
+        homeServer={connected} failed={!!openFailed}
+        onResume={resume} onFixPhrase={fixPhrase} onOpenSong={song => void open(song, false)} onOpenSection={setSection} onChooseFolder={() => void pickFolder()}
+      />
+    )
+  }
+
+  const mode = GAME_MODES.find(m => m.id === section)
+  const GameMode = mode?.home
+  if (GameMode && mode?.ownPage) return <div className="theme-paper lib-page"><Suspense fallback={null}><GameMode onBack={backToMenu} /></Suspense></div>
   const showConnect = isServer && !connected
   const failure = isServer ? t`Couldn't download that song.` : t`Couldn't open that song.`
   // The top genres as chips, always with the chosen one; the Genre filter below still holds them all
@@ -342,11 +408,12 @@ export default function HomePage() {
   return (
     <div className="theme-paper lib-page">
       <header className="lib-header pliage-rise-in">
+        <button className="o-btn" onClick={backToMenu}><ArrowLeft size={16} aria-hidden />{t`Back to menu`}</button>
         <span className="lib-logo"><span className="lib-logo-disc"><PliageMark height={20} tone="sun" /></span><PliageLogo height={26} tone="night" /></span>
-        <div role="tablist" aria-label={t`Sections`} className="lib-seg">
-          <button role="tab" aria-selected={section === 'library'} onClick={() => changeSection('library')}>{t`Library`}</button>
-          <button role="tab" aria-selected={section === 'learn'} onClick={() => changeSection('learn')}>{t`Learn`}</button>
-        </div>
+        {!GameMode && <div role="tablist" aria-label={t`Sections`} className="lib-seg">
+          <button role="tab" aria-selected={section === 'library'} onClick={() => setSection('library')}>{t`Library`}</button>
+          <button role="tab" aria-selected={section === 'learn'} onClick={() => setSection('learn')}>{t`Learn`}</button>
+        </div>}
         <span className="o-spacer" />
         {section === 'learn' && midiConnected && <span className="lib-listening"><span className="o-dot o-dot-on" />{t`Lessons listen to ${midiName || t`your keyboard`}`}</span>}
         {section === 'library' && <label className="o-field lib-search">
@@ -358,12 +425,11 @@ export default function HomePage() {
           <button aria-pressed={view === 'cards'} aria-label={t`Show as cards`} onClick={() => changeView('cards')}><LayoutGrid size={17} /></button>
           <button aria-pressed={view === 'list'} aria-label={t`Show as a list`} onClick={() => changeView('list')}><List size={17} /></button>
         </div>}
-        <button className="o-btn lib-open" onClick={openFile}><FolderOpen size={16} aria-hidden />{t`Open file`}</button>
+        {!GameMode && <button className="o-btn lib-open" onClick={openFile}><FolderOpen size={16} aria-hidden />{t`Open file`}</button>}
         <button className="o-icon-btn" style={{ position: 'relative' }} onClick={() => useStore.getState().openSettingsWindow()} aria-label={t`Settings`}><Settings size={18} /><NewVersionDot /></button>
-        {hasSong && <button className="o-btn-primary" onClick={() => useStore.getState().setHomeOpen(false)}><ArrowLeft size={16} aria-hidden />{t`Back to song`}</button>}
       </header>
 
-      {section === 'learn' ? <LearnHome /> : showConnect ? (
+      {GameMode ? <Suspense fallback={null}><GameMode onBack={backToMenu} /></Suspense> : section === 'learn' ? <LearnHome /> : showConnect ? (
         <ConnectServer
           address={address} setAddress={setAddress} searching={searching} error={error} sourceSwitch={sourceSwitch}
           onConnect={() => { if (address.trim()) { setConnected(true); setError('') } }}
@@ -401,6 +467,7 @@ export default function HomePage() {
               {loading && isServer && <Loader2 size={15} className="home-spin" aria-label={t`Loading`} />}
               <span className="o-spacer" />
               {filtered && <button className="o-link" onClick={clearFilters}>{t`Clear filters`}</button>}
+              {songs.length > 1 && !lessonActive && <button className="o-btn" onClick={playAll}><Play size={14} fill="currentColor" aria-hidden />{t`Play all`}</button>}
               {isServer
                 ? <button className="o-link" onClick={() => setConnected(false)}>{t`Change server`}</button>
                 : <>
@@ -435,11 +502,7 @@ export default function HomePage() {
             </nav>}
 
             {view === 'cards' && (keepGoing && keepGoingSong
-              ? <KeepGoing song={keepGoingSong} last={keepGoing} onGo={() => {
-                  if (hasSong) { useStore.getState().setHomeOpen(false); return }
-                  resumeSong(keepGoing.path, keepGoing.time)
-                  void open(keepGoingSong, false)
-                }} />
+              ? <KeepGoing song={keepGoingSong} last={keepGoing} onGo={resume} />
               : !libraryFolder && !isServer && <NoFolder demos={allDevice.length > 0} onChoose={() => void pickFolder()} onDemo={() => void open(allDevice[0], false)} />)}
 
             <main className="lib-main">

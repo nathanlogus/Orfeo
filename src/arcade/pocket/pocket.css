@@ -1,0 +1,40 @@
+/* Pocket. The board is 1280 by 800, with the keyboard over the last 150. */
+.po-stage { inset: 0 0 -150px; background: #1b1838; }
+
+.po-click, .po-drift { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; border: 2px solid var(--ink); background: var(--paper-card); color: var(--ink); }
+.po-click { top: 112px; left: 40px; width: 250px; padding: 14px 16px; border-radius: 14px; box-shadow: 3px 3px 0 var(--ink); }
+.po-title { font-size: 14px; font-weight: 600; }
+.po-note { font-size: 14px; line-height: 1.35; color: var(--ink-soft); }
+.po-bars { display: grid; grid-template-columns: repeat(var(--bars), minmax(0, 1fr)); gap: 4px; }
+.po-bars span { height: 22px; box-sizing: border-box; border-radius: 5px; background: var(--ink); }
+.po-bars span[data-silent] { border: 2px dashed var(--ink); background: none; }
+.po-bars span[data-now] { box-shadow: 0 0 0 2px var(--paint-yellow); }
+.po-steps { position: relative; display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 2px; }
+.po-steps span { height: 12px; border-radius: 3px; background: var(--sand, #eadcce); }
+.po-steps span[data-beat] { background: #d6c6b6; }
+.po-steps span[data-hit] { background: var(--ink); }
+.po-steps i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--paint-pink); }
+
+.po-drift { left: calc(50% - 350px); bottom: 73px; width: 700px; max-width: calc(100% - 32px); padding: 14px 20px 16px; border-radius: 16px; box-shadow: 4px 4px 0 var(--ink); }
+.po-drift-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--ink-soft); }
+.po-drift-head b { font-size: 16px; font-weight: 600; color: var(--ink); }
+.po-track { position: relative; height: 28px; }
+.po-track i { position: absolute; display: block; }
+.po-line { left: 0; right: 0; top: 11px; height: 6px; border-radius: 999px; background: var(--sand, #eadcce); }
+.po-zone { top: 4px; height: 20px; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 999px; background: var(--paint-yellow); }
+.po-centre { left: 50%; top: 0; width: 2px; height: 28px; background: var(--ink); }
+.po-marker { left: 50%; top: -2px; width: 18px; height: 32px; margin-left: -9px; border-radius: 6px; background: var(--ink); }
+.po-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-soft); }
+
+/* The solar storm: a wash of light rolling across while the click is out */
+.po-storm { position: absolute; inset: 0 -40% -150px; opacity: 0; background: repeating-linear-gradient(100deg, rgba(240, 119, 91, 0) 0 120px, rgba(240, 119, 91, 0.3) 220px, rgba(244, 212, 50, 0.22) 300px, rgba(240, 119, 91, 0) 420px); transition: opacity 0.8s; animation: po-storm 6s linear infinite; pointer-events: none; }
+.po-storm[data-on] { opacity: 1; }
+@keyframes po-storm { to { transform: translateX(-420px); } }
+
+@media (max-width: 759px) {
+  .po-stage, .po-storm { bottom: -96px; }
+  .po-click { top: 116px; left: 12px; width: min(220px, calc(100% - 24px)); padding: 10px 12px; gap: 6px; }
+  .po-note { font-size: 13px; }
+  .po-drift { left: 16px; right: 16px; width: auto; bottom: 52px; padding: 10px 14px; gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .po-storm { animation: none; transition: none; } }

@@ -1,0 +1,57 @@
+/* Soft Touch: what sits over the paper room. Sizes are the board's own. */
+.st-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; pointer-events: none; white-space: nowrap; }
+.st-tag::after { content: ''; border: 7px solid transparent; border-top: 8px solid var(--ink); border-bottom: 0; }
+.st-tag > span { position: relative; display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; box-sizing: border-box; overflow: hidden; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper-card); color: var(--ink); font-size: 15px; font-weight: 600; }
+.st-tag em { font-style: normal; font-weight: 500; color: var(--ink-soft); }
+.st-tag-now > span { height: 44px; padding: 0 14px; background: var(--paint-yellow); box-shadow: 3px 3px 0 var(--ink); font-size: 18px; overflow: visible; }
+.st-tag-now[data-slip] > span { background: var(--paint-pink); }
+.st-tag-now i { position: absolute; left: 6px; right: 6px; bottom: 3px; height: 3px; border-radius: 2px; background: var(--ink); transform-origin: left; animation: st-due linear both; }
+[data-alarm] .st-tag:not(.st-tag-now) > span { background: var(--paint-pink); }
+
+.st-alarm { position: absolute; inset: 0; background: #d0213a; opacity: 0; pointer-events: none; animation: st-flash 1.3s ease-out; }
+.st-dark { position: absolute; inset: 0; background: #0b0a1c; opacity: 0; transition: opacity 0.35s 0.25s; pointer-events: none; }
+.st-dark[data-on] { opacity: 1; transition: opacity 0.2s; }
+.st-world[data-paused] * { animation-play-state: paused; }
+
+.st-wave > span:first-child { text-shadow: 0 1px 3px #000; }
+.ac-wave .st-mark { font-family: Georgia, serif; font-style: italic; }
+
+.st-meter { position: absolute; left: 32px; top: 160px; bottom: 50px; width: 116px; box-sizing: border-box; padding: 12px 12px 14px; border: 2px solid var(--ink); border-radius: 16px; background: var(--paper-card); box-shadow: 4px 4px 0 var(--ink); color: var(--ink); display: flex; flex-direction: column; gap: 8px; }
+.st-meter > span { font-size: 13px; font-weight: 600; text-align: center; }
+.st-meter > div { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: 30px 1fr; gap: 8px; }
+.st-meter p { display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; font-weight: 600; font-style: italic; font-family: Georgia, serif; text-align: right; }
+.st-meter > div > div { position: relative; border: 1.5px solid var(--ink); border-radius: 10px; background: #eadcce; }
+.st-window { position: absolute; left: 0; right: 0; background: var(--paint-yellow); border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); box-sizing: border-box; transition: bottom 0.22s, height 0.22s; }
+.st-last { position: absolute; left: -6px; right: -6px; height: 6px; margin-bottom: -3px; border-radius: 999px; background: var(--ink); transition: bottom 0.12s; }
+.st-last[data-slip] { background: var(--paint-pink); box-shadow: 0 0 0 1.5px var(--ink); }
+
+.ac-hint-row.st-pills { position: absolute; left: 0; right: 0; bottom: 0; gap: 10px; }
+.st-redo { color: var(--ink-soft); pointer-events: auto; cursor: pointer; font: inherit; font-size: 15px; letter-spacing: inherit; }
+.st-redo u { color: var(--ink); text-decoration: underline; }
+
+.st-setup { width: 560px; gap: 14px; }
+.st-setup h2 { font-size: 32px; font-weight: 500; letter-spacing: -1px; line-height: 1.1; }
+.st-setup p { font-size: 17px; line-height: 1.35; }
+.st-hits { display: flex; gap: 10px; padding-top: 4px; }
+.st-hits i { width: 26px; height: 26px; box-sizing: border-box; border: 2px solid var(--ink); border-radius: 50%; background: var(--paper-card); }
+.st-hits i[data-on] { background: var(--paint-yellow); }
+
+@keyframes st-flash { from { opacity: 0.38; } to { opacity: 0; } }
+@keyframes st-due { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 759px) {
+  .st-meter { left: 12px; top: 104px; bottom: 46px; width: 72px; padding: 8px; }
+  .st-meter > div { grid-template-columns: 1fr; }
+  .st-meter p { display: none; }
+  .ac-hint-row.st-pills { flex-wrap: wrap; bottom: 4px; }
+  .st-wave > span:first-child { display: none; }
+  .st-veil { align-items: flex-end; padding-top: 104px; }
+  .st-setup { gap: 8px; padding: 14px 18px; }
+  .st-setup h2 { font-size: 22px; }
+  .st-setup p.ac-soft { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-world * { animation: none !important; transition: none !important; }
+  .st-tag-now i { display: none; }
+}
