@@ -155,6 +155,8 @@ interface PliageStore {
     v: { rootPitchClass: number; intervals: string[]; voicing?: number[]; inversionCount?: number } | null,
   ) => void
   scaleExplorerOpen: boolean
+  scaleStarmapView: boolean
+  setScaleStarmapView: (on: boolean) => void
   scaleExplorerMinimized: boolean
   setScaleExplorerOpen: (open: boolean) => void
   setScaleExplorerMinimized: (v: boolean) => void
@@ -776,6 +778,8 @@ export const useStore = create<PliageStore>((set, get) => ({
   pendingChordExplorerSeed: null,
   setPendingChordExplorerSeed: (pendingChordExplorerSeed) => set({ pendingChordExplorerSeed }),
   scaleExplorerOpen: false,
+  scaleStarmapView: false,
+  setScaleStarmapView: (scaleStarmapView) => set({ scaleStarmapView }),
   scaleExplorerMinimized: false,
   lockedChordModalOpen: false,
   setLockedChordModalOpen: (lockedChordModalOpen) => set({ lockedChordModalOpen }),

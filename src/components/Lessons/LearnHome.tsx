@@ -6,6 +6,7 @@ import { COURSE, LESSONS, SHELF } from '../../lessons/courseData'
 import { isOpen, nextLesson } from '../../lessons/progress'
 import { openPiece, startLesson } from '../../lessons/session'
 import { CARD_FILLS } from '../SongBrowser/SongBrowser'
+import { EXPLORE_TOOLS } from './exploreTools'
 
 // ── The course on the home page: units down the side, lessons in the middle ──
 export default function LearnHome() {
@@ -31,6 +32,12 @@ export default function LearnHome() {
           <span style={{ flex: 1 }}>{t`Pieces`}</span>
           <span className="learn-unit-n">{SHELF.length}</span>
         </button>
+        <h3 className="lib-nav-head">{t`Explore`}</h3>
+        {EXPLORE_TOOLS.map(tool => (
+          <button key={tool.id} className="lib-nav-item learn-unit" onClick={tool.open}>
+            <span style={{ flex: 1 }}>{tool.name()}</span>
+          </button>
+        ))}
       </nav>
       {chosen === 'pieces' ? <main className="learn-main pliage-rise-in pliage-rise-in-3">
         <h1 className="learn-title">{t`Pieces`}</h1>

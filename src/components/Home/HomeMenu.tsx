@@ -7,6 +7,7 @@ import { MENU_KEYS, menuTap, songsInProgress, weakestPhrase, type MenuAction } f
 import { barRange } from '../../utils/practiceResult'
 import type { PhraseProgress } from '../../utils/practiceScore'
 import { COURSE } from '../../lessons/courseData'
+import { EXPLORE_TOOLS } from '../Lessons/exploreTools'
 import { nextLesson } from '../../lessons/progress'
 import { startLesson } from '../../lessons/session'
 import { Art, masteryLabel } from '../SongBrowser/SongBrowser'
@@ -274,6 +275,9 @@ function LearnPanel({ onOpen }: { onOpen: () => void }) {
           <h2 className="o-title-lg">{t`Course complete`}</h2>
           <button className="o-btn-primary o-btn-lg menu-go" onClick={onOpen}>{t`Open Learn`}</button>
         </>}
+      <div className="menu-actions">
+        {EXPLORE_TOOLS.map(tool => <button key={tool.id} className="o-btn" onClick={tool.open}>{tool.name()}</button>)}
+      </div>
     </div>
   )
 }

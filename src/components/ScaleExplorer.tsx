@@ -268,7 +268,8 @@ export default function ScaleExplorer() {
   // ── Circle shown: the Circle of Fifths by default, the Starmap when the
   // STARMAP row's switch is on — available once Settings › Appearance ›
   // Starmap is on. Kept for the session (closing the explorer keeps it). ──
-  const [starmapView, setStarmapView] = useState(false)
+  const starmapView = useStore(s => s.scaleStarmapView)
+  const setStarmapView = useStore(s => s.setScaleStarmapView)
   const showStarmap = starmapEnabled && starmapView
   // ── Starmap ring order: by semitone (default) or by fifths ───────────────
   const [ringLayout, setRingLayout] = useState<RingLayout>('chromatic')
