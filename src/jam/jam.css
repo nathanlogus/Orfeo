@@ -1,0 +1,48 @@
+/* ── Jam: setup and live screens, inside the paper home page ─────────────────── */
+.jam-page { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 860px; margin-inline: auto; box-sizing: border-box; padding: 16px 40px 32px; color: var(--ui-text); }
+.jam-title { margin: 0; font-size: var(--text-3xl); font-weight: 400; letter-spacing: -1.5px; line-height: 1.05; }
+.jam-setup { display: flex; flex-direction: column; gap: 12px; }
+.jam-wide { display: flex; width: 100%; box-sizing: border-box; }
+.jam-wide button { padding: 0 8px; }
+.jam-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.jam-tempo { display: flex; align-items: center; gap: 8px; }
+.jam-tempo-value { min-width: 76px; font-size: var(--text-md); font-variant-numeric: tabular-nums; text-align: center; }
+.jam-start { align-self: flex-start; }
+.jam-alert { margin: 0; }
+.jam-hint { margin: 0; color: var(--ui-text-soft); font-size: var(--text-base); }
+
+.jam-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--ui-line-soft); border-radius: var(--radius-md); background: var(--ui-surface); }
+.jam-board { align-items: center; gap: 4px; }
+.jam-chord { min-height: 1.1em; font-size: var(--text-display); line-height: 1.1; letter-spacing: -2px; }
+.jam-next { color: var(--ui-text-soft); font-size: var(--text-md); }
+.jam-beats { display: flex; gap: 8px; margin-top: 8px; }
+.jam-beats i { width: 12px; height: 12px; border: 1px solid var(--ui-line); border-radius: 50%; }
+.jam-beats i[data-on] { background: var(--ui-text); }
+
+.jam-keys { height: 96px; }
+.jam-keys [data-held] { background: var(--paint-lime); }
+.jam-split { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--paint-pink); pointer-events: none; }
+
+.jam-band { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.jam-member { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; height: 56px; padding: 0 14px; overflow: hidden; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-surface); color: var(--ui-text); font: inherit; font-size: var(--text-md); cursor: pointer; transition: var(--control-transition); }
+.jam-member[aria-pressed='false'] { border-color: var(--ui-line-soft); background: none; color: var(--ui-text-soft); }
+.jam-member .o-dot { background: none; border: 1px solid var(--ui-line); }
+.jam-member .o-dot[data-on] { border-color: var(--ink); background: var(--paint-lime); }
+.jam-pulse { position: absolute; inset: 0; background: var(--paint-yellow); opacity: 0; pointer-events: none; animation: jam-pulse 220ms ease-out; }
+@keyframes jam-pulse { from { opacity: 0.45; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .jam-pulse { animation: none; } }
+
+.jam-listening { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--text-md); }
+.jam-meter { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 10px; font-size: var(--text-sm); }
+.jam-meter-track { display: block; height: 10px; overflow: hidden; border: 1px solid var(--ui-line); border-radius: var(--radius-pill); }
+.jam-meter-track i { display: block; height: 100%; background: var(--ui-text); transform-origin: left; transition: transform 200ms linear; }
+@media (prefers-reduced-motion: reduce) { .jam-meter-track i { transition: none; } }
+
+@media (max-width: 860px) {
+  .jam-page { padding: 12px 16px 24px; }
+  .jam-title { font-size: var(--text-2xl); letter-spacing: -1px; }
+  .jam-start { align-self: stretch; }
+  .jam-keys { height: 72px; }
+  .jam-member { height: 48px; padding: 0 10px; }
+}
+@media (pointer: coarse) { .jam-member { min-height: 48px; } }
