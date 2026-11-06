@@ -22,8 +22,9 @@ passage at your own pace. Real-time chord detection, hand-coloured keys,
 interactive chord and scale explorers, a full mixer, and per-note editing — with
 a piano roll that looks like it was built this decade.
 
-It's not a game — no scoring, no streaks, no subscription. No account, no
-telemetry; MIDI files are processed entirely on your device.
+Scores and game modes are there to guide you, never to shame you. No
+subscription, no account, no telemetry; MIDI files are processed entirely on
+your device.
 
 ## Contents
 

@@ -139,10 +139,13 @@ export function endPractice() {
 }
 
 // ── Keep going: the song and bar to go back to ──
-let _resumeAt: { path: string; time: number } | null = null
+let _resumeAt: { path: string; time: number; phrase?: number } | null = null
 
 // Continue playing: the next time this song opens, it opens where it was left
 export function resumeSong(path: string, time: number) { _resumeAt = { path, time } }
+
+// Fix a phrase: the same, from a phrase whose time is only known once the song has loaded
+export function resumePhrase(path: string, phrase: number) { _resumeAt = { path, time: 0, phrase } }
 
 function saveLastPlayed(time: number) {
   const { midi, practiceLevel } = useStore.getState()
@@ -182,15 +185,16 @@ export function practiceClock(now: number) {
 useStore.subscribe((s, prev) => {
   const path = (s.midi as any)?._filePath as string | undefined
   if (path !== (prev.midi as any)?._filePath && path) {
-    const resume = _resumeAt?.path === path ? _resumeAt.time : 0
+    const resume = _resumeAt?.path !== path ? 0 : _resumeAt.phrase !== undefined ? phraseStarts(s.midi?._barTimes ?? [])[_resumeAt.phrase] ?? 0 : _resumeAt.time
     _resumeAt = null
     if (resume) useStore.setState({ currentTime: resume })
     saveLastPlayed(resume)
   }
   // The engine can end a song by putting the clock back to 0, so go by where it was
   if (s.playbackState !== 'playing' && prev.playbackState === 'playing') saveLastPlayed(prev.currentTime)
-  // A key that's newly down is a press, however often it's the same key
-  if (s.midiHeldKeys !== prev.midiHeldKeys) {
+  // A key that's newly down is a press, however often it's the same key. On the
+  // home pages it's the menu or noodling, not this phrase.
+  if (s.midiHeldKeys !== prev.midiHeldKeys && !s.homeOpen) {
     syncSong()
     const transpose = s.detectedKey?.transpose ?? 0
     for (const key of s.midiHeldKeys) if (!prev.midiHeldKeys.has(key)) _presses.push({ midi: key - transpose, time: s.currentTime })

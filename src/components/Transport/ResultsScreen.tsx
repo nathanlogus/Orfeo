@@ -74,7 +74,7 @@ export default function ResultsScreen() {
         </div>
 
         <div className="pr-result-actions">
-          <button className="o-btn-quiet" onClick={() => { closeResult(); useStore.getState().setHomeOpen(true) }}>{t`Back to library`}</button>
+          <button className="o-btn-quiet" onClick={() => { closeResult(); useStore.getState().setHomeOpen(true) }}>{t`Back to menu`}</button>
           <span className="o-spacer" />
           {r.next && <button className="o-btn o-btn-lg" onClick={() => practise(r.next!)}>{t`Next: bars ${r.next.shortLabel}`}</button>}
           <button className="o-btn-primary o-btn-lg" onClick={() => practise(r.again)}>{t`Play bars ${r.again.shortLabel} again`}</button>
