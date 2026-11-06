@@ -1,6 +1,7 @@
 import { Note } from 'tonal'
 import { BASS_CH, COMP_CH, DRUM_CH, STYLES, createBand, lowChord, progressionChords, scalePitchClasses, stepSeconds, type JamChord, type JamPart, type JamStyle } from './band'
 import { GROOVES } from './grooves'
+import { licksFor, lineOf } from './licks'
 import { dueQueue } from './jamOutput'
 import { createReaction, type BandLevel } from './reaction'
 import { LOOKAHEAD_SEC, TICK_MS, createScheduler, type JamNote, type JamOutput } from './scheduler'
@@ -226,6 +227,20 @@ export function runJamTest(): number {
     sim(2.6, 0.6, 20, r)
     for (let t = 0; t < 20; t += 0.025) { r.noteOn(0.6); r.advance(0.385); if (r.level !== last) { flips++; last = r.level } }
     check(flips <= 2, `a steady player doesn't make the band flicker: ${flips}`)
+  }
+
+  {
+    check(JSON.stringify(lineOf('\\clef G2\n:8 C4 D4.4 r.8 E4 | F4.2')?.map(n => [n.midi, n.at, n.beats])) === '[[60,0,0.5],[62,0.5,1],[64,2,0.5],[65,2.5,2]]', 'a line reads with sticky lengths and rests')
+    check(lineOf('\\clef G2\n(C4 E4).4 D4') === null, 'a chord is not a single line')
+    for (const style of Object.keys(STYLES) as (keyof typeof STYLES)[]) for (let key = 0; key < 12; key++) {
+      const licks = licksFor(style, key)
+      check(licks.length === 3, `${style} in key ${key} has 3 licks: ${licks.length}`)
+      const scale = scalePitchClasses(style, key)
+      for (const lick of licks) {
+        check(lick.notes.every(n => n.midi >= 60 && n.midi <= 83), `${lick.id} stays above the split, on screen`)
+        check(lick.notes.filter(n => scale.has(n.midi % 12)).length / lick.notes.length >= 0.75, `${lick.id} sits in ${style}`)
+      }
+    }
   }
 
   console.log(`${pass} passed, ${fail} failed`)

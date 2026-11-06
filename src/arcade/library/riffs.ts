@@ -23,6 +23,8 @@ const ORIGINALS: Riff[] = [
   riff('or-jz-swing', 'Easy swing line', 'jazz', 'chord tones', 2, 'F', 108, ':8 C5 A4 F4 A4 G4.2 | :8 C5 Bb4 G4 E4 F4.2 | :8 A4 C5 D5 C5 Bb4 G4 A4.4 | F4.1'),
   riff('or-rk-drive', 'Root and fifth drive', 'rock', 'power chords', 1, 'A', 112, ':4 (A3 E4) (A3 E4) (G3 D4).2 | :4 (D4 A4) (D4 A4) (E4 B4).2 | :4 (A3 E4) (A3 E4) (G3 D4).2 | (A3 E4).1'),
   riff('or-rk-stomp', 'Open fifth stomp', 'rock', 'power chords', 1, 'E', 104, '(E3 B3).4 r.8 (E3 B3).8 (D4 A4).4 (E3 B3).4 | (E3 B3).4 r.8 (E3 B3).8 (G3 D4).4 (A3 E4).4 | (E3 B3).1'),
+  riff('or-rk-answer', 'Short answer', 'rock', 'minor pentatonic', 1, 'E', 100, ':8 E4 G4 A4.4 G4.8 E4.8 D4.4 | E4.1'),
+  riff('or-rk-top', 'Top of the box', 'rock', 'minor pentatonic', 2, 'A', 108, ':8 A4 C5 D5 E5 D5 C5 A4.4 | :8 G4 A4 C5.4 A4.2'),
   riff('or-rk-penta', 'Pentatonic climb', 'rock', 'minor pentatonic', 1, 'E', 100, ':8 E4 E4 G4 G4 A4 A4 B4 B4 | D5.2 B4.2 | :8 A4 A4 G4 G4 E4 E4 D4 D4 | E4.1'),
 ]
 

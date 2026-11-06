@@ -21,12 +21,15 @@ const START_DELAY_SEC = 0.15
 const CHORD_SETTLE_MS = 50 // a rolled chord isn't read through its first notes
 const UI_EVERY_MS = 120
 
+export interface JamPrograms { bass: number; comp: number }
+
 export interface JamSettings {
   style: JamStyle
   keyPc: number
   bpm: number
   leftHand: boolean
   parts: Record<JamPart, boolean>
+  programs: JamPrograms
 }
 
 interface JamState extends JamSettings {
@@ -43,14 +46,15 @@ interface JamState extends JamSettings {
 export const useJam = create<JamState>(() => ({
   style: 'blues', keyPc: 0, bpm: STYLES.blues.bpm, leftHand: true,
   parts: { drums: true, bass: true, comp: true },
+  programs: { bass: STYLES.blues.bassProgram, comp: STYLES.blues.compProgram },
   live: false, chord: null, nextChord: null, beat: 0, loud: 0.5, busy: 0.25, level: 1, held: [],
 }))
 
 const PART_CHANNEL: Record<JamPart, number> = { drums: DRUM_CH, bass: BASS_CH, comp: COMP_CH }
 
-let session: { stop(): void; follow(chord: JamChord): void; release(part: JamPart): void } | null = null
+let session: { stop(): void; follow(chord: JamChord): void; release(part: JamPart): void; program(part: keyof JamPrograms, program: number): void } | null = null
 
-function borrowChannels(out: PulsedOutput, style: JamStyle) {
+function borrowChannels(out: PulsedOutput, programs: JamPrograms) {
   const { audioEngine, playbackState } = useStore.getState()
   if (playbackState === 'playing') {
     ;(window as any).__pliagePlayer?.pause?.()
@@ -62,8 +66,8 @@ function borrowChannels(out: PulsedOutput, style: JamStyle) {
     if (audioEngine === 'native') setChannelVolume(ch, 1)
     else out.send([0xb0 | ch, 7, 127], now)
   }
-  out.send([0xc0 | BASS_CH, STYLES[style].bassProgram, 0], now)
-  out.send([0xc0 | COMP_CH, STYLES[style].compProgram, 0], now)
+  out.send([0xc0 | BASS_CH, programs.bass, 0], now)
+  out.send([0xc0 | COMP_CH, programs.comp, 0], now)
   // a muted song track must not mute the band that borrows its channel
   if (audioEngine === 'native') nativeCall('setAudibleTracks', [])
 }
@@ -102,7 +106,7 @@ export async function startJam(): Promise<boolean> {
   })
   const scheduler = createScheduler(out, () => stepSeconds(useJam.getState().bpm), band.plan)
 
-  borrowChannels(out, useJam.getState().style)
+  borrowChannels(out, useJam.getState().programs)
 
   let lastAdvance = out.now()
   let sinceTick = TICK_MS
@@ -161,6 +165,7 @@ export async function startJam(): Promise<boolean> {
       useJam.setState({ nextChord: band.pending })
     },
     release(part) { scheduler.releaseAt([PART_CHANNEL[part]], out.now()) },
+    program(part, program) { out.send([0xc0 | PART_CHANNEL[part], program, 0], out.now()) },
   }
   useJam.setState({ live: true, chord: band.chord, nextChord: null, beat: 0, held: [...useStore.getState().midiHeldKeys] })
   scheduler.start(out.now() + START_DELAY_SEC)
@@ -185,5 +190,10 @@ export function setKey(keyPc: number) {
 }
 
 export const setBpm = (bpm: number) => useJam.setState({ bpm: Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(bpm))) })
-export const setStyle = (style: JamStyle) => useJam.setState({ style, bpm: STYLES[style].bpm })
+export const setStyle = (style: JamStyle) => useJam.setState({ style, bpm: STYLES[style].bpm, programs: { bass: STYLES[style].bassProgram, comp: STYLES[style].compProgram } })
+
+export function setProgram(part: keyof JamPrograms, program: number) {
+  useJam.setState(s => ({ programs: { ...s.programs, [part]: program } }))
+  session?.program(part, program)
+}
 export const setLeftHand = (leftHand: boolean) => useJam.setState({ leftHand })

@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Minus, Play, Plus, Square } from 'lucide-react'
 import '../styles/redesign-tools.css'
 import './jam.css'
 import { useStore } from '../store'
+import { onLiveNote } from '../hooks/useMidiInput'
 import { t } from '../utils/i18n'
 import { localizeChord } from '../utils/chordDetection'
 import { miniKeyboardLayout } from '../utils/miniKeyboard'
 import { SettingsDropdown } from '../components/Settings/controls'
-import { BEATS_PER_BAR, noteName, scalePitchClasses, type JamChord, type JamPart, type JamStyle } from './band'
-import { MAX_BPM, MIN_BPM, SPLIT_NOTE, setBpm, setKey, setLeftHand, setPart, setStyle, startJam, stopJam, useJam } from './jamSession'
+import { BEATS_PER_BAR, noteName, scaleNotes, scalePitchClasses, type JamChord, type JamPart, type JamStyle } from './band'
+import { licksFor } from './licks'
+import { MAX_BPM, MIN_BPM, SPLIT_NOTE, setBpm, setKey, setLeftHand, setPart, setProgram, setStyle, startJam, stopJam, useJam } from './jamSession'
 
 const STYLE_OPTIONS: { value: JamStyle; label: string }[] = [
   { value: 'blues', label: t`Blues` },
@@ -21,8 +23,27 @@ const PART_OPTIONS: { value: JamPart; label: string }[] = [
   { value: 'bass', label: t`Bass` },
   { value: 'comp', label: t`Keys` },
 ]
+const INSTRUMENTS = {
+  bass: [
+    { value: '32', label: t`Upright bass` },
+    { value: '33', label: t`Finger bass` },
+    { value: '34', label: t`Pick bass` },
+    { value: '38', label: t`Synth bass` },
+  ],
+  comp: [
+    { value: '0', label: t`Grand piano` },
+    { value: '4', label: t`Electric piano` },
+    { value: '16', label: t`Organ` },
+    { value: '11', label: t`Vibraphone` },
+    { value: '24', label: t`Nylon guitar` },
+    { value: '26', label: t`Jazz guitar` },
+    { value: '29', label: t`Overdriven guitar` },
+    { value: '48', label: t`Strings` },
+  ],
+}
 const LEVEL_WORD = [t`Calm`, t`Steady`, t`Building`]
 const KEYBOARD_ENDS = [36, 83] // C2 to B5
+const SCALE_NAME: Record<JamStyle, () => string> = { blues: () => t`blues scale`, jazz: () => t`major scale`, pop: () => t`major scale`, rock: () => t`minor pentatonic` }
 
 function useChordName() {
   const naming = useStore(s => s.noteNaming)
@@ -76,6 +97,16 @@ function Parts() {
   )
 }
 
+function Instruments() {
+  const programs = useJam(s => s.programs)
+  return (
+    <div className="jam-controls">
+      <SettingsDropdown title={t`Bass`} value={String(programs.bass)} options={INSTRUMENTS.bass} onChange={v => setProgram('bass', Number(v))} />
+      <SettingsDropdown title={t`Keys`} value={String(programs.comp)} options={INSTRUMENTS.comp} onChange={v => setProgram('comp', Number(v))} />
+    </div>
+  )
+}
+
 function Meter({ label, value }: { label: string; value: number }) {
   return (
     <div className="jam-meter">
@@ -103,22 +134,93 @@ function Listening() {
   )
 }
 
-function Keys() {
+function Keys({ target }: { target: number | null }) {
   const style = useJam(s => s.style)
   const keyPc = useJam(s => s.keyPc)
   const held = useJam(s => s.held)
   const leftHand = useJam(s => s.leftHand)
+  const chord = useJam(s => s.chord)
   const scale = useMemo(() => scalePitchClasses(style, keyPc), [style, keyPc])
   const { whites, blacks } = useMemo(() => miniKeyboardLayout(KEYBOARD_ENDS), [])
   const down = new Set(held)
+  const tones = new Set(chord?.semis.map(s => (chord.rootPc + s) % 12))
   const lit = (midi: number) => (midi % 12 === keyPc ? 'root' : scale.has(midi % 12) ? 'on' : undefined)
+  const marks = (midi: number) => ({ 'data-lit': lit(midi), 'data-chord': tones.has(midi % 12) || undefined, 'data-held': down.has(midi) || undefined, 'data-target': midi === target || undefined })
   const splitAt = whites.findIndex(k => k.midi === SPLIT_NOTE) * 100 / whites.length
   return (
     <div className="xp-mini jam-keys" role="img" aria-label={t`The notes of the scale, lit on the keyboard`}>
-      {whites.map(k => <i key={k.midi} data-lit={lit(k.midi)} data-held={down.has(k.midi) || undefined} />)}
-      {blacks.map(k => <b key={k.midi} data-lit={lit(k.midi)} data-held={down.has(k.midi) || undefined} style={{ left: `${k.x}%`, width: `${62 / whites.length}%` }} />)}
+      {whites.map(k => <i key={k.midi} {...marks(k.midi)} />)}
+      {blacks.map(k => <b key={k.midi} {...marks(k.midi)} style={{ left: `${k.x}%`, width: `${62 / whites.length}%` }} />)}
       {leftHand && <span className="jam-split" style={{ left: `${splitAt}%` }} />}
     </div>
+  )
+}
+
+function ScaleLine() {
+  const style = useJam(s => s.style)
+  const keyPc = useJam(s => s.keyPc)
+  const chord = useJam(s => s.chord)
+  const name = useChordName()
+  return (
+    <div className="jam-scale">
+      <span><strong>{`${name(noteName(keyPc))} ${SCALE_NAME[style]()}`}</strong>{` ${scaleNotes(style, keyPc).map(name).join(' ')}`}</span>
+      {chord && <span><strong>{t`Chord tones`}</strong>{` ${chord.semis.map(s => name(noteName((chord.rootPc + s) % 12))).join(' ')}`}</span>}
+    </div>
+  )
+}
+
+// Never scored: the lit key waits for the player, and a wrong note costs nothing
+function Licks({ onTarget }: { onTarget: (midi: number | null) => void }) {
+  const style = useJam(s => s.style)
+  const keyPc = useJam(s => s.keyPc)
+  const name = useChordName()
+  const licks = useMemo(() => licksFor(style, keyPc), [style, keyPc])
+  const [picked, setPicked] = useState(0)
+  const [step, setStep] = useState(0)
+  const hearing = useRef<ReturnType<typeof setTimeout>[]>([])
+  const lick = licks[Math.min(picked, licks.length - 1)]
+  const stopHearing = () => { hearing.current.forEach(clearTimeout); hearing.current = [] }
+
+  useEffect(() => {
+    setStep(0)
+    return stopHearing
+  }, [lick])
+  useEffect(() => {
+    if (!lick) return
+    return onLiveNote(note => {
+      if (note < SPLIT_NOTE) return
+      stopHearing()
+      setStep(s => (note % 12 === lick.notes[s].midi % 12 ? (s + 1) % lick.notes.length : s))
+    })
+  }, [lick])
+  useEffect(() => onTarget(lick?.notes[step]?.midi ?? null), [lick, step, onTarget])
+  useEffect(() => () => onTarget(null), [onTarget])
+
+  if (!lick) return null
+  // shortcut: page timers, so a heard lick floats over the band's grid; put it on the scheduler if that distracts
+  const hear = () => {
+    stopHearing()
+    const beatMs = 60000 / useJam.getState().bpm
+    hearing.current = lick.notes.map((n, i) => setTimeout(() => {
+      setStep(i)
+      ;(window as any).__pliagePlayNote?.(n.midi, 90, n.beats * beatMs, undefined, false)
+    }, n.at * beatMs))
+    const last = lick.notes[lick.notes.length - 1]
+    hearing.current.push(setTimeout(() => setStep(0), (last.at + last.beats) * beatMs))
+  }
+  return (
+    <section className="jam-card">
+      <div className="jam-listening">
+        <span>{t`Licks to try`}</span>
+        <button className="o-btn" onClick={hear}><Play size={14} fill="currentColor" aria-hidden />{t`Hear it`}</button>
+      </div>
+      <div className="jam-lick-picks">
+        {licks.map((l, i) => <button key={l.id} aria-pressed={l === lick} onClick={() => setPicked(i)}>{l.name}</button>)}
+      </div>
+      <div className="jam-lick-notes" aria-label={lick.concept}>
+        {lick.notes.map((n, i) => <span key={i} data-on={i === step || undefined}>{name(noteName(n.midi % 12))}</span>)}
+      </div>
+    </section>
   )
 }
 
@@ -139,13 +241,17 @@ function Live() {
   const nextChord = useJam(s => s.nextChord)
   const leftHand = useJam(s => s.leftHand)
   const connected = useStore(s => s.midiDeviceConnected)
+  const [target, setTarget] = useState<number | null>(null)
   return (
     <div className="jam-page">
       {!connected && <div role="alert" className="lib-alert jam-alert"><span className="o-dot o-dot-alert" />{t`Your MIDI keyboard is gone. Connect it to keep playing with the band.`}</div>}
       <ChordBoard chord={chord} next={nextChord} />
       <p className="jam-hint">{leftHand ? t`Play a chord below middle C. The band moves to it on the next beat.` : t`The band plays the chords. Solo over them.`}</p>
-      <Keys />
+      <ScaleLine />
+      <Keys target={target} />
+      <Licks onTarget={setTarget} />
       <Parts />
+      <Instruments />
       <Listening />
       <div className="jam-controls">
         <KeyPicker />
@@ -174,6 +280,7 @@ function Setup() {
         </div>
         <LeadChoice />
         <Parts />
+        <Instruments />
       </div>
       {!connected && <div role="alert" className="lib-alert jam-alert"><span className="o-dot o-dot-alert" />{t`Jam listens to a MIDI keyboard. Connect one to start.`}</div>}
       {notReady && <div role="alert" className="lib-alert jam-alert"><span className="o-dot o-dot-alert" />{t`The sound is still loading. Try again in a moment.`}</div>}

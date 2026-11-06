@@ -86,8 +86,10 @@ export const progressionChords = (style: JamStyle, keyPc: number) =>
 export const tonicChord = (style: JamStyle, keyPc: number) =>
   toChord(progressionSteps({ name: 'I', labels: ['I'], offsets: [0] }, keyPc, STYLES[style].genre)[0])
 
+export const scaleNotes = (style: JamStyle, keyPc: number): string[] => Scale.get(`${noteName(keyPc)} ${STYLES[style].scale}`).notes
+
 export const scalePitchClasses = (style: JamStyle, keyPc: number): Set<number> =>
-  new Set(Scale.get(`${noteName(keyPc)} ${STYLES[style].scale}`).notes.map(n => Note.chroma(n) as number))
+  new Set(scaleNotes(style, keyPc).map(n => Note.chroma(n) as number))
 
 // ── The left hand: the chord in the low register, 3+ different notes ─────────
 export function lowChord(held: Set<number>, split: number): JamChord | null {
