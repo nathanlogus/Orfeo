@@ -12,7 +12,7 @@ import type { BandLevel } from './reaction'
 import { DRUM_CH, type JamPlayer } from './roster'
 import type { JamNote } from './scheduler'
 
-export type JamStyle = 'blues' | 'jazz' | 'pop' | 'rock'
+export type JamStyle = 'blues' | 'jazz' | 'pop' | 'rock' | 'rnb' | 'soul' | 'funk' | 'bossa' | 'hiphop' | 'alternative' | 'ballad'
 export type JamFeel = 'tight' | 'relaxed'
 export interface JamChord { rootPc: number; semis: number[]; raw: string }
 
@@ -67,6 +67,55 @@ export const STYLES: Record<JamStyle, Style> = {
     bass: ['R.......R.......', 'R.R.R.R.R.R.R.R.', 'R.R.R.R.8.8.5.5.'],
     comp: ['x...............', 'x.......x.......', 'x..x..x.x..x..x.'],
     stab: ['................', 'x.......x.......', 'x..x..x.x..x..x.'],
+  },
+  rnb: {
+    genre: 'velvet', bpm: 78, swing: 0.58, scale: 'major',
+    progression: { name: 'IV iii ii I', labels: ['IV','iii','ii','I'], offsets: [5,4,2,0] },
+    bass: ['R...............', 'R.....5.R.......', 'R..5..R.R..5..7.'],
+    comp: ['x...............', 'x.......x.......', 'x.....x...x.....'],
+    stab: ['................', '................', '......x.....x...'],
+  },
+  soul: {
+    genre: 'gospel', bpm: 96, swing: 0.54, scale: 'major pentatonic',
+    progression: { name: 'I IV ii V', labels: ['I','IV','ii','V'], offsets: [0,5,2,7] },
+    bass: ['R.......5.......', 'R..R..5.R...5...', 'R..3..5.6..5..3.'],
+    comp: ['x...............', '....x.......x...', 'x...x..x....x.x.'],
+    stab: ['................', '....x.......x...', '..x.x...x...x.x.'],
+  },
+  funk: {
+    genre: 'roadhouse', bpm: 104, swing: 0.54, scale: 'dorian',
+    progression: { name: 'i IV', labels: ['i','IV'], offsets: [0,5] },
+    bass: ['R.....R.8.......', 'R..R..R.8..5.R..', 'R.RR..R.8.R5.7R.'],
+    comp: ['x...x...........', 'x.x...x...x.x...', 'x.xx.x.xx.x.x.x.'],
+    stab: ['................', '......x.....x...', '...x..x...x.x...'],
+  },
+  bossa: {
+    genre: 'ipanema', bpm: 126, swing: 0.5, scale: 'major',
+    progression: { name: 'ii V I I', labels: ['ii','V','I','I'], offsets: [2,7,0,0] },
+    bass: ['R.......5.......', 'R..5....5..R....', 'R..5...R5..R...5'],
+    comp: ['x.....x.........', 'x..x..x...x..x..', 'x..x..x.x.x..x..'],
+    stab: ['................', '................', '...x.......x....'],
+  },
+  hiphop: {
+    genre: 'cinematic', bpm: 88, swing: 0.58, scale: 'minor pentatonic',
+    progression: { name: 'i VI III VII', labels: ['i','VI','III','VII'], offsets: [0,8,3,10] },
+    bass: ['R.......R.......', 'R.....R...R.....', 'R..R..R...R..R..'],
+    comp: ['x...............', 'x.......x.......', 'x.....x.x.....x.'],
+    stab: ['................', 'x...............', 'x.....x.........'],
+  },
+  alternative: {
+    genre: 'classic', bpm: 112, swing: 0.5, scale: 'minor',
+    progression: { name: 'I bIII IV', labels: ['I','bIII','IV'], offsets: [0,3,5] },
+    bass: ['R.......R.......', 'R.R.R.R.R.R.R.R.', 'R.R.R.R.5.5.8.8.'],
+    comp: ['x...............', 'x...x...x...x...', 'x.x.x.x.x.x.x.x.'],
+    stab: ['................', 'x...............', 'x.......x.......'],
+  },
+  ballad: {
+    genre: 'cinematic', bpm: 70, swing: 0.5, scale: 'major',
+    progression: { name: 'I vi IV V', labels: ['I','vi','IV','V'], offsets: [0,9,5,7] },
+    bass: ['R...............', 'R.......5.......', 'R.......5...3...'],
+    comp: ['x.......x.......', 'x...x...x...x...', 'x.x.x.x.x.x.x.x.'],
+    stab: ['................', '................', 'x...............'],
   },
 }
 

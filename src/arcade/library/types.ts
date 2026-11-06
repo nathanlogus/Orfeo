@@ -1,5 +1,5 @@
 // ── The Arcade's music library: every prompt in every game is one of these ────
-export type Genre = 'blues' | 'jazz' | 'pop' | 'rock'
+export type Genre = 'blues' | 'jazz' | 'pop' | 'rock' | 'rnb' | 'soul' | 'funk' | 'bossa' | 'hiphop' | 'alternative' | 'ballad'
 export type Difficulty = 1 | 2 | 3
 
 interface Item {

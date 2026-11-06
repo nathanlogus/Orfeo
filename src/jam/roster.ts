@@ -50,10 +50,17 @@ export const PRESETS: { id: string; name: () => string; slots: JamSlots }[] = [
   { id: 'soul-horns', name: () => t`Soul horns`, slots: ['drums', 'finger-bass', 'clavinet', 'horn-section'] },
   { id: 'big-band', name: () => t`Big band`, slots: ['drums', 'upright-bass', 'trombone', 'trumpet'] },
   { id: 'unplugged', name: () => t`Unplugged`, slots: ['upright-bass', 'nylon-guitar', 'strings', null] },
+  { id: 'smooth-rnb', name: () => t`Smooth R&B`, slots: ['drums', 'finger-bass', 'electric-piano', 'warm-pad'] },
+  { id: 'soul-revue', name: () => t`Soul revue`, slots: ['drums', 'finger-bass', 'organ', 'horn-section'] },
+  { id: 'funk-unit', name: () => t`Funk unit`, slots: ['drums', 'finger-bass', 'clavinet', 'clean-guitar'] },
+  { id: 'bossa-trio', name: () => t`Bossa trio`, slots: ['drums', 'upright-bass', 'nylon-guitar', 'alto-sax'] },
+  { id: 'beat-makers', name: () => t`Beat makers`, slots: ['drums', 'synth-bass', 'electric-piano', 'warm-pad'] },
+  { id: 'indie-band', name: () => t`Indie band`, slots: ['drums', 'pick-bass', 'clean-guitar', 'distortion-guitar'] },
+  { id: 'ballad-band', name: () => t`Ballad band`, slots: ['drums', 'upright-bass', 'grand-piano', 'strings'] },
   { id: 'rhythm-section', name: () => t`Rhythm section`, slots: ['drums', 'finger-bass', null, null] },
 ]
 
-export const STYLE_PRESET: Record<JamStyle, string> = { blues: 'roadhouse', jazz: 'jazz-quartet', pop: 'pop-band', rock: 'rock-band' }
+export const STYLE_PRESET: Record<JamStyle, string> = { blues: 'roadhouse', jazz: 'jazz-quartet', pop: 'pop-band', rock: 'rock-band', rnb: 'smooth-rnb', soul: 'soul-revue', funk: 'funk-unit', bossa: 'bossa-trio', hiphop: 'beat-makers', alternative: 'indie-band', ballad: 'ballad-band' }
 export const presetSlots = (id: string): JamSlots => [...(PRESETS.find(p => p.id === id)?.slots ?? PRESETS[0].slots)]
 
 export function playersOf(slots: JamSlots): JamPlayer[] {
