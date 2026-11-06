@@ -9,11 +9,13 @@ import { outputLatencySec, setChannelVolume } from '../audio/engine'
 import { nativeCall } from '../audio/nativeClient'
 import { sendTrackState } from '../audio/useNativeEngine'
 import { onLiveNote } from '../hooks/useMidiInput'
-import { STYLES, createBand, lowChord, stepSeconds, tonicChord, type JamChord, type JamFeel, type JamStyle } from './band'
+import { STYLES, createBand, lowChord, progressionChords, stepSeconds, tonicChord, type JamChord, type JamFeel, type JamStyle } from './band'
 import { BAND_CHANNELS, DRUM_CH, STYLE_PRESET, instrument, playersOf, presetSlots, slotChannel, withSlot, type JamSlots } from './roster'
 import { openJamOutput, startPulse, PULSE_MS, type PulsedOutput } from './jamOutput'
 import { createReaction, type BandLevel } from './reaction'
 import { TICK_MS, createScheduler } from './scheduler'
+import { bandPlays } from './keyFx'
+import { lowEnd, type RoomChoice } from './room/roomChoice'
 
 export const SPLIT_NOTE = 60 // C4: below this the left hand leads
 export const MIN_BPM = 50
@@ -41,12 +43,15 @@ interface JamState extends JamSettings {
   busy: number
   level: BandLevel
   held: number[]
+  savedRoom: RoomChoice | null | undefined  // undefined: prefs not read yet; null: follow the style
+  scenes: boolean                           // false: this device gets the plain page
 }
 
 export const useJam = create<JamState>(() => ({
   style: 'blues', keyPc: 0, bpm: STYLES.blues.bpm, leftHand: true,
   scale: STYLES.blues.scale, feel: 'tight', slots: presetSlots(STYLE_PRESET.blues),
   live: false, chord: null, nextChord: null, beat: 0, loud: 0.5, busy: 0.25, level: 1, held: [],
+  savedRoom: undefined, scenes: !lowEnd((navigator as any).deviceMemory, navigator.hardwareConcurrency),
 }))
 
 let session: { stop(): void; follow(chord: JamChord): void; seat(index: number, id: string | null): void } | null = null
@@ -85,6 +90,7 @@ export async function startJam(): Promise<boolean> {
   if (session) return true
   const out = await openJamOutput()
   if (!out) return false
+  if (!useStore.getState().midiDeviceConnected) setLeftHand(false)
 
   const reaction = createReaction()
   let timers: ReturnType<typeof setTimeout>[] = []
@@ -92,13 +98,29 @@ export async function startJam(): Promise<boolean> {
     timers.push(setTimeout(fn, Math.max(0, (at - out.now() + outputLatencySec()) * 1000)))
     if (timers.length > 64) timers = timers.slice(-32)
   }
+  // Fixed chords have no pending change to show: the next bar's chord is what's next
+  let bars = 0
+  const upNext = () => {
+    const { leftHand, style, keyPc } = useJam.getState()
+    if (leftHand) return band.pending
+    const chords = progressionChords(style, keyPc)
+    return chords[bars % chords.length]
+  }
   const band = createBand({
     settings: () => { const s = useJam.getState(); return { ...s, players: playersOf(s.slots) } },
     listening: () => reaction,
-    play: n => scheduler.play(n),
+    play: n => {
+      scheduler.play(n)
+      if (n.ch === DRUM_CH) return
+      const heard = performance.now() + (n.at - out.now() + outputLatencySec()) * 1000
+      bandPlays(n.note, heard, heard + n.dur * 1000)
+    },
     releaseAt: (chs, at) => scheduler.releaseAt(chs, at),
-    chordChanged: (chord, at) => atHeard(at, () => useJam.setState({ chord, nextChord: band.pending })),
-    beat: (beat, at) => atHeard(at, () => useJam.setState({ beat })),
+    chordChanged: (chord, at) => atHeard(at, () => useJam.setState({ chord, nextChord: upNext() })),
+    beat: (beat, at) => {
+      if (beat === 0) bars++
+      atHeard(at, () => useJam.setState({ beat, nextChord: upNext() }))
+    },
   })
   const scheduler = createScheduler(out, () => stepSeconds(useJam.getState().bpm), band.plan)
 
@@ -139,7 +161,10 @@ export async function startJam(): Promise<boolean> {
   })
 
   // Leaving the engine or the window behind ends the jam, with its notes
-  const stopEngineWatch = useStore.subscribe((s, p) => { if (s.audioEngine !== p.audioEngine) stopJam() })
+  const stopEngineWatch = useStore.subscribe((s, p) => {
+    if (s.audioEngine !== p.audioEngine) stopJam()
+    else if (p.midiDeviceConnected && !s.midiDeviceConnected) setLeftHand(false)  // nobody is left to lead
+  })
   const onHidden = () => { if (document.hidden) stopJam() }
   document.addEventListener('visibilitychange', onHidden)
 
@@ -199,3 +224,10 @@ export const setBand = (preset: string) => presetSlots(preset).forEach((id, i) =
 export const setScale = (scale: string) => useJam.setState({ scale })
 export const setFeel = (feel: JamFeel) => useJam.setState({ feel })
 export const setLeftHand = (leftHand: boolean) => useJam.setState({ leftHand })
+
+export const loadRoom = async () => useJam.setState({ savedRoom: (await window.electronAPI.getPrefs()).jamRoom ?? null })
+export const roomGone = () => useJam.setState({ scenes: false })
+export function setRoom(room: RoomChoice) {
+  useJam.setState({ savedRoom: room })
+  void window.electronAPI.setPrefs({ jamRoom: room })
+}

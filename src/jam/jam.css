@@ -1,5 +1,15 @@
 /* ── Jam: setup and live screens, inside the paper home page ─────────────────── */
+.jam-reference, .jam-console, .jam-dock { display: contents; }
+.jam-seats, .jam-bar-settings { display: none; }
+.jam-drawer, .jam-set { display: flex; flex-direction: column; gap: 12px; }
+.jam-bar { display: flex; flex-wrap: wrap; gap: 12px; }
+.jam-dock[hidden] { display: none !important; }
+.jam-progression { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; }
 .jam-page { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 860px; margin-inline: auto; box-sizing: border-box; padding: 16px 40px 32px; color: var(--ui-text); }
+.jam-stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.jam-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.jam-room { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.jam-room canvas { position: absolute; inset: 0; display: block; }
 .jam-title { margin: 0; font-size: var(--text-3xl); font-weight: 400; letter-spacing: -1.5px; line-height: 1.05; }
 .jam-setup { display: flex; flex-direction: column; gap: 12px; }
 .jam-wide { display: flex; width: 100%; box-sizing: border-box; }
@@ -21,8 +31,11 @@
 
 .jam-keys { height: 96px; }
 .jam-keys [data-chord] { box-shadow: inset 0 -10px 0 var(--ink); }
-.jam-keys [data-target] { background: var(--paint-pink); }
-.jam-keys [data-held] { background: var(--paint-lime); }
+.jam-keys i[data-held], .jam-keys b[data-held] { background: var(--paint-lime); }
+.jam-keys i[data-held][data-outside], .jam-keys b[data-held][data-outside] { background: #c9d2ff; }
+.jam-keys i[data-target], .jam-keys b[data-target] { z-index: 1; background: var(--paint-pink); outline: 3px solid var(--ink); outline-offset: -3px; }
+.jam-keywrap { position: relative; flex-shrink: 0; }
+.jam-keys-fx { position: absolute; left: 0; bottom: 0; width: 100%; height: calc(100% + 44px); pointer-events: none; }  /* the extra height is air for sparks to rise into */
 .jam-scale { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: var(--text-base); }
 .jam-lick-picks { display: flex; flex-wrap: wrap; gap: 8px; }
 .jam-lick-picks button { min-height: 36px; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
@@ -33,7 +46,8 @@
 .jam-split { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--paint-pink); pointer-events: none; }
 
 .jam-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
-.jam-slot { position: relative; min-width: 0; overflow: hidden; padding: 8px; border: 1px solid var(--ui-line-soft); border-radius: 6px; }
+.jam-slot-family { display: block; margin-bottom: 2px; color: var(--ui-text-soft); font-size: var(--text-sm); }
+.jam-slot { position: relative; min-width: 0; padding: 8px; border: 1px solid var(--ui-line-soft); border-radius: 6px; }
 .jam-slot[data-on] { border-color: var(--ui-line); }
 .jam-member { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; height: 56px; padding: 0 14px; overflow: hidden; border: 1px solid var(--ui-line); border-radius: var(--radius-md); background: var(--ui-surface); color: var(--ui-text); font: inherit; font-size: var(--text-md); cursor: pointer; transition: var(--control-transition); }
 .jam-member[aria-pressed='false'] { border-color: var(--ui-line-soft); background: none; color: var(--ui-text-soft); }
@@ -57,3 +71,85 @@
   .jam-member { height: 48px; padding: 0 10px; }
 }
 @media (pointer: coarse) { .jam-member { min-height: 48px; } .jam-lick-picks button { min-height: 48px; } }
+
+/* ── A room behind the band: the page becomes a HUD in it ─────────────────────── */
+.jam-stage[data-room='studio'] { --room-floor: #1f1d2b; --sign: #071c1e; --sign-ink: #c8fff4; --sign-glow: #4fe3cf; --sign-edge: #2a5c5a; }
+.jam-stage[data-room='cafe'] { --room-floor: #2b1a1c; --sign: #1f2a26; --sign-ink: #fdf6e6; --sign-glow: #ffd9a0; --sign-edge: #8a5a34; }
+.jam-stage[data-room='roadhouse'] { --room-floor: #1e1214; --sign: #17090f; --sign-ink: #ffe8f4; --sign-glow: #ff5fa2; --sign-edge: #56d8ff; }
+.jam-stage[data-room] { background: var(--room-floor); }
+.jam-stage[data-room] .jam-board { border: 3px solid var(--sign-edge); background: var(--sign); color: var(--sign-ink); box-shadow: 0 0 22px color-mix(in srgb, var(--sign-glow) 45%, transparent), 0 8px 18px rgba(0, 0, 0, 0.4); }
+.jam-stage[data-room] .jam-chord { text-shadow: 0 0 14px var(--sign-glow); }
+.jam-stage[data-room] .jam-next { color: var(--sign-ink); }
+.jam-stage[data-room] .jam-progression { font-size: var(--text-sm); }
+.jam-stage[data-room] .jam-beats i { border-color: var(--sign-ink); }
+.jam-stage[data-room] .jam-beats i[data-on] { background: var(--sign-ink); box-shadow: 0 0 8px var(--sign-glow); }
+.jam-stage[data-room] .jam-reference { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 16px; padding: 6px 12px; border: 1px solid var(--ink); border-radius: var(--radius-md); background: var(--ui-floor); }
+.jam-stage[data-room] .jam-scale { flex: 1 1 auto; font-size: var(--text-md); }
+.jam-stage[data-room] .jam-console { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.jam-stage[data-room] .jam-dock { display: flex; flex: 1 1 0; flex-wrap: wrap; align-items: stretch; gap: 8px; min-width: 0; }
+.jam-stage[data-room] .jam-seats { display: grid; flex: 0 0 auto; grid-template-columns: repeat(2, 156px); align-content: center; gap: 6px; }
+.jam-seat { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 36px; padding: 0 10px; overflow: hidden; border: 1px solid var(--ink); border-radius: var(--radius-pill); background: var(--ui-floor); color: var(--ui-text); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.jam-seat .o-dot { flex-shrink: 0; border: 1px solid var(--ink); background: none; }
+.jam-seat[data-on] .o-dot { background: var(--paint-lime); }
+.jam-stage[data-room] .jam-dock .jam-card { flex: 1 1 220px; min-width: 0; gap: 6px; padding: 8px 12px; border-color: var(--ink); }
+.jam-stage[data-room] .jam-dock .jam-card:last-child { flex: 3 1 420px; }
+.jam-stage[data-room] .jam-drawer { flex: 1 1 0; min-width: 0; padding: 10px; border: 1px solid var(--ink); border-radius: var(--radius-md); background: var(--ui-floor); }
+.jam-stage[data-room] .jam-drawer:not([data-open]) { display: none; }
+.jam-stage[data-room] .jam-bar { flex-direction: column; justify-content: center; gap: 6px; }
+.jam-stage[data-room] .jam-bar-settings { display: inline-flex; }
+.jam-stage[data-room] .jam-bar .o-btn { justify-content: center; background: var(--ui-floor); }
+.jam-stage[data-room] .jam-controls { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.jam-stage[data-room] .jam-controls > * { grid-column: span 2; margin-bottom: 0 !important; }
+/* Room and Band close the grid wide; with no Style while playing, Key and Scale take the row above */
+.jam-stage[data-room] .jam-controls > :nth-last-child(-n+2), .jam-stage[data-room] .jam-controls > :first-child:nth-last-child(4), .jam-stage[data-room] .jam-controls > :first-child:nth-last-child(4) + * { grid-column: span 3; }
+.jam-stage[data-room] .jam-controls .o-select { width: 100%; }
+.jam-stage[data-room] .jam-tempo { justify-content: space-between; }
+.jam-stage[data-room] .jam-set { gap: 6px; min-width: 0; }
+.jam-stage[data-room] .jam-drawer .o-seg button { height: 32px; }
+.jam-stage[data-room] .jam-slot { padding: 0; border: 0; }
+.jam-stage[data-room] .jam-slot > div { margin-bottom: 0 !important; }
+.jam-stage[data-room] .jam-slot-family { margin: 0 0 0 12px; font-size: var(--text-xs); }
+.jam-stage[data-room] .jam-slot .o-select { width: 100%; }
+.jam-stage[data-room] .jam-start { align-self: stretch; justify-content: center; }
+.jam-stage[data-room] .jam-slot .jam-pulse { display: none; }
+.jam-stage[data-room] .jam-lick-notes { gap: 4px; }
+.jam-stage[data-room] .jam-lick-notes span { min-width: 24px; padding: 3px 4px; }
+
+/* Wide enough: nothing scrolls, the keyboard is the front of the stage, the sign hangs over it,
+   and everything else docks on the keyboard, under the room's own composition */
+@media (min-width: 1101px) and (min-height: 640px) {
+  .lib-page:has(.jam-stage[data-room]) > .lib-header { position: relative; z-index: 2; height: 64px; padding: 0 calc(16px + 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)) 0 16px; pointer-events: none; }
+  .lib-page:has(.jam-stage[data-room]) > .lib-header > * { pointer-events: auto; }
+  .jam-stage[data-room] { position: absolute; inset: 0; z-index: 1; }
+  .jam-stage[data-room] .jam-scroll { overflow: hidden; }
+  .jam-stage[data-room] .jam-page { position: absolute; inset: 0; justify-content: flex-end; gap: 8px; width: auto; max-width: none; padding: 0 16px 12px; pointer-events: none; }
+  .jam-stage[data-room] .jam-page > *, .jam-stage[data-room] .jam-console > *, .jam-stage[data-room] .jam-dock > * { pointer-events: auto; }
+  .jam-stage[data-room] .jam-console { order: -1; pointer-events: none; }
+  .jam-stage[data-room] .jam-dock { pointer-events: none; }
+  .jam-stage[data-room] .jam-board { position: absolute; top: 10px; left: 50%; width: 400px; box-sizing: border-box; padding: 6px 16px 10px; transform: translateX(-50%); }
+  .jam-stage[data-room] .jam-chord { font-size: 68px; }
+  .jam-stage[data-room] .jam-keys { height: 108px; }
+  .jam-stage[data-room] .jam-drawer { flex-direction: row; align-items: stretch; gap: 12px; }
+  .jam-stage[data-room] .jam-set { flex: 1 1 0; justify-content: space-between; }
+  .jam-stage[data-room] .jam-set-band { flex: 1.2 1 0; }
+  .jam-stage[data-room] .jam-drawer .jam-title { font-size: var(--text-md); letter-spacing: -0.3px; white-space: nowrap; }
+  .jam-stage[data-room] .jam-drawer .jam-band { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 6px; }
+  .jam-stage[data-room] .jam-start { flex: 0 0 auto; align-self: center; }
+  /* The dock sits at the bottom of the window, so its lists have to open upward */
+  .jam-stage[data-room] .o-select-list { top: auto; bottom: 100%; max-height: 50vh; overflow-y: auto; }
+}
+@media (min-width: 1700px) and (min-height: 950px) { .jam-stage[data-room] .jam-page { zoom: 1.25; } }
+@media (min-width: 2300px) and (min-height: 1250px) { .jam-stage[data-room] .jam-page { zoom: 1.6; } }
+@media (min-width: 3400px) and (min-height: 1900px) { .jam-stage[data-room] .jam-page { zoom: 2.2; } }
+
+/* Narrow, or too short: the whole diorama sits on top, and the HUD stacks below it on paper */
+@media (max-width: 1100px), (max-height: 639px) {
+  .jam-room { bottom: auto; height: min(56.25vw, 40vh); }
+  .jam-stage[data-room] .jam-page { width: auto; max-width: 860px; margin: min(30vw, 22vh) auto 8px; padding: 12px; border: 1px solid var(--ink); border-radius: var(--radius-md); background: var(--ui-floor); }
+  .jam-stage[data-room] .jam-board { align-self: stretch; }
+  .jam-stage[data-room] .jam-reference, .jam-stage[data-room] .jam-drawer { border: 0; padding: 0; }
+  .jam-stage[data-room] .jam-dock { flex-basis: 100%; }
+  .jam-stage[data-room] .jam-seats { flex: 1 1 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .jam-stage[data-room] .jam-bar { flex: 1 1 100%; flex-direction: row; }
+  .jam-stage[data-room] .jam-bar .o-btn { flex: 1 1 0; }
+}

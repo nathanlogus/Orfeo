@@ -175,6 +175,21 @@ permissive:
 
 ---
 
+## Jam room art
+
+Curated by `scripts/arcade-assets.mjs`. Files live in `public/jam/`. Models lost their own
+textures and were recoloured; walls, mics, amps, lamps, the neon sign and other simple shapes
+are original, built in three.js by that script.
+
+| Used for | Pack | Author | License |
+|---|---|---|---|
+| Studio couch, lamps, rug, cabinet, plant; café frames, shelf, books, plant | KayKit Furniture Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Café tables, chairs, menu, jars | KayKit Restaurant Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Roadhouse barrels, keg, bottles, table | KayKit Dungeon Remastered 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Studio and roadhouse guitars | KayKit Mixed Bag 1 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+
+---
+
 ## Arcade art and music
 
 Curated by `scripts/arcade-assets.mjs` and `scripts/arcade-licks.mjs`. Files live in
