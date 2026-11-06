@@ -40,6 +40,7 @@ import { t } from '../utils/i18n'
 import type { HudState, KeysState } from './hud'
 import { drillSteps } from './chordRush/run'
 import { STAGES as HOLLOW_STAGES } from './chordRush/stages'
+import { STAGES as KITE_STAGES } from './split/stages'
 
 const ART = './arcade/art'
 
@@ -138,7 +139,20 @@ export const GAMES: GameDef[] = [
   soon('orbit', t`Pocket`, t`Orbit Station`, t`timing`, 'card-pocket.jpg'),
   soon('midnight', t`Soft Touch`, t`The Midnight Job`, t`dynamic control`, 'card-soft-touch.jpg'),
   soon('deepsong', t`Echo`, t`Deep Song`, t`ear training`, 'card-echo.jpg'),
-  soon('kites', t`Split`, t`Kite Festival`, t`hand independence`, 'card-split.jpg'),
+  {
+    id: 'kites',
+    game: t`Split`,
+    world: t`Kite Festival`,
+    skill: t`hand independence`,
+    description: t`A paper kite festival over a seaside town. Your left hand flies the blue kite and your right hand the pink one, each on its own lane, split at middle C. Let either hand fall behind for too long and its kite comes down.`,
+    art: `${ART}/card-split.jpg`,
+    scene: `${ART}/scene-kite-festival.jpg`,
+    sceneAlt: t`Kite Festival: paper kites over a seaside town with bunting`,
+    assist: t`Notes slow down, and you can rest one hand at a time.`,
+    figure: { name: t`The Kite Flyer`, art: `${ART}/figure-kite-flyer.svg` },
+    stages: KITE_STAGES,
+    Game: lazy(() => import('./split/Split')),
+  },
   soon('summit', t`Scale Climb`, t`The Summit`, t`scales`, 'card-scale-climb.jpg'),
 ]
 
