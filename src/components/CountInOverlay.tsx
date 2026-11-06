@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { cancelCountIn } from '../utils/countInRunner'
+import { useCountInPulse } from '../hooks/useCountInPulse'
 import { t } from '../utils/i18n'
 import '../styles/redesign-tools.css'
 
@@ -10,6 +11,8 @@ import '../styles/redesign-tools.css'
 export function CountInOverlay() {
   const countIn = useStore((s) => s.countIn)
   const [shown, setShown] = useState<{ n: number; key: number } | null>(null)
+  const disc = useRef<HTMLDivElement>(null)
+  useCountInPulse(disc)
   useEffect(() => {
     if (!countIn) { setShown(null); return }
     let raf = 0
@@ -30,7 +33,7 @@ export function CountInOverlay() {
   const bpm = b ? Math.round(60 / (b.rel - a.rel)) : null
   return (
     <div aria-live="polite" className="xp-countin">
-      <div className="xp-countin-disc">{shown.n}</div>
+      <div ref={disc} className="xp-countin-disc">{shown.n}</div>
       <div className="xp-countin-dots" aria-hidden="true">
         {Array.from({ length: beats }, (_, i) => <i key={i} data-on={i < shown.n ? (i === 0 ? '1' : '') : undefined} />)}
       </div>

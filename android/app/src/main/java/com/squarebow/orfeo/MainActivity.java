@@ -73,6 +73,7 @@ public class MainActivity extends Activity {
 
         WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);
         web = new WebView(this);
+        web.setBackgroundColor(0xFFF1E8DE); // paper, not a white flash before the splash paints
         setContentView(web);
         hideBars();
 

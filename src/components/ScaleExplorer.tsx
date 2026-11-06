@@ -9,6 +9,7 @@ import SpeedControl from './SpeedControl'
 import OrfeoMark from './OrfeoMark'
 import ExplorerMenu from './ExplorerMenu'
 import ExplorerMiniKeyboard from './ExplorerMiniKeyboard'
+import { useScaleRipple } from '../hooks/useScaleRipple'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useHeldChord } from '../hooks/useHeldChord'
 import Tooltip from './Tooltip'
@@ -752,6 +753,7 @@ export default function ScaleExplorer() {
     })
     return { rootName, scaleName: scale.name, noteNames }
   }, [selectedRoot, scale, displayNaming, accidentals])
+  useScaleRipple(scaleExplorerOpen && infoText ? `${infoText.rootName} ${infoText.scaleName}` : null)
 
   // ── Key quality suffix — 'm' for minor-family scales, '' for major-family ───
   const keyQuality = MINOR_SCALES.has(scale.name) ? 'm' : ''

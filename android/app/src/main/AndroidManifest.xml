@@ -12,7 +12,7 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="false"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        android:theme="@style/PaperLaunch">
         <activity
             android:name=".MainActivity"
             android:exported="true"

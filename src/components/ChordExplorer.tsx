@@ -745,7 +745,7 @@ export default function ChordExplorer() {
         {/* ── The chord sounding now, and what acts on it ───────────────────── */}
         <aside className="theme-paper xp-aside">
           <div className="xp-now">
-            <div className="xp-disc" style={{ fontSize: nowName.length <= 3 ? 40 : nowName.length <= 6 ? 28 : 18 }}>{nowName}</div>
+            <div key={nowName} className="xp-disc" style={{ fontSize: nowName.length <= 3 ? 40 : nowName.length <= 6 ? 28 : 18 }}>{nowName}</div>
             <div className="xp-now-text">
               <span className="xp-now-long">
                 {held ? t`On your piano`

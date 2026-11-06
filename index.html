@@ -7,6 +7,88 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Cold-start splash: inline so it paints before the bundle parses, and CSS so
+         it keeps running on the compositor while that bundle loads. The logo comes
+         from the Pliage brand board; Splash.tsx opens it once the app is ready. -->
+    <style>
+      #splash { position: fixed; inset: 0; z-index: 2147483000; overflow: hidden; }
+      #splash.is-open { pointer-events: none; }
+      .sp-panel { position: absolute; inset: 0; background: #f1e8de; }
+      .sp-panel-a { clip-path: polygon(0 0, calc(50% + 50vh + 2px) 0, calc(50% - 50vh + 2px) 100%, 0 100%); }
+      .sp-panel-b { clip-path: polygon(calc(50% + 50vh) 0, 100% 0, 100% 100%, calc(50% - 50vh) 100%); }
+      .sp-mark { position: absolute; inset: 0; margin: auto; width: min(64vw, 520px); aspect-ratio: 627.62 / 228; }
+      .sp-mark svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; display: block; }
+      .sp-mark svg:not(.sp-final) { visibility: hidden; }
+      #splash.is-open { transition: opacity 200ms ease-out; opacity: 0; }
+      @media (prefers-reduced-motion: no-preference) {
+        @keyframes sp-pop { from { transform: scale(0); } 70% { transform: scale(1.12); } to { transform: scale(1); } }
+        @keyframes sp-merge { to { transform: translate(-16%, 42%) scale(0); } }
+        @keyframes sp-rise { from { transform: translateY(70%); opacity: 0; } 40% { opacity: 1; } }
+        @keyframes sp-slide { from { transform: translateX(26%); opacity: 0; } 40% { opacity: 1; } }
+        @keyframes sp-fold-out { from { transform: rotate(135deg) scaleY(1) rotate(-135deg); } to { transform: rotate(135deg) scaleY(0) rotate(-135deg); } }
+        @keyframes sp-fold-in { from { transform: rotate(135deg) scaleY(0) rotate(-135deg); } 75% { transform: rotate(135deg) scaleY(1.1) rotate(-135deg); } to { transform: rotate(135deg) scaleY(1) rotate(-135deg); } }
+        @keyframes sp-word { from { transform: translateX(-3%); opacity: 0; } }
+        @keyframes sp-show { to { visibility: visible; } }
+        @keyframes sp-hide { to { visibility: hidden; } }
+        .sp-mark svg:not(.sp-final) { visibility: visible; }
+        .sp-mark .sp-final { visibility: hidden; animation: sp-show 1ms linear 760ms forwards; }
+        .sp-disc { transform-origin: 35% 35%; animation: sp-pop 200ms ease-out backwards, sp-merge 200ms ease-in 300ms forwards; }
+        .sp-tri { transform-origin: 8% 18%; animation: sp-pop 200ms ease-out 50ms backwards, sp-merge 180ms ease-in 320ms forwards; }
+        .sp-stem { animation: sp-rise 280ms cubic-bezier(0.2, 1.2, 0.4, 1) 60ms backwards; }
+        .sp-head { animation: sp-slide 280ms cubic-bezier(0.2, 1.2, 0.4, 1) 170ms backwards; }
+        .sp-corner, .sp-flap { transform-origin: 15.296% 73.684%; }
+        .sp-corner { animation: sp-slide 280ms cubic-bezier(0.2, 1.2, 0.4, 1) 170ms backwards, sp-fold-out 120ms ease-in 450ms forwards; }
+        .sp-flap { animation: sp-fold-in 190ms ease-out 570ms backwards; }
+        .sp-word { animation: sp-word 240ms ease-out 520ms backwards; }
+        @keyframes sp-open-a { to { transform: translate(-60vmax, -60vmax); } }
+        @keyframes sp-open-b { to { transform: translate(60vmax, 60vmax); } }
+        @keyframes sp-mark-out { to { transform: scale(1.06); opacity: 0; } }
+        #splash.is-open { transition: none; opacity: 1; }
+        #splash.is-open .sp-panel-a { animation: sp-open-a 300ms cubic-bezier(0.5, 0, 0.3, 1) forwards; }
+        #splash.is-open .sp-panel-b { animation: sp-open-b 300ms cubic-bezier(0.5, 0, 0.3, 1) forwards; }
+        #splash.is-open .sp-mark { animation: sp-mark-out 160ms ease-in forwards; }
+      }
+    </style>
+    <div id="splash" aria-hidden="true">
+      <div class="sp-panel sp-panel-a"></div>
+      <div class="sp-panel sp-panel-b"></div>
+      <div class="sp-mark">
+        <svg class="sp-disc" viewBox="50 14 627.62 228"><circle cx="262" cy="84" r="62" fill="#FFDE3B"/></svg>
+        <svg class="sp-tri" viewBox="50 14 627.62 228"><polygon points="-24,214 40,214 8,158" fill="#FF4DD5"/></svg>
+        <svg class="sp-stem" viewBox="50 14 627.62 228"><polygon points="60,24 97,24 97,232 60,232" fill="#000000"/></svg>
+        <svg class="sp-head" viewBox="50 14 627.62 228"><polygon points="96,24 196,24 196,132 96,232" fill="#000000"/></svg>
+        <svg class="sp-corner" viewBox="50 14 627.62 228"><polygon points="196,131 196,232 95,232" fill="#000000"/></svg>
+        <svg class="sp-flap" viewBox="50 14 627.62 228"><polygon points="196,132 96,232 96,132" fill="#FFDE3B"/></svg>
+        <svg class="sp-word" viewBox="50 14 627.62 228"><path d="M280.2 213.18H298.66V170.92H298.88C303.71 179.71 311.84 184.1 321.95 184.1C342.17 184.1 355.42 167.92 355.42 143.82C355.42 120.02 341.95 103.68 322.02 103.68C311.99 103.68 303.42 107.79 298.59 115.99H298.37V105.22H280.2ZM317.63 168.65C305.54 168.65 297.63 158.91 297.63 143.82C297.63 128.81 305.54 118.99 317.63 118.99C329.06 118.99 336.75 127.85 336.75 143.82C336.75 159.86 329.06 168.65 317.63 168.65Z" fill="#000000"/><path d="M384.7 73.43H366.24V182.57H384.7Z" fill="#000000"/><path d="M399.1 182.57H417.56V105.22H399.1Z" fill="#000000"/><path d="M397.27,72.7 L419.39,72.7 L419.39,82.66 L408.33,93.72 L397.27,93.72 Z" fill="#000000"/><path d="M419.39,82.66 L408.33,93.72 L408.33,82.66 Z" fill="#FFDE3B"/><path d="M455.55 183.81C468.15 183.81 474.67 178.54 478.33 171.65H478.62V182.57H496.79V129.83C496.79 113.72 484.85 103.68 464.71 103.68C444.49 103.68 431.89 113.86 431.01 129.25H448.81C449.33 122.73 455.33 118.04 464.34 118.04C473.2 118.04 478.48 122.73 478.48 129.32V129.9C478.48 135.18 473.57 135.4 459.21 137.01C443.25 138.69 428.82 143.01 428.82 160.59C428.82 176.05 440.17 183.81 455.55 183.81ZM460.09 170.11C452.04 170.11 446.83 166.53 446.83 160.45C446.83 153.42 453.57 150.56 461.48 149.39C469.1 148.21 476.28 147.04 478.55 145.58V153.93C478.55 162.94 472.18 170.11 460.09 170.11Z" fill="#000000"/><path d="M546.2 214.21C567.15 214.21 582.75 204.54 582.75 180.59V105.22H564.51V116.72H564.44C559.31 107.86 550.89 103.68 540.86 103.68C521.01 103.68 507.53 120.02 507.53 143.53C507.53 166.82 520.79 183.08 541 183.08C551.18 183.08 559.39 178.98 564.37 169.89H564.44V181.69C564.44 193.55 557.77 199.92 546.2 199.92C537.56 199.92 531.19 196.41 529.43 189.74H511.34C513.39 204.76 525.77 214.21 546.2 214.21ZM545.32 167.84C533.9 167.84 526.21 159.13 526.21 143.31C526.21 127.56 533.9 118.77 545.32 118.77C557.41 118.77 565.32 128.44 565.32 143.31C565.32 158.18 557.41 167.84 545.32 167.84Z" fill="#000000"/><path d="M631.29 184.32C649.38 184.32 663.73 173.85 666.66 158.69H649.38C647.25 165.28 641.03 169.75 631.73 169.75C619.28 169.75 612.1 161.33 611.66 148.73H667.62V143.67C667.62 119.94 652.82 103.46 630.55 103.46C608.88 103.46 593.57 120.46 593.57 143.97C593.57 167.4 608.07 184.32 631.29 184.32ZM611.8 135.98C613.05 124.92 620.15 118.11 630.85 118.11C641.54 118.11 648.72 124.92 649.89 135.98Z" fill="#000000"/></svg>
+        <svg class="sp-final" viewBox="50 14 627.62 228"><path d="M60,24 L196,24 L196,132 L96,232 L60,232 Z" fill="#000000"/><path d="M196,132 L96,232 L96,132 Z" fill="#FFDE3B"/><path d="M280.2 213.18H298.66V170.92H298.88C303.71 179.71 311.84 184.1 321.95 184.1C342.17 184.1 355.42 167.92 355.42 143.82C355.42 120.02 341.95 103.68 322.02 103.68C311.99 103.68 303.42 107.79 298.59 115.99H298.37V105.22H280.2ZM317.63 168.65C305.54 168.65 297.63 158.91 297.63 143.82C297.63 128.81 305.54 118.99 317.63 118.99C329.06 118.99 336.75 127.85 336.75 143.82C336.75 159.86 329.06 168.65 317.63 168.65Z" fill="#000000"/><path d="M384.7 73.43H366.24V182.57H384.7Z" fill="#000000"/><path d="M399.1 182.57H417.56V105.22H399.1Z" fill="#000000"/><path d="M397.27,72.7 L419.39,72.7 L419.39,82.66 L408.33,93.72 L397.27,93.72 Z" fill="#000000"/><path d="M419.39,82.66 L408.33,93.72 L408.33,82.66 Z" fill="#FFDE3B"/><path d="M455.55 183.81C468.15 183.81 474.67 178.54 478.33 171.65H478.62V182.57H496.79V129.83C496.79 113.72 484.85 103.68 464.71 103.68C444.49 103.68 431.89 113.86 431.01 129.25H448.81C449.33 122.73 455.33 118.04 464.34 118.04C473.2 118.04 478.48 122.73 478.48 129.32V129.9C478.48 135.18 473.57 135.4 459.21 137.01C443.25 138.69 428.82 143.01 428.82 160.59C428.82 176.05 440.17 183.81 455.55 183.81ZM460.09 170.11C452.04 170.11 446.83 166.53 446.83 160.45C446.83 153.42 453.57 150.56 461.48 149.39C469.1 148.21 476.28 147.04 478.55 145.58V153.93C478.55 162.94 472.18 170.11 460.09 170.11Z" fill="#000000"/><path d="M546.2 214.21C567.15 214.21 582.75 204.54 582.75 180.59V105.22H564.51V116.72H564.44C559.31 107.86 550.89 103.68 540.86 103.68C521.01 103.68 507.53 120.02 507.53 143.53C507.53 166.82 520.79 183.08 541 183.08C551.18 183.08 559.39 178.98 564.37 169.89H564.44V181.69C564.44 193.55 557.77 199.92 546.2 199.92C537.56 199.92 531.19 196.41 529.43 189.74H511.34C513.39 204.76 525.77 214.21 546.2 214.21ZM545.32 167.84C533.9 167.84 526.21 159.13 526.21 143.31C526.21 127.56 533.9 118.77 545.32 118.77C557.41 118.77 565.32 128.44 565.32 143.31C565.32 158.18 557.41 167.84 545.32 167.84Z" fill="#000000"/><path d="M631.29 184.32C649.38 184.32 663.73 173.85 666.66 158.69H649.38C647.25 165.28 641.03 169.75 631.73 169.75C619.28 169.75 612.1 161.33 611.66 148.73H667.62V143.67C667.62 119.94 652.82 103.46 630.55 103.46C608.88 103.46 593.57 120.46 593.57 143.97C593.57 167.4 608.07 184.32 631.29 184.32ZM611.8 135.98C613.05 124.92 620.15 118.11 630.85 118.11C641.54 118.11 648.72 124.92 649.89 135.98Z" fill="#000000"/></svg>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var el = document.getElementById('splash'), root = document.documentElement, opening = false, gone = false
+        root.setAttribute('data-splash', '')
+        function leave() {
+          if (gone) return
+          gone = true
+          root.removeAttribute('data-splash')
+          el.classList.add('is-open')
+          setTimeout(function () { el.remove() }, 320)
+        }
+        // Loading done: finish the fold at speed and open, never hold the app back
+        window.__splashOpen = function (skip) {
+          if (opening && !skip) return
+          opening = true
+          var parts = skip || !el.getAnimations ? [] : el.getAnimations({ subtree: true }).filter(function (a) { return a.playState === 'running' })
+          if (!parts.length) return leave()
+          parts.forEach(function (a) { a.updatePlaybackRate(4) })
+          Promise.all(parts.map(function (a) { return a.finished })).then(leave, leave)
+          setTimeout(leave, 260)
+        }
+        el.addEventListener('pointerdown', function () { window.__splashOpen(true) })
+        // A bundle that never loads must not leave the page covered
+        setTimeout(window.__splashOpen, 8000)
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

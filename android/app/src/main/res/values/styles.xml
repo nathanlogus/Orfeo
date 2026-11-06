@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window's colour before the first frame: the splash's paper, not black -->
+    <style name="PaperLaunch" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">#F1E8DE</item>
+    </style>
+</resources>

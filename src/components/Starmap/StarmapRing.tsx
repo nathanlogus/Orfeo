@@ -118,7 +118,7 @@ export default function StarmapRing({
         const chordNote = chordPcs.has(pc)
         const name = getNoteName(60 + pc, naming, accidentals)
         return (
-          <g key={pc}>
+          <g key={pc} data-ripple={scaleNote && tonicPc !== null ? (pc - tonicPc + 12) % 12 : undefined}>
             <circle cx={at.x} cy={at.y} r={R_NOTE}
               fill={isTonic ? 'var(--accent)' : scaleNote ? 'var(--paper-card)' : 'var(--ui-floor)'}
               stroke={pc === blueNotePc ? BLUE_NOTE : chordNote ? f.colour : 'none'}

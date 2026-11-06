@@ -31,7 +31,7 @@ export default function LessonBanner() {
   return (
     <div className="lesson-strip" role="status">
       <span className="lesson-strip-tag">{`${t`Lesson`} ${lesson.id}`}</span>
-      <span className="lesson-strip-text">
+      <span key={step} className="lesson-strip-text">
         <span className="lesson-strip-main">{step !== 'hear' && !connected ? t`Connect a MIDI keyboard to play this step.` : text}</span>
         <span className="lesson-strip-sub">{`${lesson.title} · ${t`step ${steps.indexOf(step) + 1} of ${steps.length}`}`}</span>
       </span>

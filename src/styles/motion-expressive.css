@@ -1,0 +1,174 @@
+/* Expressive motion: one language for the app's paper shapes.
+
+   Paper on a draught: discs drift, triangles swing on a pin, things carrying
+   content breathe. Loops move `translate`, `rotate` and `scale` (the individual
+   properties, so an element's own `transform` stays) and never touch layout.
+   Press and hover use `scale` too, on shapes whose loop leaves it free.
+
+   Never here: the keys, key lighting, the roll, the hit line. [data-instant]
+   controls stay put; only the shapes around them move.
+
+   --amb-state pauses everything at once: AmbientMotion.tsx sets it when the app
+   is hidden or a shape is offscreen, and it slows the amb-* loops while a song
+   plays. The whole file is opt-in to motion, so reduced motion gets none of it. */
+
+@media (prefers-reduced-motion: no-preference) {
+
+/* ── The vocabulary ───────────────────────────────────────────────────────── */
+@keyframes amb-drift { 0%, 100% { translate: 0 0; rotate: 0deg; } 33% { translate: 16px -18px; rotate: 7deg; } 66% { translate: -14px 10px; rotate: -5deg; } }
+@keyframes amb-swing { 0%, 100% { rotate: -11deg; translate: 0 0; } 50% { rotate: 12deg; translate: 3px -6px; } }
+@keyframes amb-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.055; } }
+@keyframes amb-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+@keyframes amb-collage { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 9% 7%; rotate: 16deg; } }
+@keyframes amb-collage-bar { 0%, 100% { translate: 0 0; } 50% { translate: -12% -22%; } }
+@keyframes amb-halo { 0% { scale: 0.9; opacity: 0.55; } 70%, 100% { scale: 1.16; opacity: 0; } }
+
+@keyframes pop-in { from { scale: 0; } 62% { scale: 1.14; } 82% { scale: 0.97; } to { scale: 1; } }
+@keyframes rise-in { from { opacity: 0; translate: 0 22px; } }
+@keyframes step-in { from { opacity: 0; translate: 44px 0; } }
+@keyframes spin-in { from { scale: 0; rotate: -200deg; } 70% { scale: 1.2; rotate: 16deg; } to { scale: 1; rotate: 0deg; } }
+@keyframes kick { 30% { translate: 0 -6px; } }
+@keyframes shake { 15% { translate: -9px 0; } 35% { translate: 8px 0; } 55% { translate: -6px 0; } 75% { translate: 4px 0; } }
+@keyframes burst { from { scale: 0.7; opacity: 0.9; } to { scale: 1.9; opacity: 0; } }
+@keyframes bar-grow { from { scale: 0 1; } }
+@keyframes fall-in { from { translate: 0 -120%; opacity: 0; } }
+
+/* ── Ambient: every loose shape ───────────────────────────────────────────── */
+.o-disc { animation: pop-in 620ms ease-out backwards, amb-drift 19s ease-in-out -4s infinite; transition: scale 420ms cubic-bezier(0.2, 1.5, 0.4, 1); }
+.o-triangle { transform-origin: 50% 90%; animation: pop-in 620ms ease-out 80ms backwards, amb-swing 9s ease-in-out -2s infinite; transition: scale 420ms cubic-bezier(0.2, 1.5, 0.4, 1); }
+.lib-panel .o-triangle { animation-duration: 620ms, 11s; }
+.lesson-passed-star { animation: spin-in 760ms ease-out 240ms backwards, amb-swing 12s ease-in-out -5s infinite; }
+.lib-logo-disc, .pr-rail-home { animation: amb-bob 5s ease-in-out infinite; transition: scale 320ms cubic-bezier(0.2, 1.5, 0.4, 1); }
+.pr-rail-home { animation-delay: -2s; }
+
+/* The song cover's small collage */
+.pr-cover i { animation: amb-collage 10s ease-in-out infinite; }
+.pr-cover b { animation: amb-collage-bar 8s ease-in-out -3s infinite; }
+
+/* Discs with something to read on them breathe, gently enough to keep reading */
+.pr-chord, .xp-disc, .xp-cof-centre, .pr-result-disc { animation: amb-breathe 7s ease-in-out infinite; }
+.xp-cof-centre { animation-duration: 9s; }
+.pr-chord::before { transform-origin: 80% 80%; animation: amb-swing 6s ease-in-out infinite; }
+.pr-result-disc i { transform-origin: 80% 80%; animation: amb-swing 6s ease-in-out -2s infinite; }
+.xp-ring { animation: amb-breathe 13s ease-in-out infinite; }
+
+/* Paused with a song open, the play button is ready to go; playing, it goes quiet.
+   A ring, not the button: what's used while playing never shifts. */
+.pr-rail-play { position: relative; }
+.pr-rail-play:not(:disabled)::after { content: ''; position: absolute; inset: 0; border: 3px solid var(--accent); border-radius: 50%; pointer-events: none; animation: amb-halo 2.6s ease-out infinite; }
+:root[data-playing] .pr-rail-play::after { animation: none; opacity: 0; }
+
+/* The chord disc answers the song starting */
+:root[data-playing] .pr-chord { animation: amb-breathe 7s ease-in-out infinite, kick 340ms ease-out; }
+
+/* ── Touch and hover: shapes lean toward your hand ────────────────────────── */
+.lib-panel:active .o-disc, .lib-panel:active .o-triangle { scale: 1.12; }
+.pr-rail-home:active, .lib-logo:active .lib-logo-disc { scale: 0.9; }
+.lib-card .lib-art { transition: scale 320ms cubic-bezier(0.2, 1.5, 0.4, 1), rotate 320ms cubic-bezier(0.2, 1.5, 0.4, 1); }
+.lib-card:active .lib-art { scale: 0.95; rotate: 3deg; }
+@media (hover: hover) {
+  .lib-panel:hover .o-disc { scale: 1.09; }
+  .lib-panel:hover .o-triangle { scale: 1.3; }
+  .lib-logo:hover .lib-logo-disc, .pr-rail-home:hover { scale: 1.1; }
+  .lib-card:hover .lib-art { scale: 1.07; rotate: -3deg; }
+}
+
+/* ── Welcome: the shapes assemble, then the words follow ──────────────────── */
+.first-art .o-disc { animation: pop-in 700ms ease-out 80ms backwards, amb-drift 19s ease-in-out -4s infinite; }
+.first-art .o-triangle { animation: spin-in 700ms ease-out 240ms backwards, amb-swing 9s ease-in-out -2s infinite; }
+.first-art-keys { animation: rise-in 420ms ease-out backwards; }
+.first-note { animation: fall-in 480ms cubic-bezier(0.3, 1.3, 0.5, 1) backwards; }
+.first-note:nth-child(3n) { animation-delay: 300ms; }
+.first-note:nth-child(3n + 1) { animation-delay: 380ms; }
+.first-note:nth-child(3n + 2) { animation-delay: 460ms; }
+.first-welcome-text > * { animation: rise-in 420ms ease-out 620ms backwards; }
+.first-welcome-text > .first-headline { animation-delay: 720ms; }
+.first-welcome-text > .first-lead { animation-delay: 820ms; }
+.first-welcome-text > .o-note { animation-delay: 900ms; }
+.first-welcome-text > .first-actions { animation-delay: 980ms; }
+.first-welcome-text > .first-steps { animation-delay: 1060ms; }
+.first-setup > * { animation: rise-in 360ms ease-out backwards; }
+.first-card:nth-child(2) { animation: rise-in 360ms ease-out 110ms backwards; }
+:root[data-splash] .first-welcome, :root[data-splash] .first-setup { --amb-state: paused; }
+
+/* ── Dialogs ──────────────────────────────────────────────────────────────── */
+@keyframes dialog-in { from { opacity: 0; scale: 0.86; translate: 0 26px; } 70% { opacity: 1; scale: 1.015; translate: 0 0; } to { scale: 1; } }
+@keyframes dialog-out { to { opacity: 0; scale: 0.92; translate: 0 14px; } }
+@keyframes scrim-in { from { opacity: 0; } }
+@keyframes scrim-out { to { opacity: 0; } }
+.o-scrim { animation: scrim-in 180ms ease-out; }
+[role='dialog']:not(.xp-full):not([data-instant]):not(.pr-result) { animation: dialog-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1); }
+.confirm-disc, .drop-disc { animation: pop-in 420ms ease-out 40ms backwards; }
+
+.motion-leaving, .motion-leaving * { pointer-events: none !important; }
+.motion-leaving * { animation: none !important; }
+.o-scrim.motion-leaving, .pr-result-floor.motion-leaving { animation: scrim-out 180ms ease-in forwards !important; }
+.motion-leaving:not(.o-scrim):not(.pr-result-floor), .motion-leaving > .o-window, .motion-leaving > div > .pr-result, .motion-leaving > div { animation: dialog-out 180ms ease-in forwards !important; }
+
+/* ── Count-in: useCountInPulse sets --pulse and --exit on the real beats ──── */
+.xp-countin-disc { position: relative; will-change: scale, opacity; scale: calc(1 + 0.24 * var(--pulse, 0) + 0.8 * var(--exit, 0)); opacity: calc(1 - var(--exit, 0)); }
+.xp-countin-disc::after { content: ''; position: absolute; inset: 0; box-sizing: border-box; border: 10px solid var(--accent); border-radius: 50%; pointer-events: none; will-change: scale, opacity; scale: calc(1.75 - 0.75 * var(--pulse, 0)); opacity: var(--pulse, 0); }
+
+/* ── Explorers: a selection lands ─────────────────────────────────────────── */
+@keyframes select-land { from { scale: 0.9; } 55% { scale: 1.07; } to { scale: 1; } }
+.xp-tile[aria-pressed='true'], .xp-cof button[aria-pressed='true'], .xp-chip[data-on], .xp-roots [aria-pressed='true'] { animation: select-land 260ms ease-out; }
+.xp-disc { animation: select-land 300ms ease-out, amb-breathe 7s ease-in-out 300ms infinite; }
+.xp-ring [data-ripple] { transform-box: fill-box; transform-origin: center; }
+.xp-scale-line > span > span { display: inline-block; white-space: pre; }
+
+/* ── Lessons ──────────────────────────────────────────────────────────────── */
+.lesson-learn-text, .lesson-work > .lesson-stage, .lesson-work > .o-note, .lesson-work > .o-btn-primary, .lesson-drill, .lesson-strip-text { animation: step-in 340ms cubic-bezier(0.2, 0.9, 0.3, 1) backwards; }
+.lesson-work > .lesson-stage { animation-delay: 60ms; }
+.lesson-work > .o-note { animation-delay: 120ms; }
+.lesson-work > .o-btn-primary { animation-delay: 160ms; }
+.lesson-prompt { animation: step-in 220ms ease-out backwards; }
+.lesson-steps li[data-state='now'] { animation: select-land 340ms ease-out; }
+.lesson-step-dot { transition: scale 300ms cubic-bezier(0.2, 1.5, 0.4, 1); }
+.lesson-steps li[data-state='now'] .lesson-step-dot, .lesson-steps li[data-state='done'] .lesson-step-dot { animation: pop-in 420ms ease-out; }
+
+/* Right: a stamp and a ring of paper. Wrong: a small shake, no fuss. */
+.lesson-answer[data-answer='right'] { animation: pop-in 340ms ease-out; }
+.lesson-answer[data-answer='right']::after { content: ''; position: absolute; inset: 0; border: 6px solid var(--paint-lime); border-radius: 50%; pointer-events: none; animation: burst 420ms ease-out forwards; }
+.lesson-answer[data-answer='wrong'] { animation: shake 400ms ease-out; }
+.lesson-options button[data-answer='right'], .lesson-dots [data-state='right'] { animation: select-land 280ms ease-out; }
+.lesson-options button[data-answer='wrong'] { animation: shake 400ms ease-out; }
+.lesson-stage:has(> .lesson-answer[data-answer='wrong']) > svg { animation: shake 400ms ease-out; }
+
+/* The drill's score, then the whole lesson */
+.lesson-result { animation: rise-in 340ms ease-out backwards; }
+.lesson-result-score { animation: pop-in 520ms ease-out 120ms backwards; }
+.lesson-passed .o-disc { animation: pop-in 760ms ease-out 40ms backwards, amb-drift 19s ease-in-out -4s infinite; }
+.lesson-passed .o-triangle { animation: spin-in 720ms ease-out 180ms backwards, amb-swing 9s ease-in-out -2s infinite; }
+.lesson-passed-text > * { animation: rise-in 460ms cubic-bezier(0.2, 0.9, 0.3, 1) 300ms backwards; }
+.lesson-passed-text > .lesson-passed-title { animation-delay: 380ms; }
+.lesson-passed-text > .lesson-passed-goal { animation-delay: 460ms; }
+.lesson-passed-text > .lesson-stats { animation-delay: 540ms; }
+.lesson-passed-text > .lesson-unit { animation-delay: 640ms; }
+.lesson-stat { animation: pop-in 480ms ease-out 620ms backwards; }
+.lesson-stat:nth-child(2) { animation-delay: 700ms; }
+.lesson-stat:nth-child(3) { animation-delay: 780ms; }
+.lesson-unit-bar [data-on] { transform-origin: left; animation: bar-grow 420ms ease-out 760ms backwards; }
+.lesson-next { animation: rise-in 420ms ease-out 860ms backwards; }
+
+/* ── How it went: the song's result ───────────────────────────────────────── */
+.pr-result-floor { animation: scrim-in 220ms ease-out; }
+.pr-result { animation: dialog-in 320ms cubic-bezier(0.2, 0.9, 0.3, 1); }
+.pr-result-disc { animation: pop-in 720ms ease-out 120ms backwards, amb-breathe 7s ease-in-out 840ms infinite; }
+.pr-result-disc i { animation: spin-in 620ms ease-out 360ms backwards, amb-swing 6s ease-in-out -2s infinite; }
+.pr-result-row { animation: step-in 340ms ease-out 240ms backwards; }
+.pr-result-row:nth-child(2) { animation-delay: 310ms; }
+.pr-result-row:nth-child(3) { animation-delay: 380ms; }
+.pr-result-row:nth-child(n + 4) { animation-delay: 450ms; }
+.pr-result-row .o-progress span { transform-origin: left; animation: bar-grow 480ms ease-out 360ms backwards; }
+.pr-result-song, .pr-result-actions { animation: rise-in 380ms ease-out 520ms backwards; }
+
+/* ── Last, so it wins over every `animation` shorthand above ──────────────── */
+:root[data-app-hidden] { --amb-state: paused; }
+[data-offscreen] { --amb-state: paused; }
+.o-disc, .o-triangle, .lesson-passed-star, .lib-logo-disc, .pr-rail-home, .pr-cover i, .pr-cover b,
+.pr-chord, .pr-chord::before, .xp-disc, .xp-cof-centre, .xp-ring, .pr-result-disc, .pr-result-disc i,
+.pr-rail-play::after, .first-note, .first-art-keys, .first-welcome-text > *, .first-setup > * {
+  animation-play-state: var(--amb-state, running) !important;
+}
+
+}
