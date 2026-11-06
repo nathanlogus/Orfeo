@@ -44,6 +44,7 @@ import { STAGES as SUMMIT_STAGES, drillSteps as summitDrill } from './scaleClimb
 import { STAGES as DEEP_STAGES } from './echo/stages'
 import { STAGES as ORBIT_STAGES } from './pocket/stages'
 import { STAGES as MIDNIGHT_STAGES } from './softTouch/stages'
+import { STAGES as KITE_STAGES } from './split/stages'
 
 const ART = './arcade/art'
 
@@ -202,6 +203,21 @@ export const GAMES: GameDef[] = [
     Game: lazy(() => import('./scaleClimb/ScaleClimb')),
     drill: summitDrill,
   },
+  {
+    id: 'kites',
+    game: t`Split`,
+    world: t`Kite Festival`,
+    skill: t`hand independence`,
+    description: t`A paper kite festival over a seaside town. Your left hand flies the blue kite and your right hand the pink one, each on its own lane, split at middle C. Let either hand fall behind for too long and its kite comes down.`,
+    art: `${ART}/card-split.jpg`,
+    scene: `${ART}/scene-kite-festival.jpg`,
+    sceneAlt: t`Kite Festival: paper kites over a seaside town with bunting`,
+    assist: t`Notes slow down, and you can rest one hand at a time.`,
+    figure: { name: t`The Kite Flyer`, art: `${ART}/figure-kite-flyer.svg` },
+    stages: KITE_STAGES,
+    Game: lazy(() => import('./split/Split')),
+  },
+  soon('summit', t`Scale Climb`, t`The Summit`, t`scales`, 'card-scale-climb.jpg'),
 ]
 
 // Three stages and a boss, three stars each. Endless has a best, not stars.

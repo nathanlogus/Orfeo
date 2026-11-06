@@ -10,7 +10,7 @@ export interface KeysState {
   sun: number[]             // keys to play, yellow
   labels: boolean           // name the yellow keys
   names?: string[]          // their names, in `sun` order, when a chord spells them its own way
-  split: number             // the key the hands divide at, 0 for none: held keys below it go blue
+  split: number             // the key the hands divide at, 0 for none: held and lit keys below it go blue, the rest pink
   from: number
   octaves: number
 }
@@ -70,7 +70,7 @@ export function ArcadeKeys({ sun, labels, names, split, from, octaves }: KeysSta
   }, [split, whites])
 
   const want = new Set(sun)
-  const lit = (k: number) => want.has(k) || undefined
+  const lit = (k: number) => (want.has(k) ? (split ? (k < split ? 'left' : 'right') : true) : undefined)
   const text = (k: number) => (labels && want.has(k) ? names?.[sun.indexOf(k)] ?? noteLabel(k) : null)
   const named = (names ?? sun.map(noteLabel)).join(' ')
   return (

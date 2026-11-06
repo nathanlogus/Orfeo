@@ -221,6 +221,8 @@ svg[data-lit] .ac-life-fold { fill: var(--paint-yellow); }
 .ac-keys i { height: 144px; padding-bottom: 10px; border-right: 2px solid var(--ink); border-radius: 0 0 6px 6px; background: var(--paper-card); font-size: 15px; letter-spacing: -0.2px; }
 .ac-keys b { height: 88px; padding-bottom: 6px; border: 2px solid var(--ink); border-top: 0; border-radius: 0 0 5px 5px; background: #26242f; font-size: 12px; }
 .ac-keys [data-sun] { background: var(--paint-yellow); }
+.ac-keys [data-sun='right'] { background: var(--paint-pink); }
+.ac-keys [data-sun='left'] { background: var(--paint-blue); }
 .ac-keys [data-held='right'] { background: var(--paint-pink); }
 .ac-keys [data-held='left'] { background: var(--paint-blue); }
 .ac-keys u { position: absolute; top: 0; width: 4px; height: 150px; margin-left: -2px; background: var(--paint-yellow); }
