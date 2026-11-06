@@ -74,8 +74,8 @@ export default function HomePage() {
   const [classicOnly, setClassicOnly] = useState(remembered.classicOnly ?? false)
   const [sort, setSort] = useState<SongSort>(remembered.sort ?? 'title')
   useEffect(() => {
-    remembered = { source, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort }
-  }, [source, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort])
+    remembered = { ...remembered, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort }
+  }, [q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort])
   const [catalog, setCatalog] = useState<unknown>(null)
   const [facets, setFacets] = useState<Pick<SongServerList, 'arrangements' | 'difficulties' | 'keys' | 'hands' | 'classics'>>({ arrangements: [], difficulties: [], keys: [], hands: [], classics: 0 })
 
@@ -235,7 +235,7 @@ export default function HomePage() {
     setGenre(null); setArtist(null); setArrangement(''); setDifficulty(''); setSongKeyFilter(''); setHandsFilter(''); setClassicOnly(false); setSort('title')
   }
   const switchSource = (next: Source) => {
-    setSource(next); clearFilters(); setError(''); setDeviceShown(PAGE)
+    remembered.source = next; setSource(next); clearFilters(); setError(''); setDeviceShown(PAGE)
   }
   const pickGenre = (name: string | null) => { setGenre(name); setArtist(null); setDeviceShown(PAGE) }
   const filtered = !!(genre || artist || arrangement || difficulty || songKeyFilter || handsFilter || classicOnly || sort !== 'title')
