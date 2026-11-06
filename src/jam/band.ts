@@ -7,6 +7,7 @@ import { detectChordStructured } from '../utils/chordDetection'
 import { progressionSteps, PROGRESSIONS, type Progression, type SeqStep } from '../utils/explorerShared'
 import { intervalsToSemis, nextVoicing } from '../utils/voiceLeading'
 import type { Genre } from '../utils/genreVoicing'
+import { BOSSA_GROOVE } from './bossaGroove'
 import { GROOVES, GROOVE_BEATS, GROOVE_TICKS_PER_BEAT } from './grooves'
 import type { BandLevel } from './reaction'
 import { DRUM_CH, type JamPlayer } from './roster'
@@ -37,7 +38,10 @@ interface Style {
   bass: [string, string, string]
   comp: [string, string, string]
   stab: [string, string, string]
+  arpeggio?: boolean // comping breaks the chord upward, until the band builds
 }
+
+export const KITS: Record<JamStyle, readonly (readonly number[])[]> = { ...GROOVES, bossa: BOSSA_GROOVE }
 
 export const STYLES: Record<JamStyle, Style> = {
   blues: {
@@ -77,14 +81,14 @@ export const STYLES: Record<JamStyle, Style> = {
   },
   soul: {
     genre: 'gospel', bpm: 96, swing: 0.54, scale: 'major pentatonic',
-    progression: { name: 'I IV ii V', labels: ['I','IV','ii','V'], offsets: [0,5,2,7] },
+    progression: { name: 'I IV V I', labels: ['I','IV','V','I'], offsets: [0,5,7,0] },
     bass: ['R.......5.......', 'R..R..5.R...5...', 'R..3..5.6..5..3.'],
     comp: ['x...............', '....x.......x...', 'x...x..x....x.x.'],
     stab: ['................', '....x.......x...', '..x.x...x...x.x.'],
   },
   funk: {
     genre: 'roadhouse', bpm: 104, swing: 0.54, scale: 'dorian',
-    progression: { name: 'i IV', labels: ['i','IV'], offsets: [0,5] },
+    progression: { name: 'I I IV I', labels: ['I','I','IV','I'], offsets: [0,0,5,0] },
     bass: ['R.....R.8.......', 'R..R..R.8..5.R..', 'R.RR..R.8.R5.7R.'],
     comp: ['x...x...........', 'x.x...x...x.x...', 'x.xx.x.xx.x.x.x.'],
     stab: ['................', '......x.....x...', '...x..x...x.x...'],
@@ -111,10 +115,10 @@ export const STYLES: Record<JamStyle, Style> = {
     stab: ['................', 'x...............', 'x.......x.......'],
   },
   ballad: {
-    genre: 'cinematic', bpm: 70, swing: 0.5, scale: 'major',
+    genre: 'cinematic', bpm: 70, swing: 0.5, scale: 'major', arpeggio: true,
     progression: { name: 'I vi IV V', labels: ['I','vi','IV','V'], offsets: [0,9,5,7] },
     bass: ['R...............', 'R.......5.......', 'R.......5...3...'],
-    comp: ['x.......x.......', 'x...x...x...x...', 'x.x.x.x.x.x.x.x.'],
+    comp: ['x...x...x...x...', 'x.x.x.x.x.x.x.x.', 'x...x...x...x...'],
     stab: ['................', '................', 'x...............'],
   },
 }
@@ -254,7 +258,7 @@ export function createBand(io: BandIO) {
     const played = (when: number) => (feel === 'relaxed' ? when + LAID_BACK * stepSec + (((step * 7) % 5) - 2) * LOOSE_SEC : when)
 
     if (players.some(p => p.role === 'drums')) {
-      const groove = GROOVES[style][grooveLevel]
+      const groove = KITS[style][grooveLevel]
       const from = (step % GROOVE_STEPS) * TICKS_PER_STEP
       for (let i = 0; i < groove.length; i += 3) {
         const offset = groove[i] - from
@@ -284,7 +288,8 @@ export function createBand(io: BandIO) {
         if (!changed && line[s] === '.') continue
         const when = swungAt(s, at, stepSec, def.swing)
         const dur = at + stepsToNext(line, s) * stepSec * 0.92 - when
-        for (const note of voicing) io.play({ ch: p.ch, note, vel: clampVel(44 + 40 * loud), at: played(when), dur })
+        const broken = def.arpeggio && barLevel < 2 && !changed
+        for (const note of broken ? [voicing[(s / 2) % voicing.length]] : voicing) io.play({ ch: p.ch, note, vel: clampVel(44 + 40 * loud), at: played(when), dur })
       }
       if (p.role === 'pad' && (changed || s === 0)) {
         for (const note of upper) io.play({ ch: p.ch, note, vel: clampVel(34 + 30 * loud), at: played(at), dur: (STEPS_PER_BAR - s) * stepSec * 0.98 })

@@ -1,7 +1,8 @@
 import { Note } from 'tonal'
-import { STYLES, createBand, lowChord, progressionChords, scalePitchClasses, stepSeconds, type JamChord, type JamFeel, type JamStyle } from './band'
+import { KITS, STYLES, createBand, scaleNotes, lowChord, progressionChords, scalePitchClasses, stepSeconds, type JamChord, type JamFeel, type JamStyle } from './band'
 import { GROOVES } from './grooves'
 import { licksFor, lineOf } from './licks'
+import { STYLE_SCALES, scaleOptions } from './scales'
 import { BAND_CHANNELS, DRUM_CH, PRESETS, ROSTER, STYLE_PRESET, instrument, playersOf, presetSlots, withSlot, type JamPlayer } from './roster'
 import { dueQueue } from './jamOutput'
 import { createReaction, type BandLevel } from './reaction'
@@ -138,8 +139,8 @@ export function runJamTest(): number {
     const def = STYLES[style]
     check(def.bass.concat(def.comp).every(l => l.length === 16), `${style}: patterns are one bar long`)
     check(scalePitchClasses(STYLES[style].scale, 0).size >= 5, `${style}: has a scale`)
-    check(GROOVES[style].length === 3 && GROOVES[style].every(g => g.length % 3 === 0 && g.length > 0), `${style}: three grooves`)
-    check(GROOVES[style].every((g, i, all) => i === 0 || g.length >= all[i - 1].length), `${style}: grooves get busier`)
+    check(KITS[style].length === 3 && KITS[style].every(g => g.length % 3 === 0 && g.length > 0), `${style}: three grooves`)
+    check(KITS[style].every((g, i, all) => i === 0 || g.length >= all[i - 1].length), `${style}: grooves get busier`)
     check(progressionChords(style, 0).length === def.progression.labels.length, `${style}: every step resolves to a chord`)
     for (const level of [0, 1, 2] as BandLevel[]) {
       const j = jam(style, { level })
@@ -273,6 +274,25 @@ export function runJamTest(): number {
     const first = (x: typeof late) => x.notes.find(n => n.ch === COMP_CH && n.at > 0.5)!.at // past what start() planned
     check(first(late) > first(tight), 'relaxed sits behind the beat')
     check(late.notes.find(n => n.ch === DRUM_CH && n.at > 0.5)!.at === tight.notes.find(n => n.ch === DRUM_CH && n.at > 0.5)!.at, 'and the drums keep it')
+  }
+
+  {
+    for (const style of Object.keys(STYLES) as (keyof typeof STYLES)[]) {
+      check(STYLE_SCALES[style][0] === STYLES[style].scale, `${style}: its first scale is its default`)
+      for (const { value } of scaleOptions(style)) {
+        check(scaleNotes(value, 0).length >= 5, `${value} is a scale tonal knows`)
+        check(licksFor(style, value, 0).length > 0, `${style} has a lick in ${value}`)
+      }
+    }
+    const b = jam('bossa', { level: 1 })
+    b.run(4)
+    const sticks = b.notes.filter(n => n.ch === DRUM_CH && n.note === 37)
+    check(sticks.length >= 5, 'bossa has its cross-stick line')
+    const ballad = jam('ballad', { level: 0 })
+    ballad.run(1)
+    const strikes = new Map<number, number>()
+    for (const n of ballad.notes.filter(x => x.ch === COMP_CH && x.at > 0.3)) strikes.set(n.at, (strikes.get(n.at) ?? 0) + 1)
+    check([...strikes.values()].every(c => c === 1), 'a calm ballad breaks its chords')
   }
 
   console.log(`${pass} passed, ${fail} failed`)
