@@ -43,6 +43,7 @@ import { STAGES as HOLLOW_STAGES } from './chordRush/stages'
 import { STAGES as SUMMIT_STAGES, drillSteps as summitDrill } from './scaleClimb/stages'
 import { STAGES as DEEP_STAGES } from './echo/stages'
 import { STAGES as ORBIT_STAGES } from './pocket/stages'
+import { STAGES as MIDNIGHT_STAGES } from './softTouch/stages'
 
 const ART = './arcade/art'
 
@@ -169,6 +170,22 @@ export const GAMES: GameDef[] = [
     stages: DEEP_STAGES,
     Game: lazy(() => import('./echo/Echo')),
   },
+  soon('orbit', t`Pocket`, t`Orbit Station`, t`timing`, 'card-pocket.jpg'),
+  {
+    id: 'midnight',
+    game: t`Soft Touch`,
+    world: t`The Midnight Job`,
+    skill: t`dynamic control`,
+    description: t`A cat burglar works through a grand mansion at night. Soft notes tiptoe past sleeping guards, louder ones open doors or make a noise elsewhere, and the wrong volume raises the alarm.`,
+    art: `${ART}/card-soft-touch.jpg`,
+    scene: `${ART}/scene-midnight-job.jpg`,
+    sceneAlt: t`The Midnight Job: a mansion room at night, the burglar with a loot sack, a guard asleep in an armchair`,
+    assist: t`The volume window is wider.`,
+    figure: { name: t`The Cat Burglar`, art: `${ART}/figure-cat-burglar.svg` },
+    stages: MIDNIGHT_STAGES,
+    Game: lazy(() => import('./softTouch/SoftTouch')),
+  },
+  soon('deepsong', t`Echo`, t`Deep Song`, t`ear training`, 'card-echo.jpg'),
   soon('kites', t`Split`, t`Kite Festival`, t`hand independence`, 'card-split.jpg'),
   {
     id: 'summit',
