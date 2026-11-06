@@ -168,14 +168,18 @@ export function buildHollow(props: THREE.Object3D, material: THREE.Material, mod
 
 export type Hollow = Awaited<ReturnType<typeof openHollow>>
 
+// The newest opening: one dropped mid-load must leave the shared canvas alone
+let opening = 0
+
 export async function openHollow(host: HTMLElement, reduced: boolean) {
+  const mine = ++opening
   const palette = await loadPalette(`${ART}/palette.png`)
   const material = paperMaterial(palette)
   const [props, ...monsters] = await Promise.all([loadGlb(`${ART}/props.glb`), ...MONSTERS.map(m => loadGlb(`${ART}/${m}.glb`))])
   const models = Object.fromEntries(MONSTERS.map((m, i) => [m, monsters[i]])) as Record<Monster, GLTF>
   const world = buildHollow(props.scene, material, models, glowTexture())
   const renderer = sharedRenderer()
-  host.appendChild(renderer.domElement)
+  if (mine === opening) host.appendChild(renderer.domElement)
   const fit = () => {
     const { clientWidth: w, clientHeight: h } = host
     if (!w || !h) return
@@ -229,7 +233,7 @@ export async function openHollow(host: HTMLElement, reduced: boolean) {
     dispose() {
       resize.disconnect()
       for (const id of [...world.actors.keys()]) world.remove(id)
-      renderer.domElement.remove()
+      if (mine === opening) renderer.domElement.remove()
       for (const model of [...monsters, props]) disposeScene(model.scene)
       disposeScene(world.scene)
       palette.dispose()
