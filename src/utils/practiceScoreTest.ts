@@ -1,4 +1,4 @@
-import { accuracy, afterPhrase, mastery, phraseOf, phraseStarts } from './practiceScore'
+import { accuracy, afterMemoryRun, afterPhrase, mastery, memoryMap, missedNotes, phraseOf, phraseStarts, pressHits } from './practiceScore'
 
 export function runPracticeScoreTest(): number {
   let failures = 0
@@ -19,6 +19,11 @@ export function runPracticeScoreTest(): number {
   eq('extra keys cost nothing', accuracy(steps.slice(1), [{ midi: 67, time: 2 }, { midi: 61, time: 2 }], 0.25), 1)
   eq('nothing to play', accuracy([], [], 0.25), null)
 
+  eq('a press lands within the window', pressHits(steps, { midi: 67, time: 2.2 }, 0.25), true)
+  eq('a wrong key lands on nothing', pressHits(steps, { midi: 61, time: 2 }, 0.25), false)
+  eq('a chord note not played is the one missed', missedNotes(steps, 0, 1.5, [{ midi: 60, time: 1 }], 0.25), [64])
+  eq('steps are swept once', missedNotes(steps, 1, 1.5, [], 0.25), [])
+
   const start = { level: 2, wins: 0, best: 0 }
   const once = afterPhrase(start, 0.95, 2, true)
   eq('one clean pass waits', [once.level, once.wins], [2, 1])
@@ -31,6 +36,19 @@ export function runPracticeScoreTest(): number {
   eq('a chosen level stays', afterPhrase({ level: 2, wins: 1, best: 0 }, 1, 4, false).level, 2)
   eq('best counts the level', afterPhrase(start, 1, 4, false).best, 0.8)
   eq('best never falls', afterPhrase({ level: 3, wins: 0, best: 0.8 }, 0.2, 3, false).best, 0.8)
+
+  const slow = afterPhrase(afterPhrase(start, 0.95, 2, true, false), 0.95, 2, true, false)
+  eq('slower runs move the level, not the best', [slow.level, slow.best], [3, 0])
+  eq('a level down keeps the fade', afterPhrase({ level: 3, wins: 0, best: 0, memory: 2 }, 0.3, 3, true).memory, 2)
+
+  eq('a clean run fades further', [0, 1, 2, 3].map(step => afterMemoryRun(step, 0.95, 5, true)), [1, 2, 3, 3])
+  eq('fading takes the full level', afterMemoryRun(1, 0.95, 4, true), 1)
+  eq('a run that does not count holds it', afterMemoryRun(1, 0.95, 5, false), 1)
+  eq('a middling run holds it', afterMemoryRun(2, 0.7, 5, true), 2)
+  eq('a rough run brings the notes back', afterMemoryRun(3, 0.5, 5, true), 0)
+  eq('old progress has no fade, a rest has none to have',
+    memoryMap([0, 8, 16], [{ time: 1, notes: [] }, { time: 17, notes: [] }], [{ level: 1, wins: 0, best: 0 }, { level: 1, wins: 0, best: 0 }, { level: 5, wins: 0, best: 1, memory: 2 }]),
+    [0, null, 2])
 
   eq('mastery over the whole song', mastery([{ level: 5, wins: 0, best: 1 }], 2), 50)
   eq('no phrases', mastery([], 0), 0)

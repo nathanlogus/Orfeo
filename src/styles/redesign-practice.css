@@ -83,6 +83,14 @@ button.pr-level { height: 36px; padding: 0 10px 0 6px; border: 0; border-radius:
 button.pr-level:disabled { opacity: 0.45; cursor: default; }
 .pr-level-tag { min-width: 22px; box-sizing: border-box; padding: 1px 6px; border-radius: var(--radius-sm); background: var(--paint-rose); color: #000000; font-size: 15px; text-align: center; }
 .pr-soft { color: var(--stone); }
+.pr-level-moved { padding: 1px 6px; border-radius: var(--radius-sm); background: var(--paint-lime); color: #000000; animation: pr-level-moved 400ms var(--ease-out); }
+@keyframes pr-level-moved { from { opacity: 0; translate: 0 4px; } }
+.pr-memory-map { display: flex; gap: 2px; align-items: center; height: 16px; max-width: 160px; }
+.pr-memory-map i { flex: 1 1 6px; min-width: 2px; max-width: 8px; height: 100%; box-sizing: border-box; border: 1px solid var(--stone); border-radius: 2px; }
+.pr-memory-map [data-step='1'] { background: color-mix(in srgb, var(--paint-lime) 30%, transparent); }
+.pr-memory-map [data-step='2'] { background: color-mix(in srgb, var(--paint-lime) 60%, transparent); }
+.pr-memory-map [data-step='3'] { background: var(--paint-lime); }
+.pr-memory-map [data-step='rest'] { visibility: hidden; }
 button.pr-midi { height: 36px; max-width: 150px; padding: 0; border: 0; display: flex; align-items: center; gap: 8px; background: none; color: #ffffff; font: inherit; font-size: 15px; cursor: pointer; }
 .pr-midi span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr-midi[data-off='true'] { max-width: none; padding: 0 14px; border: 1px solid var(--line-600); border-radius: var(--radius-pill); color: #ffffff; }

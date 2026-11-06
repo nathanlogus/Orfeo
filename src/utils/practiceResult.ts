@@ -12,6 +12,8 @@ export interface PhraseRun {
   wins: number
   auto: boolean
   partway: boolean          // End came mid-phrase: shown, never scored
+  uncounted?: 'wait' | 'slow'   // Wait: nothing moved. Slower: the level can, mastery can't.
+  unseen?: boolean          // clean, with none of its notes showing
 }
 
 export interface BarRange { label: string; shortLabel: string; time: number; end: number }
@@ -30,6 +32,7 @@ export interface PracticeResult {
   tempoPercent: number
   percent: number
   title: string
+  notCounted: string | null // why this run didn't count in full
   rows: ResultRow[]
   map: { state: 'learned' | 'started' | 'none'; played: boolean }[]
   mastery: number
@@ -51,8 +54,10 @@ function barRange(firstPhrase: number, lastPhrase: number, starts: number[], bar
 function rowOf(run: PhraseRun, starts: number[], barCount: number, duration: number): ResultRow {
   const bars = barRange(run.phrase, run.phrase, starts, barCount, duration).label
   const percent = Math.round(run.played * 100)
-  const row = (note: string, tag: string, moved = false) => ({ bars, percent, note, tag, moved })
+  const slow = run.uncounted === 'slow' ? ` · ${t`under 100% tempo, so mastery stays`}` : ''
+  const row = (note: string, tag: string, moved = false) => ({ bars, percent, note: note + slow, tag, moved })
   if (run.partway) return row(t`You stopped partway, so its level stays`, t`Not finished`)
+  if (run.uncounted === 'wait') return row(t`Wait held the song for you, so this doesn't count`, t`Not counted`)
   if (!run.auto) return row(t`You chose this level`, t`Level ${run.levelAfter}`)
   if (run.levelAfter > run.levelBefore) return row(t`Over 90% twice in a row`, t`Moves up to level ${run.levelAfter}`, true)
   if (run.levelAfter < run.levelBefore) return row(t`Under 60% this time`, t`Moves down to level ${run.levelAfter}`)
@@ -88,6 +93,8 @@ export function buildPracticeResult({ song, level, tempoPercent, runs, progress,
   return {
     song, level, tempoPercent, percent,
     title: `${unbroken ? again.label : t`${sorted.length} phrases`}, ${ending}.`,
+    notCounted: sorted.some(r => r.uncounted === 'wait') ? t`Notes played while Wait held the song don't count towards levels or mastery.`
+      : sorted.some(r => r.uncounted === 'slow') ? t`Levels can move at any tempo, but mastery only counts runs at 100%.` : null,
     rows: sorted.map(r => rowOf(r, starts, barCount, duration)),
     map: starts.map((_, i) => {
       const best = progress[i]?.best ?? 0

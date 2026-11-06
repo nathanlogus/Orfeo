@@ -26,6 +26,7 @@ export interface SoundfontInfo {
 export interface ParsedNote {
   midi: number
   time: number
+  ticks?: number
   duration: number
   velocity: number
   trackIndex: number

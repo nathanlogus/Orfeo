@@ -112,6 +112,7 @@ export function parseMidiBuffer(buffer: ArrayBuffer, fileName: string, filePath 
       midi: n.midi,
       time: n.time,
       duration: n.duration,
+      ticks: n.ticks,
       velocity: n.velocity,
       trackIndex: tracks.length,
     }))

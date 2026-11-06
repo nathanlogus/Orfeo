@@ -18,6 +18,31 @@ export function isScoreOnly(s: { scoreSource: ScoreSource | null; scoreViewMode:
   return s.scoreViewMode === 'score' && !s.noteEditorActive && isScoreFor(s.scoreSource, (s.midi as any)?._filePath)
 }
 
+// What the practice level asks for, by written pitch and tick: the MIDI comes
+// from the same alphaTab generator, so a sheet note is found by these. `leadTick`
+// is what Skip empty bars cut from the song and never from the score.
+export const tickKey = (midi: number, tick: number) => `${midi}:${tick}`
+
+export function ticksInLevel(
+  tracks: { index: number; notes: { midi: number; time: number; ticks?: number }[] }[],
+  leadTick: number,
+  inLevel: (trackIndex: number, midi: number, time: number) => boolean,
+): Map<string, boolean> {
+  const asked = new Map<string, boolean>()
+  for (const track of tracks) for (const n of track.notes) {
+    const key = tickKey(n.midi, (n.ticks ?? 0) + leadTick)
+    asked.set(key, !!asked.get(key) || inLevel(track.index, n.midi, n.time))
+  }
+  return asked
+}
+
+// A sheet note is off the level only when every playing of it is; one the MIDI
+// has no match for stays as written
+export const offLevel = (asked: Map<string, boolean>, keys: string[]) => {
+  const found = keys.map(key => asked.get(key))
+  return found.includes(false) && !found.includes(true)
+}
+
 // Key signatures count sharps (+) or flats (-), and a semitone is 7 fifths
 export function transposeKeySignature(key: number, semitones: number): number {
   return (((key + 7 * semitones + 5) % 12) + 12) % 12 - 5
