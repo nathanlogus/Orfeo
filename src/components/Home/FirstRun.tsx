@@ -96,7 +96,7 @@ function Setup({ pickFolder, onBack, onDone }: { pickFolder: () => Promise<boole
           </div>
           {connected && <>
             <span>{t`Play a few keys to check it works:`}</span>
-            <HeldKeys height={120} />
+            <HeldKeys />
           </>}
           <span className="o-spacer" />
           <button className="o-link" style={{ alignSelf: 'flex-start' }} onClick={() => onDone(false)}>{t`No keyboard? You can play on the screen.`}</button>

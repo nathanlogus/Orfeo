@@ -215,17 +215,16 @@
 svg[data-lit] .ac-life-sheet { fill: var(--ink); }
 svg[data-lit] .ac-life-fold { fill: var(--paint-yellow); }
 
-.ac-keys { position: relative; flex-shrink: 0; height: 150px; overflow: hidden; background: var(--ink); }
+.ac-keys { flex-shrink: 0; height: 150px; }
 .ac-over .ac-keys { z-index: 1; }
-.ac-keys i, .ac-keys b { position: absolute; top: 6px; display: flex; align-items: flex-end; justify-content: center; box-sizing: border-box; font-style: normal; font-weight: 600; color: var(--ink); }
-.ac-keys i { height: 144px; padding-bottom: 10px; border-right: 2px solid var(--ink); border-radius: 0 0 6px 6px; background: var(--paper-card); font-size: 15px; letter-spacing: -0.2px; }
-.ac-keys b { height: 88px; padding-bottom: 6px; border: 2px solid var(--ink); border-top: 0; border-radius: 0 0 5px 5px; background: #26242f; font-size: 12px; }
-.ac-keys [data-sun] { background: var(--paint-yellow); }
-.ac-keys [data-sun='right'] { background: var(--paint-pink); }
-.ac-keys [data-sun='left'] { background: var(--paint-blue); }
-.ac-keys [data-held='right'] { background: var(--paint-pink); }
-.ac-keys [data-held='left'] { background: var(--paint-blue); }
-.ac-keys u { position: absolute; top: 0; width: 4px; height: 150px; margin-left: -2px; background: var(--paint-yellow); }
+.ac-keys i, .ac-keys b { font-weight: 600; color: var(--ink); }
+.ac-keys i { padding-bottom: 14px; font-size: 15px; letter-spacing: -0.2px; }
+.ac-keys b { padding-bottom: 12px; font-size: 12px; }
+.ac-keys [data-held='right'] { --lit: var(--paint-pink); }
+.ac-keys [data-held='left'] { --lit: var(--paint-blue); }
+.ac-keys u { top: 0; bottom: 0; width: 4px; margin-left: -2px; background: var(--paint-yellow); }
+.ac-keys [data-sun='right'] { --lit: var(--paint-pink); }
+.ac-keys [data-sun='left'] { --lit: var(--paint-blue); }
 .ac-game > .ac-hint-row { position: absolute; left: 0; right: 0; bottom: 150px; }
 .ac-paused { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); max-width: calc(100% - 32px); }
 .ac-veil { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; background: rgba(35, 32, 74, 0.55); }
@@ -276,9 +275,8 @@ svg[data-lit] .ac-life-fold { fill: var(--paint-yellow); }
   .ac-keys { height: 96px; }
   .ac-slot { bottom: 96px; }
   .ac-game > .ac-hint-row { bottom: 96px; }
-  .ac-keys i { height: 90px; font-size: 11px; padding-bottom: 6px; }
-  .ac-keys b { height: 56px; font-size: 9px; }
-  .ac-keys u { height: 96px; }
+  .ac-keys i { font-size: 11px; padding-bottom: 9px; }
+  .ac-keys b { font-size: 9px; padding-bottom: 8px; }
   .ac-hud { flex-wrap: wrap; gap: 8px; padding: 12px calc(12px + var(--controls)) 0 12px; }
   .ac-hud-round { width: 40px; height: 40px; }
   .ac-hud-box { height: 40px; padding: 0 10px; gap: 8px; }

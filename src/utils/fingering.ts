@@ -5,6 +5,7 @@
 // black keys. A suggestion from the notes alone: it knows nothing of phrasing.
 // shortcut: each step only looks at the one before it, a real hand model comes
 // if players find the suggestions awkward.
+import { isBlackKey } from './keyLayout'
 
 export type FingerHand = 'L' | 'R'
 
@@ -19,7 +20,6 @@ const LITTLE_ON_BLACK = 1
 const LEAP = 12              // beyond this the whole hand moves
 const LEAP_COST = 4
 
-const isBlack = (pitch: number) => [1, 3, 6, 8, 10].includes(((pitch % 12) + 12) % 12)
 
 // Every way to put n fingers on a chord, lowest finger on the lowest note
 function placements(n: number): number[][] {
@@ -33,7 +33,7 @@ function placements(n: number): number[][] {
 }
 
 function keyCost(pitch: number, finger: number): number {
-  if (!isBlack(pitch)) return 0
+  if (!isBlackKey(pitch)) return 0
   return finger === 1 ? THUMB_ON_BLACK : finger === 5 ? LITTLE_ON_BLACK : 0
 }
 

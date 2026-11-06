@@ -140,7 +140,7 @@ export default function LessonPanel() {
               <DrillStep key={lesson.id} lesson={lesson} check={lesson.check} onPass={percent => { drillPassed(percent); nextStep() }} />
             </>}
           </div>
-          <HeldKeys height={200} className="lesson-keys" />
+          <HeldKeys className="lesson-keys" />
         </main>
       </>}
     </div>

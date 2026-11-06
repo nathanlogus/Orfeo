@@ -7,6 +7,7 @@ import { onLiveNote } from '../hooks/useMidiInput'
 import { t } from '../utils/i18n'
 import { localizeChord } from '../utils/chordDetection'
 import { miniKeyboardLayout, type MiniKey } from '../utils/miniKeyboard'
+import PianoKeys from '../components/Keyboard/PianoKeys'
 import { SettingsDropdown } from '../components/Settings/controls'
 import { BEATS_PER_BAR, noteName, progressionChords, scaleNotes, scalePitchClasses, type JamStyle } from './band'
 import { licksFor } from './licks'
@@ -255,7 +256,7 @@ function Keys({ target }: { target: number | null }) {
   const tones = new Set(chord.semis.map(s => (chord.rootPc + s) % 12))
   const name = useChordName()
   const marks = (midi: number) => ({
-    'data-midi': midi, 'data-chord': tones.has(midi % 12) || undefined, 'data-chord-root': midi % 12 === chord.rootPc || undefined, 'data-held': down.has(midi) || undefined,
+    'data-chord': tones.has(midi % 12) || undefined, 'data-chord-root': midi % 12 === chord.rootPc || undefined, 'data-held': down.has(midi) || undefined,
     'data-outside': !scale.has(midi % 12) || undefined, 'data-target': midi === target || undefined,
   })
   const splitAt = whites.findIndex(k => k.midi === SPLIT_NOTE) * 100 / whites.length
@@ -270,11 +271,13 @@ function Keys({ target }: { target: number | null }) {
   return (
     <div className="jam-keywrap">
       <ScaleRail whites={whites} blacks={blacks} scale={scale} tones={tones} keyPc={keyPc} />
-      <div ref={board} className="xp-mini jam-keys" role="img" aria-label={t`The notes of the chord, lit on the keyboard, under a rail of the scale's notes`}>
-        {whites.map(k => <i key={k.midi} {...marks(k.midi)}><em>{name(noteName(k.midi % 12))}</em></i>)}
-        {blacks.map(k => <b key={k.midi} {...marks(k.midi)} style={{ left: `${k.x}%`, width: `${62 / whites.length}%` }} />)}
+      <PianoKeys
+        ref={board} min={whites[0].midi} max={whites[whites.length - 1].midi} className="xp-mini jam-keys" role="img"
+        aria-label={t`The notes of the chord, lit on the keyboard, under a rail of the scale's notes`}
+        keyProps={(midi, black) => ({ ...marks(midi), children: !black && <em>{name(noteName(midi % 12))}</em> })}
+      >
         {leftHand && <span className="jam-split" style={{ left: `${splitAt}%` }} />}
-      </div>
+      </PianoKeys>
       <canvas ref={fx} className="jam-keys-fx" aria-hidden />
     </div>
   )
