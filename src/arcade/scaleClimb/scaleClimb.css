@@ -1,0 +1,30 @@
+/* The panels over the Summit, and the points that rise from the climber's hands */
+.sc-points { position: absolute; color: #000; font-size: 22px; font-weight: 600; opacity: 0; -webkit-text-stroke: 3px #fbf8f5; paint-order: stroke fill; }
+
+.sc-ladder { position: absolute; left: 40px; top: 108px; width: 150px; max-height: calc(100% - 120px); box-sizing: border-box; padding: 12px; border: 2px solid var(--ink); border-radius: 16px; background: var(--paper-card); box-shadow: 4px 4px 0 var(--ink); display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.sc-ladder-title { flex-shrink: 0; margin-bottom: 2px; font-size: 13px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-rung { flex: 0 1 40px; min-height: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border: 2px dashed var(--ink-soft); border-radius: 10px; color: var(--ink-soft); font-weight: 600; }
+.sc-rung small { font-size: 12px; font-weight: 500; }
+.sc-rung[data-state='done'] { border: 2px solid var(--ink); background: var(--ink); color: var(--paper-card); }
+.sc-rung[data-state='next'] { flex-basis: 44px; border: 3px solid var(--ink); background: var(--paint-yellow); color: var(--ink); font-size: 18px; }
+.sc-rung[data-state='next'] small { font-weight: 600; }
+
+.sc-even { position: absolute; right: 40px; top: 108px; width: 260px; box-sizing: border-box; padding: 14px 16px; border: 2px solid var(--ink); border-radius: 16px; background: var(--paper-card); box-shadow: 4px 4px 0 var(--ink); display: flex; flex-direction: column; gap: 10px; }
+.sc-even-title { font-size: 15px; font-weight: 600; }
+.sc-bars { display: flex; align-items: flex-end; gap: 8px; height: 46px; }
+.sc-bars span { flex: 1; border-radius: 6px; background: var(--ink); transition: height .12s; }
+.sc-bars span[data-off] { box-sizing: border-box; border: 2px solid var(--ink); background: var(--paint-pink); }
+.sc-even-text { font-size: 14px; line-height: 1.35; color: var(--ink-soft); }
+
+
+@media (max-width: 759px) {
+  .sc-ladder { left: 12px; top: 160px; width: 92px; max-height: calc(100% - 170px); padding: 8px; gap: 4px; }
+  .sc-rung { flex-basis: 28px; padding: 0 8px; border-radius: 8px; font-size: 14px; }
+  .sc-rung[data-state='next'] { flex-basis: 32px; font-size: 15px; }
+  .sc-rung small { display: none; }
+  .sc-even { right: 12px; top: 160px; width: 128px; padding: 8px; gap: 4px; }
+  .sc-even-title { font-size: 12px; }
+  .sc-even-text { display: none; }
+  .sc-bars { gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .sc-bars span { transition: none; } }
