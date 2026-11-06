@@ -48,7 +48,7 @@ export default defineConfig({
     },
     server: {
       watch: {
-        ignored: ['**/release/**'],
+        ignored: ['**/release/**', '**/arcade-sources/**', '**/orfeo-catalog/**'],
       },
     },
     // electron-vite defaults the renderer build to minify: false — without

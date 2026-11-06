@@ -126,3 +126,9 @@ native/build/
 
 # Song server scripts
 __pycache__/
+
+# Raw third-party Arcade art and music, see arcade-sources/SOURCES.md
+arcade-sources/
+
+# Private song library and catalog data: other people's work, never commit
+orfeo-catalog/
