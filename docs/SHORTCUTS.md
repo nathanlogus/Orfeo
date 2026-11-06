@@ -22,6 +22,7 @@ combinations, modifiers, and gestures that are not obvious from the UI.
 - [Mixer — Console Mixer and Track Panel](#mixer--console-mixer-and-track-panel)
 - [Track Panel](#track-panel)
 - [Library](#library)
+- [Jam](#jam)
 - [Playback Editor / File Info modal](#playback-editor--file-info-modal)
 - [Modals — everywhere](#modals--everywhere)
 
@@ -144,6 +145,15 @@ Available on the Piano Roll once Note Editor edit mode is active.
 | `Shift` + click | Select a range from the last-clicked row |
 | Drag file(s) | Move them into a folder |
 | Right-click | Context menu — rename, delete, move, show in folder, and more |
+
+---
+
+## Jam
+
+| Key | Action |
+|---|---|
+| `[` | Previous scene |
+| `]` | Next scene |
 
 ---
 

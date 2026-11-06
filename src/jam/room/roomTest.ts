@@ -7,7 +7,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { drawCalls } from '../../arcade/engine/stage'
 import { DRAW_CALL_BUDGET, buildRoom } from './room'
 import { ROOM_SPECS } from './rooms'
-import { ROOMS, lowEnd, roomFor, roomLight, tooSlow } from './roomChoice'
+import { ROOMS, SCENES, lowEnd, roomFor, roomLight, sceneChoice, stepScene, tooSlow } from './roomChoice'
 
 const ART = 'public/jam'
 const MAX_ROOM_BYTES = 450 * 1024
@@ -22,13 +22,19 @@ export async function runRoomTest(): Promise<number> {
   let failures = 0
   const fail = (m: string) => { console.error(`FAIL  ${m}`); failures++ }
 
-  const defaults = { blues: 'roadhouse', jazz: 'cafe', pop: 'studio', rock: 'roadhouse' } as const
+  const defaults = { blues: 'roadhouse', jazz: 'cafe', pop: 'studio', rock: 'stage', rnb: 'studio', soul: 'cafe', funk: 'roadhouse', bossa: 'beach', hiphop: 'rooftop', alternative: 'rooftop', ballad: 'cafe' } as const
   for (const [style, room] of Object.entries(defaults)) {
     if (roomFor(null, style as keyof typeof defaults) !== room) fail(`${style} should default to ${room}`)
     if (roomFor(undefined, style as keyof typeof defaults) !== room) fail(`${style} with no prefs should default to ${room}`)
   }
   if (roomFor('cafe', 'rock') !== 'cafe') fail('a saved room beats the style')
   if (roomFor('plain', 'jazz') !== 'plain') fail('Plain is a choice')
+  if (roomFor('auto', 'bossa') !== 'beach') fail('Auto follows the style')
+  if (sceneChoice('disco') !== 'auto' || sceneChoice(null) !== 'auto' || sceneChoice('space') !== 'space') fail('anything unknown reads as Auto')
+  if (stepScene('auto', -1) !== 'plain' || stepScene('plain', 1) !== 'auto' || stepScene('auto', 1) !== 'studio') fail('the arrows go round')
+  let walked = SCENES[0]
+  for (let i = 0; i < SCENES.length; i++) walked = stepScene(walked, 1)
+  if (walked !== SCENES[0] || SCENES.length !== ROOMS.length + 2) fail('a full lap visits every scene')
   if (roomFor('disco', 'pop') !== 'studio' || roomFor(7, 'pop') !== 'studio') fail('a damaged pref falls back to the style')
 
   if (!lowEnd(2, 8) || !lowEnd(8, 2)) fail('little memory or few cores is low-end')
@@ -46,6 +52,7 @@ export async function runRoomTest(): Promise<number> {
     const calls = drawCalls(built.scene)
     console.log(`${room}: ${calls} draw calls, ${ROOM_SPECS[room].motes.length} motes`)
     if (calls > DRAW_CALL_BUDGET) fail(`${room} costs ${calls} draw calls, budget ${DRAW_CALL_BUDGET}`)
+    if (!ROOM_SPECS[room].hot.length) fail(`${room} has nothing to touch`)
     const bytes = readdirSync(`${ART}/${room}`).reduce((sum, f) => sum + statSync(`${ART}/${room}/${f}`).size, 0)
     if (bytes > MAX_ROOM_BYTES) fail(`${room} art is ${bytes} bytes`)
   }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Minus, Play, Plus, SlidersHorizontal, Square } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Minus, Play, Plus, SlidersHorizontal, Square } from 'lucide-react'
 import '../styles/redesign-tools.css'
 import './jam.css'
 import { useStore } from '../store'
@@ -15,7 +15,7 @@ import { scaleLabel, scaleOptions } from './scales'
 import { PRESETS, ROSTER, SLOT_COUNT, instrument } from './roster'
 import { MAX_BPM, MIN_BPM, SPLIT_NOTE, setBand, setBpm, setFeel, setKey, setLeftHand, setRoom, setScale, setSlot, setStyle, startJam, stopJam, useJam } from './jamSession'
 import RoomStage from './room/RoomStage'
-import { roomFor, type RoomChoice } from './room/roomChoice'
+import { SCENES, roomFor, sceneChoice, stepScene, type SceneChoice } from './room/roomChoice'
 
 const STYLE_OPTIONS: { value: JamStyle; label: string }[] = [
   { value: 'blues', label: t`Blues` },
@@ -30,12 +30,11 @@ const STYLE_OPTIONS: { value: JamStyle; label: string }[] = [
   { value: 'alternative', label: t`Alternative` },
   { value: 'ballad', label: t`Ballad` },
 ]
-const ROOM_OPTIONS: { value: RoomChoice; label: string }[] = [
-  { value: 'studio', label: t`Recording studio` },
-  { value: 'cafe', label: t`Jazz café` },
-  { value: 'roadhouse', label: t`Roadhouse bar` },
-  { value: 'plain', label: t`Plain, no room` },
-]
+const ROOM_NAMES: Record<Exclude<SceneChoice, 'auto'>, () => string> = {
+  studio: () => t`Recording studio`, cafe: () => t`Jazz café`, roadhouse: () => t`Roadhouse bar`, rooftop: () => t`Rooftop at night`,
+  beach: () => t`Beach bonfire`, stage: () => t`Concert stage`, space: () => t`Space lounge`, plain: () => t`Plain, no room`,
+}
+const sceneName = (choice: SceneChoice) => (choice === 'auto' ? t`Auto` : ROOM_NAMES[choice]())
 const LEVEL_WORD = [t`Calm`, t`Steady`, t`Building`]
 const KEYBOARD_ENDS = [36, 83] // C2 to B5
 function useChordName() {
@@ -52,10 +51,52 @@ function KeyPicker() {
   return <SettingsDropdown title={t`Key`} value={String(keyPc)} options={options} onChange={v => setKey(Number(v))} />
 }
 
-function RoomPicker() {
+// Keys belong to whatever is on top: a dialog or a text field keeps its own
+const pageHasKeys = (e: KeyboardEvent) => !e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector('[aria-modal="true"], [role="listbox"]') && !(e.target as HTMLElement).closest?.('input, textarea, [contenteditable="true"]')
+
+function SceneSwitcher() {
+  const choice = useJam(s => sceneChoice(s.savedRoom))
   const room = useJam(s => roomFor(s.savedRoom, s.style))
+  const style = useJam(s => s.style)
   const scenes = useJam(s => s.scenes)
-  return scenes ? <SettingsDropdown title={t`Room`} value={room} options={ROOM_OPTIONS} onChange={setRoom} /> : null
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!scenes) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+      if ((e.key === '[' || e.key === ']') && pageHasKeys(e)) setRoom(stepScene(sceneChoice(useJam.getState().savedRoom), e.key === ']' ? 1 : -1))
+    }
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    window.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    return () => { window.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown) }
+  }, [scenes])
+  if (!scenes) return null
+  const pick = (scene: SceneChoice) => { setRoom(scene); setOpen(false) }
+  const name = choice === 'auto' && room !== 'plain' ? `${t`Auto`}: ${ROOM_NAMES[room]()}` : sceneName(choice)
+  return (
+    <div ref={box} className="jam-scenes">
+      <div className="jam-scene-bar">
+        <button className="o-icon-btn" aria-label={t`Previous scene`} title="[" onClick={() => setRoom(stepScene(choice, -1))}><ChevronLeft size={16} aria-hidden /></button>
+        <button className="jam-scene-name lib-ellipsis" aria-expanded={open} aria-label={`${t`Scene`}: ${name}`} onClick={() => setOpen(v => !v)}>{name}</button>
+        <button className="o-icon-btn" aria-label={t`Next scene`} title="]" onClick={() => setRoom(stepScene(choice, 1))}><ChevronRight size={16} aria-hidden /></button>
+      </div>
+      {open && (
+        <div className="jam-scene-row" role="group" aria-label={t`Scene`}>
+          {SCENES.map(scene => {
+            const shows = scene === 'auto' ? roomFor('auto', style) : scene
+            return (
+              <button key={scene} className="jam-scene-card" aria-pressed={scene === choice} onClick={() => pick(scene)}>
+                <span className="jam-scene-thumb" data-plain={shows === 'plain' || undefined} style={shows === 'plain' ? undefined : { backgroundImage: `url(./jam/thumbs/${shows}.jpg)` }} />
+                <span className="lib-ellipsis">{sceneName(scene)}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function Tempo() {
@@ -331,7 +372,6 @@ function Settings({ open }: { open: boolean }) {
           {!live && <SettingsDropdown title={t`Style`} value={style} options={STYLE_OPTIONS} onChange={setStyle} />}
           <KeyPicker />
           <ScalePicker />
-          <RoomPicker />
           <BandPicker />
         </div>
       </div>
@@ -361,6 +401,7 @@ export default function JamHome() {
   return (
     <RoomStage>
       <div className="jam-page">
+        <SceneSwitcher />
         <ChordBoard />
         <div className="jam-reference">
           <Hint />

@@ -93,6 +93,15 @@ const tube = (points, r = 0.07) => new THREE.TubeGeometry(new THREE.CatmullRomCu
 const pendant = (cord, shade) => [[rod(0.03, 8).translate(0, 4.3, 0), cord], [cone(0.25, 0.9, 0.7).translate(0, -0.05, 0), shade]]
 const WALL_W = 70
 
+// The cat that walks the café counter and the roadhouse bar
+const cat = color => [
+  [box(0.7, 0.26, 0.2).translate(0, 0.26, 0), color], [ball(0.17).translate(0.42, 0.42, 0), color],
+  [cone(0.01, 0.07, 0.14).translate(0.34, 0.6, 0), color], [cone(0.01, 0.07, 0.14).translate(0.5, 0.6, 0), color],
+  ...[-0.26, -0.12, 0.14, 0.28].map(x => [box(0.07, 0.2, 0.08).translate(x, 0.08, 0), color]),
+  [tube([[-0.34, 0.3], [-0.5, 0.45], [-0.46, 0.68]], 0.035), color],
+]
+const person = color => [[ball(0.24).translate(0, 1.72, 0), color], [box(0.62, 0.86, 0.26).translate(0, 1.12, 0), color], [box(0.5, 0.74, 0.22).translate(0, 0.36, 0), color]]
+
 const STUDIO = {
   dir: 'jam/studio',
   grade: tint(0.8, 0.82, 0.9),
@@ -129,6 +138,7 @@ const STUDIO = {
     ],
     booth_glass: [[box(8.4, 5, 0.1).translate(0, 2.6, 0), '#2f8f8a']],
     tally: [[box(1.5, 0.5, 0.1), '#ff4a4a']],
+    engineer: person('#10202a'),
     booth_lights: [-2.6, -2.2, -1.8, -1.4, -1, 1, 1.4, 1.8, 2.2, 2.6].map((x, i) => [box(0.14, 0.14, 0.1).translate(x, 0.82, 0), i % 3 ? '#8cf08c' : '#ffc060']),
   },
 }
@@ -152,6 +162,7 @@ const CAFE = {
     skyline: [[-3, 1.8], [-2, 2.8], [-0.9, 1.4], [0.3, 2.2], [1.5, 3.2], [2.8, 1.9]].map(([x, h]) => [box(1.1, h, 0.1).translate(x, h / 2 + 0.2, 0), '#121c34']),
     lamp_hanging: pendant('#1e1416', '#b8603a'),
     lamp_shine: [[cone(0.88, 0.88, 0.04), '#ffe0a0']],
+    cat: cat('#1a1014'),
     cup: [[cone(0.2, 0.15, 0.3).translate(0, 0.15, 0), '#efe4d0'], [box(0.12, 0.14, 0.04).translate(0.24, 0.16, 0), '#efe4d0'], [cone(0.34, 0.34, 0.03).translate(0, 0.01, 0), '#efe4d0']],
     counter: [[box(8, 2.3, 1.4).translate(0, 1.15, 0), '#5e3c32'], [box(8.3, 0.2, 1.7).translate(0, 2.4, 0), '#c9a26a']],
   },
@@ -189,7 +200,116 @@ const ROADHOUSE = {
     sign_blue: [[tube([[-2.3, -1.2], [-2.45, 0], [-2.3, 1.2], [0, 1.42], [2.3, 1.2], [2.45, 0], [2.3, -1.2], [0, -1.42], [-2.3, -1.2]]), '#56d8ff']],
     lamp_hanging: pendant('#1a0f12', '#7a2a28'),
     lamp_shine: [[cone(0.88, 0.88, 0.04), '#ffc878']],
+    cat: cat('#1a0f12'),
     bar_stool: [[cone(0.55, 0.55, 0.22).translate(0, 1.9, 0), '#8a2c2c'], [rod(0.07, 1.8).translate(0, 0.9, 0), '#9a9098'], [cone(0.42, 0.42, 0.06).translate(0, 0.7, 0), '#9a9098'], [cone(0.45, 0.5, 0.08).translate(0, 0.04, 0), '#1e1214']],
+  },
+}
+
+const SPACE_BASE = { atlas: 'KayKit-Space-Base-Bits-1.0/addons/kaykit_space_base_bits/Assets/gltf', png: 'spacebits_texture.png' }
+
+// Windows in rows up a building's face
+const lights = (x, w, h, rows, warm, cool) => Array.from({ length: rows * 4 }, (_, i) => {
+  const col = i % 4, row = (i - col) / 4
+  return (i * 7) % 5 === 0 ? null : [box(0.2, 0.26, 0.06).translate(x - w / 2 + (col + 0.7) * w / 4.4, 0.7 + (row + 0.5) * (h - 0.9) / rows, 0), (i * 3) % 7 === 0 ? cool : warm]
+}).filter(Boolean)
+const CITY = [[-11, 3, 3.4], [-7.4, 2.6, 4.3], [-3.8, 3, 3], [-0.4, 2.4, 4.6], [3, 3, 3.6], [6.4, 2.6, 4.2], [10, 3.4, 3.2]]
+
+const ROOFTOP = {
+  dir: 'jam/rooftop',
+  grade: tint(0.72, 0.76, 0.98),
+  packs: [{ ...FURNITURE, models: ['couch_pillows', 'lamp_standing', 'rug_oval_A', 'table_low', 'chair_B', 'cactus_medium_A', 'cactus_medium_B'] }],
+  shapes: {
+    deck: [[box(WALL_W, 1, 30).translate(0, -0.5, 12), '#3a3650']],
+    parapet: [[box(WALL_W, 1.1, 0.5).translate(0, 0.55, 0), '#26233c'], [box(WALL_W, 0.1, 0.62).translate(0, 1.14, 0), '#4e4a6e']],
+    poles: [-11, 0, 11].map(x => [rod(0.06, 5.3).translate(x, 2.65, 0), '#1a1830']),
+    sky: [[box(WALL_W, 30, 0.5).translate(0, 15, 0), '#10143a'], [box(WALL_W, 5, 0.6).translate(0, 2.5, 0), '#1e2150'], [box(WALL_W, 2.4, 0.7).translate(0, 1.2, 0), '#322a60']],
+    moon: [[ball(0.9).scale(1, 1, 0.1), '#eef0ff']],
+    city_far: [-13, -9.4, -5.6, -1.6, 2.2, 5, 8.6, 12].map((x, i) => [box(3.6, 3.6 + (i * 2 % 5) * 0.5, 0.3).translate(x, 1.8 + (i * 2 % 5) * 0.25, 0), '#1a1c48']),
+    city_near: CITY.map(([x, w, h]) => [box(w, h, 0.3).translate(x, h / 2, 0), '#0e1030']),
+    windows: CITY.flatMap(([x, w, h]) => lights(x, w, h, Math.floor(h), '#d8a858', '#6a90c8')),
+    wire: [[tube([[-11, 5.2], [-8, 4.6], [-5.5, 4.2], [-3, 4.6], [0, 5.2], [3, 4.6], [5.5, 4.2], [8, 4.6], [11, 5.2]], 0.025), '#0a0a1c']],
+    billboard: [[tube([[-1.2, -0.4], [-1.25, 0.5], [1.25, 0.5], [1.2, -0.4], [-1.2, -0.4]], 0.05), '#ff5fa2'], [tube([[-0.8, -0.1], [-0.3, 0.2], [0.2, -0.1], [0.7, 0.2]], 0.05), '#56d8ff']],
+  },
+}
+
+const fronds = (x, y) => [[-2.4, -0.7], [-1.5, -1.5], [1.5, -1.5], [2.4, -0.7], [-1.4, 0.2], [1.4, 0.2]].map(([dx, dy]) => [tube([[x, y], [x + dx * 0.5, y + 0.45 + dy * 0.2], [x + dx, y + dy]], 0.13), '#1c1428'])
+
+const BEACH = {
+  dir: 'jam/beach',
+  grade: tint(1, 0.8, 0.74),
+  packs: [{ ...MIXED_BAG, models: ['umbrella_green', 'guitar_A'] }],
+  shapes: {
+    sand: [[box(WALL_W, 1, 30).translate(0, -0.5, 12), '#a8704e']],
+    log: [[rod(0.32, 3.4).rotateZ(1.5708).translate(0, 0.3, 0), '#5a3628']],
+    bonfire: [
+      [rod(0.11, 1.8).rotateZ(1.2).translate(0, 0.3, 0.1), '#2e1c18'], [rod(0.11, 1.8).rotateZ(-1.2).translate(0, 0.3, -0.1), '#2e1c18'], [rod(0.11, 1.7).rotateX(1.2).translate(0, 0.3, 0), '#2e1c18'],
+      ...[0, 1, 2, 3, 4, 5, 6].map(i => [ball(0.2).translate(Math.cos(i * 0.9) * 1, 0.12, Math.sin(i * 0.9) * 0.8), '#6a4a4e']),
+    ],
+    coals: [[box(0.8, 0.1, 0.5).translate(0, 0.22, 0), '#ff7a30'], [box(0.5, 0.1, 0.7).translate(0, 0.28, 0), '#f8b460']],
+    rock_low: [[ball(0.8).scale(1.3, 0.6, 1).translate(0, 0.35, 0), '#6a4a4e'], [ball(0.5).scale(1.2, 0.7, 1).translate(0.9, 0.22, 0.2), '#6a4a4e']],
+    dusk: [
+      [box(WALL_W, 30, 0.5).translate(0, 15, 0), '#2a2050'], [box(WALL_W, 6.4, 0.6).translate(0, 3.2, 0), '#5e3470'], [box(WALL_W, 5, 0.7).translate(0, 2.5, 0), '#a64a68'],
+      [box(WALL_W, 3.9, 0.8).translate(0, 1.95, 0), '#e07a4e'], [box(WALL_W, 3, 0.9).translate(0, 1.5, 0), '#f8b460'],
+    ],
+    sun: [[ball(1.5).scale(1, 1, 0.1), '#ffe6a0']],
+    sea: [[box(WALL_W, 2.5, 0.2).translate(0, 1.25, 0), '#2a3a68'], [box(WALL_W, 1.7, 0.3).translate(0, 0.85, 0), '#223058'], [box(WALL_W, 0.9, 0.4).translate(0, 0.45, 0), '#e07a4e']],
+    palms: [[tube([[0.8, -0.2], [0.4, 2], [0.5, 4.2], [1.1, 6.2]], 0.2), '#1c1428'], ...fronds(1.1, 6.2)],
+    gull: [[tube([[-0.5, 0.2], [-0.22, 0.27], [0, 0.06], [0.22, 0.27], [0.5, 0.2]], 0.035), '#1c1428']],
+  },
+}
+
+const CONCERT = {
+  dir: 'jam/stage',
+  grade: tint(0.76, 0.74, 0.96),
+  packs: [{ ...MIXED_BAG, models: ['guitar_A'] }],
+  shapes: {
+    curtain: [
+      [box(WALL_W, 20, 1).translate(0, 10, -0.5), '#17141f'],
+      ...[-14, -12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12, 14].map(x => [box(0.5, 20, 1.08).translate(x, 10, -0.5), '#211c2e']),
+      [box(WALL_W, 1, 30).translate(0, -0.5, 12), '#100e18'],
+    ],
+    riser: [[box(26, 1.1, 3.4).translate(0, 0.55, 1.7), '#26222f'], [box(26, 0.1, 3.5).translate(0, 1.12, 1.7), '#46405a']],
+    amp_stack: [
+      [box(2.2, 1.5, 1).translate(0, 0.75, 0), '#14121a'], [box(1.9, 1.2, 0.05).translate(0, 0.75, 0.52), '#3a3442'],
+      [box(2.2, 1.3, 1).translate(0, 2.15, 0), '#14121a'], [box(1.9, 0.9, 0.05).translate(0, 2.05, 0.52), '#3a3442'], [box(1.9, 0.2, 0.05).translate(0, 2.65, 0.52), '#b89a60'],
+    ],
+    drums: [
+      [rod(0.62, 0.5).rotateX(1.5708).translate(0, 0.62, 0), '#7a2238'], [rod(0.3, 0.26).translate(-0.9, 0.82, 0.2), '#d8d0c8'], [rod(0.3, 0.26).translate(0.9, 0.82, 0.2), '#7a2238'],
+      [rod(0.4, 0.05).translate(-1.5, 1.5, 0), '#b89a60'], [rod(0.4, 0.05).translate(1.5, 1.4, 0), '#b89a60'], [rod(0.03, 1.5).translate(-1.5, 0.75, 0), '#6a6474'], [rod(0.03, 1.4).translate(1.5, 0.7, 0), '#6a6474'],
+    ],
+    mic_stand: [[rod(0.05, 4).translate(0, 2, 0), '#6a6474'], [rod(0.04, 2).rotateZ(1.1).translate(-0.8, 4.4, 0), '#6a6474'], [rod(0.17, 0.5).rotateZ(0.5).translate(-1.75, 4.9, 0), '#14121a']],
+    truss: [[box(25, 0.1, 0.1), '#6a6474'], ...Array.from({ length: 13 }, (_, i) => [box(0.06, 0.66, 0.06).translate(-12 + i * 2, -0.33, 0), '#6a6474'])],
+    logo_wall: [[tube([[-2, 2.7], [-1, 4.3], [0, 2.7], [1, 4.3], [2, 2.7]], 0.05), '#46405a']],
+    can: [[cone(0.2, 0.28, 0.5).translate(0, -0.05, 0), '#ece6ff']],
+    fan: [[ball(0.3).translate(0, 1.42, 0), '#07060c'], [box(0.86, 1.15, 0.3).translate(0, 0.6, 0), '#07060c']],
+    roadie: person('#07060c'),
+  },
+}
+
+const SPACE = {
+  dir: 'jam/space',
+  grade: tint(0.74, 0.8, 0.96),
+  packs: [
+    { ...SPACE_BASE, models: ['containers_A', 'cargo_A'] },
+    { ...FURNITURE, models: ['couch_pillows', 'rug_rectangle_A', 'cactus_medium_B'] },
+  ],
+  shapes: {
+    hull: [
+      [box(WALL_W, 13, 1).translate(0, 13.5, -0.5), '#2c3048'], [box(WALL_W, 0.9, 1).translate(0, 0.45, -0.5), '#2c3048'],
+      [box(23, 20, 1).translate(-24.5, 10, -0.5), '#2c3048'], [box(23, 20, 1).translate(24.5, 10, -0.5), '#2c3048'],
+    ],
+    floor: [[box(WALL_W, 1, 30).translate(0, -0.5, 12), '#3e4258']],
+    void: [[box(80, 40, 0.4).translate(0, 16, 0), '#060818']],
+    porthole: [[box(0.22, 6.2, 0.4).translate(-6.5, 3.9, 0), '#10121e'], [box(0.22, 6.2, 0.4).translate(6.5, 3.9, 0), '#10121e'], [box(26, 0.14, 0.3).translate(0, 4.6, 0), '#10121e']],
+    desk: [[box(2.6, 1.4, 1).translate(0, 0.7, 0), '#232638'], [box(2.2, 0.8, 0.1).rotateX(-0.5).translate(0, 1.7, -0.1), '#14162a']],
+    desk_lights: [-0.8, -0.4, 0, 0.4, 0.8].flatMap((x, i) => [[box(0.2, 0.08, 0.04).translate(x, 1.5, 0.2), i % 2 ? '#4fe3cf' : '#ffb04f'], [box(0.2, 0.08, 0.04).translate(x, 1.84, 0.1), i % 3 ? '#7fa0ff' : '#ff6f8f']]),
+    planet: [
+      [ball(2.6), '#3a70c8'],
+      ...[[0.2, 1.2, 2.2, 1.4], [-1.8, 0.3, 1.8, 1.1], [1.9, -0.6, 1.5, 1], [-0.4, -1.5, 2, 1], [-1, 0.8, -2.2, 1.2], [1.2, 0.2, -2.2, 1], [0.2, -1, -2.3, 1.3], [2.3, 0.6, -0.8, 0.8], [-2.4, -0.5, -0.7, 0.8]]
+        .map(([x, y, z, r], i) => [ball(r).translate(x, y, z).scale(0.98, 0.98, 0.98), i % 2 ? '#d8c890' : '#5aa86a']),
+      [new THREE.TorusGeometry(3.7, 0.14, 6, 40).rotateX(1.5708), '#c8b8e0'],
+    ],
+    satellite: [[box(0.5, 0.36, 0.3), '#c8ccd8'], [box(1, 0.3, 0.04).translate(-0.82, 0, 0), '#3a5ab0'], [box(1, 0.3, 0.04).translate(0.82, 0, 0), '#3a5ab0']],
   },
 }
 
@@ -347,7 +467,7 @@ function root({ zip }) {
   return unpacked.get(zip)
 }
 
-for (const world of [HOLLOW, STUDIO, CAFE, ROADHOUSE]) {
+for (const world of [HOLLOW, STUDIO, CAFE, ROADHOUSE, ROOFTOP, BEACH, CONCERT, SPACE]) {
   const out = join(import.meta.dirname, '../public', world.dir)
   mkdirSync(out, { recursive: true })
   const strip = new Uint8Array(STRIP_W * BAND_H * BANDS * 3)

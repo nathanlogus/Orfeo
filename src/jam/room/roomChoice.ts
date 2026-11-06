@@ -2,15 +2,26 @@
 import type { JamStyle } from '../band'
 import type { BandLevel } from '../reaction'
 
-export const ROOMS = ['studio', 'cafe', 'roadhouse'] as const
+export const ROOMS = ['studio', 'cafe', 'roadhouse', 'rooftop', 'beach', 'stage', 'space'] as const
 export type Room = typeof ROOMS[number]
 export type RoomChoice = Room | 'plain'
+export type SceneChoice = RoomChoice | 'auto'   // auto: whatever suits the style
 
-const STYLE_ROOM: Record<JamStyle, Room> = { blues: 'roadhouse', jazz: 'cafe', pop: 'studio', rock: 'roadhouse', rnb: 'studio', soul: 'cafe', funk: 'roadhouse', bossa: 'cafe', hiphop: 'studio', alternative: 'studio', ballad: 'cafe' }
+const STYLE_ROOM: Record<JamStyle, Room> = { blues: 'roadhouse', jazz: 'cafe', pop: 'studio', rock: 'stage', rnb: 'studio', soul: 'cafe', funk: 'roadhouse', bossa: 'beach', hiphop: 'rooftop', alternative: 'rooftop', ballad: 'cafe' }
+
+export const SCENES: SceneChoice[] = ['auto', ...ROOMS, 'plain']
 
 // What the prefs file says is only trusted once it names a real choice
+export const sceneChoice = (saved: unknown): SceneChoice => (SCENES.includes(saved as SceneChoice) ? saved as SceneChoice : 'auto')
+
 export function roomFor(saved: unknown, style: JamStyle): RoomChoice {
-  return saved === 'plain' || ROOMS.includes(saved as Room) ? saved as RoomChoice : STYLE_ROOM[style]
+  const choice = sceneChoice(saved)
+  return choice === 'auto' ? STYLE_ROOM[style] : choice
+}
+
+// The next scene along, round and round: direction is 1 or -1
+export function stepScene(choice: SceneChoice, direction: number): SceneChoice {
+  return SCENES[(SCENES.indexOf(choice) + direction + SCENES.length) % SCENES.length]
 }
 
 const MIN_MEMORY_GB = 3

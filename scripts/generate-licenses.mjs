@@ -53,10 +53,11 @@ are original, built in three.js by that script.
 
 | Used for | Pack | Author | License |
 |---|---|---|---|
-| Studio couch, lamps, rug, cabinet, plant; café frames, shelf, books, plant | KayKit Furniture Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Couches, chairs, lamps, rugs, tables, cabinet, plants; café frames, shelf, books | KayKit Furniture Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
 | Café tables, chairs, menu, jars | KayKit Restaurant Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
 | Roadhouse barrels, keg, bottles, table | KayKit Dungeon Remastered 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
-| Studio and roadhouse guitars | KayKit Mixed Bag 1 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Space lounge containers and cargo | KayKit Space Base Bits 1.0 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
+| Guitars, beach umbrella | KayKit Mixed Bag 1 | [KayKit](https://www.kaylousberg.com) by Kay Lousberg | CC0 1.0 |
 
 ---
 

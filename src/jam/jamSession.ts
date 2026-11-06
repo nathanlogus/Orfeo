@@ -15,7 +15,7 @@ import { openJamOutput, startPulse, PULSE_MS, type PulsedOutput } from './jamOut
 import { createReaction, type BandLevel } from './reaction'
 import { TICK_MS, createScheduler } from './scheduler'
 import { bandPlays } from './keyFx'
-import { lowEnd, type RoomChoice } from './room/roomChoice'
+import { lowEnd, type SceneChoice } from './room/roomChoice'
 
 export const SPLIT_NOTE = 60 // C4: below this the left hand leads
 export const MIN_BPM = 50
@@ -43,7 +43,7 @@ interface JamState extends JamSettings {
   busy: number
   level: BandLevel
   held: number[]
-  savedRoom: RoomChoice | null | undefined  // undefined: prefs not read yet; null: follow the style
+  savedRoom: SceneChoice | null | undefined  // undefined: prefs not read yet; null: nothing saved, same as auto
   scenes: boolean                           // false: this device gets the plain page
 }
 
@@ -227,7 +227,7 @@ export const setLeftHand = (leftHand: boolean) => useJam.setState({ leftHand })
 
 export const loadRoom = async () => useJam.setState({ savedRoom: (await window.electronAPI.getPrefs()).jamRoom ?? null })
 export const roomGone = () => useJam.setState({ scenes: false })
-export function setRoom(room: RoomChoice) {
+export function setRoom(room: SceneChoice) {
   useJam.setState({ savedRoom: room })
   void window.electronAPI.setPrefs({ jamRoom: room })
 }

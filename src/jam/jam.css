@@ -10,6 +10,16 @@
 .jam-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .jam-room { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .jam-room canvas { position: absolute; inset: 0; display: block; }
+.jam-room .jam-room-fade { width: 100%; height: 100%; transition: opacity 320ms ease-out; }
+.jam-stage[data-pointing] { cursor: pointer; }
+.jam-scenes { position: relative; }
+.jam-scene-bar { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.jam-scene-name { flex: 0 1 auto; min-width: 0; max-width: 230px; min-height: 36px; padding: 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-pill); background: var(--ui-floor); color: var(--ui-text); font: inherit; font-size: var(--text-base); cursor: pointer; }
+.jam-scene-row { position: absolute; left: 0; right: 0; z-index: 5; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; padding: 8px; border: 1px solid var(--ink); border-radius: var(--radius-md); background: var(--ui-floor); }
+.jam-scene-card { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 3px; border: 2px solid transparent; border-radius: 8px; background: none; color: var(--ui-text); font: inherit; font-size: var(--text-xs); text-align: left; cursor: pointer; }
+.jam-scene-card[aria-pressed='true'] { border-color: var(--ink); background: var(--paint-yellow); color: var(--ink); }
+.jam-scene-thumb { display: block; aspect-ratio: 16 / 9; border: 1px solid var(--ink); border-radius: 4px; background-size: cover; background-position: center; }
+.jam-scene-thumb[data-plain] { background: var(--paper-card); }
 .jam-title { margin: 0; font-size: var(--text-3xl); font-weight: 400; letter-spacing: -1.5px; line-height: 1.05; }
 .jam-setup { display: flex; flex-direction: column; gap: 12px; }
 .jam-wide { display: flex; width: 100%; box-sizing: border-box; }
@@ -75,6 +85,10 @@
 /* ── A room behind the band: the page becomes a HUD in it ─────────────────────── */
 .jam-stage[data-room='studio'] { --room-floor: #1f1d2b; --sign: #071c1e; --sign-ink: #c8fff4; --sign-glow: #4fe3cf; --sign-edge: #2a5c5a; }
 .jam-stage[data-room='cafe'] { --room-floor: #2b1a1c; --sign: #1f2a26; --sign-ink: #fdf6e6; --sign-glow: #ffd9a0; --sign-edge: #8a5a34; }
+.jam-stage[data-room='rooftop'] { --room-floor: #15142a; --sign: #0c0e26; --sign-ink: #fff0dc; --sign-glow: #ffc880; --sign-edge: #6a70c8; }
+.jam-stage[data-room='beach'] { --room-floor: #3a2230; --sign: #24121e; --sign-ink: #fff0dc; --sign-glow: #ff9a4a; --sign-edge: #e07a4e; }
+.jam-stage[data-room='stage'] { --room-floor: #0d0b14; --sign: #0a0812; --sign-ink: #f4ecff; --sign-glow: #b47fff; --sign-edge: #ff4f9a; }
+.jam-stage[data-room='space'] { --room-floor: #15182a; --sign: #060818; --sign-ink: #d8e8ff; --sign-glow: #5a90ff; --sign-edge: #4fe3cf; }
 .jam-stage[data-room='roadhouse'] { --room-floor: #1e1214; --sign: #17090f; --sign-ink: #ffe8f4; --sign-glow: #ff5fa2; --sign-edge: #56d8ff; }
 .jam-stage[data-room] { background: var(--room-floor); }
 .jam-stage[data-room] .jam-board { border: 3px solid var(--sign-edge); background: var(--sign); color: var(--sign-ink); box-shadow: 0 0 22px color-mix(in srgb, var(--sign-glow) 45%, transparent), 0 8px 18px rgba(0, 0, 0, 0.4); }
@@ -100,8 +114,9 @@
 .jam-stage[data-room] .jam-bar .o-btn { justify-content: center; background: var(--ui-floor); }
 .jam-stage[data-room] .jam-controls { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
 .jam-stage[data-room] .jam-controls > * { grid-column: span 2; margin-bottom: 0 !important; }
-/* Room and Band close the grid wide; with no Style while playing, Key and Scale take the row above */
-.jam-stage[data-room] .jam-controls > :nth-last-child(-n+2), .jam-stage[data-room] .jam-controls > :first-child:nth-last-child(4), .jam-stage[data-room] .jam-controls > :first-child:nth-last-child(4) + * { grid-column: span 3; }
+/* Band closes the grid wide; with no Style while playing, Key and Scale share the row above */
+.jam-stage[data-room] .jam-controls > :last-child { grid-column: span 6; }
+.jam-stage[data-room] .jam-controls > :first-child:nth-last-child(3), .jam-stage[data-room] .jam-controls > :first-child:nth-last-child(3) + * { grid-column: span 3; }
 .jam-stage[data-room] .jam-controls .o-select { width: 100%; }
 .jam-stage[data-room] .jam-tempo { justify-content: space-between; }
 .jam-stage[data-room] .jam-set { gap: 6px; min-width: 0; }
@@ -128,6 +143,8 @@
   .jam-stage[data-room] .jam-dock { pointer-events: none; }
   .jam-stage[data-room] .jam-board { position: absolute; top: 10px; left: 50%; width: 400px; box-sizing: border-box; padding: 6px 16px 10px; transform: translateX(-50%); }
   .jam-stage[data-room] .jam-chord { font-size: 68px; }
+  .jam-stage[data-room] .jam-scenes { position: absolute; top: 14px; left: calc(50% + 212px); right: 216px; }
+  .jam-stage[data-room] .jam-scene-row { top: 158px; right: auto; left: -713px; width: 1002px; box-sizing: border-box; grid-template-columns: repeat(9, 1fr); }  /* centred on the page, under the sign */
   .jam-stage[data-room] .jam-keys { height: 108px; }
   .jam-stage[data-room] .jam-drawer { flex-direction: row; align-items: stretch; gap: 12px; }
   .jam-stage[data-room] .jam-set { flex: 1 1 0; justify-content: space-between; }
