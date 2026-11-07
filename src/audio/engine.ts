@@ -7,6 +7,7 @@ import { useStore } from '../store'
 import * as samples from '../hooks/useSamplesEngine'
 import * as gm from '../hooks/useAudioEngine'
 import * as native from './useNativeEngine'
+import { androidPianoBridge } from './androidPiano'
 
 const engine = () => useStore.getState().audioEngine
 
@@ -50,6 +51,10 @@ export function hasMixerEffects(): boolean { return engine() !== 'gm' }
 // card alone, and a set that won't load mustn't leave the preview silent, so
 // both fall back to General MIDI.
 export async function playSongPreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
+  if (engine() === 'native' && androidPianoBridge()) {
+    const { playAndroidNativePreview } = await import('./androidNativeEngine')
+    return playAndroidNativePreview(bytes, onEnd)
+  }
   if (engine() !== 'native') {
     try { return await samples.playSamplesPreview(bytes, onEnd) } catch (e) { console.warn('[Pliage] sound set preview failed:', e) }
   }

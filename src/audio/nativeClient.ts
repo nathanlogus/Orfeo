@@ -7,6 +7,8 @@
 
 import { create } from 'zustand'
 import { PendingRenders } from './pendingRenders'
+import { androidPianoBridge } from './androidPiano'
+import { callAndroidNative, startAndroidNative, stopAndroidNative } from './androidNativeEngine'
 
 export interface NativeStatus {
   position: number
@@ -33,6 +35,12 @@ export interface NativeStatus {
   liveWaitAvgMs: number
   liveWaitMaxMs: number
   liveQueuedAvgMs: number
+  directMidi?: boolean
+  nativeInputNotes?: number
+  nativeInputMs?: number | null
+  nativeInputWorstMs?: number
+  nativeHandleMs?: number
+  nativeHandleWorstMs?: number
 }
 
 type Phase = 'off' | 'connecting' | 'starting' | 'running' | 'failed'
@@ -85,6 +93,13 @@ async function connect(): Promise<boolean> {
 
 /** Starts (or restarts) the engine. Resolves false if it couldn't start. */
 export async function startNative(opts: { soundfonts: string[]; exclusive: boolean }): Promise<boolean> {
+  if (androidPianoBridge()) {
+    useNativeAudio.setState({ phase: 'starting', error: null, status: null })
+    return startAndroidNative(opts,
+      status => useNativeAudio.setState({ phase: 'running', status, error: null }),
+      error => useNativeAudio.setState({ phase: 'failed', error, status: null }),
+      () => restartListeners.forEach(fn => fn()))
+  }
   startOpts = opts
   useNativeAudio.setState({ phase: 'connecting', error: null })
   if (!port && !(await connect())) return false
@@ -99,6 +114,7 @@ export async function startNative(opts: { soundfonts: string[]; exclusive: boole
 export function stopNative(): Promise<void> {
   const wasOn = useNativeAudio.getState().phase !== 'off'
   useNativeAudio.setState({ phase: 'off', status: null })
+  if (androidPianoBridge()) return stopAndroidNative()
   if (!port || !wasOn) return Promise.resolve()
   const done = new Promise<void>(res => {
     stoppedWaiters.push(res)
@@ -120,6 +136,7 @@ export async function nativeRenderOffline(
   packed: { job: unknown; times: Float64Array; tracks: Uint16Array; bytes: Uint8Array; trackCount: number; duration: number },
   onProgress?: (p: number) => void, isCancelled?: () => boolean,
 ): Promise<Float32Array[] | null> {
+  if (androidPianoBridge()) throw new Error('Select Studio to export audio on Android.')
   if (!port && !(await connect())) throw new Error(useNativeAudio.getState().error ?? 'Native sound is unavailable')
   const id = ++_renderId
   const cancelWatch = setInterval(() => { if (isCancelled?.()) port?.postMessage({ t: 'render-cancel', id }) }, 100)
@@ -137,6 +154,7 @@ export async function nativeRenderOffline(
 /** One engine call; silently dropped while the engine isn't running */
 export function nativeCall(method: string, ...args: unknown[]) {
   if (useNativeAudio.getState().phase !== 'running') return
+  if (androidPianoBridge()) { callAndroidNative(method, args); return }
   port?.postMessage({ t: 'call', m: method, a: args })
 }
 

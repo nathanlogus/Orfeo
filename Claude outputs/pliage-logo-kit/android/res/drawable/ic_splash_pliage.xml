@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash icon (Android 12+ windowSplashScreenAnimatedIcon): 288dp canvas, keep inside the 192dp circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp" android:height="288dp"
+    android:viewportWidth="288" android:viewportHeight="288">
+    <group android:scaleX="0.58" android:scaleY="0.58" android:translateX="70.15" android:translateY="68.15">
+        <path android:fillColor="#FF000000" android:pathData="M60,24 L196,24 L196,132 L96,232 L60,232 Z" />
+        <path android:fillColor="#FFFBF8F5" android:pathData="M196,132 L96,232 L96,132 Z" />
+    </group>
+</vector>

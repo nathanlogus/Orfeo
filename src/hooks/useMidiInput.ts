@@ -27,6 +27,7 @@ import {
 import { liveNoteOn as gmNoteOn, liveSend as gmSend, liveReset as gmReset } from './useAudioEngine'
 import { nativeCall } from '../audio/nativeClient'
 import { nativeLiveProgram } from '../audio/useNativeEngine'
+import { androidPianoBridge, androidPianoMidi, resetAndroidPiano } from '../audio/androidPiano'
 
 const HARDWARE_COLOR = 'var(--text-amber)'
 
@@ -59,6 +60,8 @@ const nativeLive = (status: number, d1: number, d2 = 0) => nativeCall('midi', (s
 const _ctrlNow = new Map<number, number>()
 const NEUTRAL: Record<number, number> = { 64: 0, 66: 0, 67: 0, 1: 0, 11: 127, 7: 127, [-1]: 8192, [-2]: 0 }
 function sendCtrl(cc: number, value: number) {
+  if (androidPianoMidi(cc === -1 ? 0xe0 : cc === -2 ? 0xd0 : 0xb0,
+    cc === -1 ? value & 0x7f : cc === -2 ? value : cc, cc === -1 ? value >> 7 : cc === -2 ? 0 : value)) return
   if (cc === -1) { if (isNative()) nativeLive(0xE0, value & 0x7F, value >> 7); else if (isSamples()) samplesBend(value); else gmSend([0xEF, value & 0x7F, value >> 7]) }
   else if (cc === -2) { if (isNative()) nativeLive(0xD0, value); else if (isSamples()) samplesChanPressure(value); else gmSend([0xDF, value]) }
   else if (isNative()) nativeLive(0xB0, cc, value); else if (isSamples()) samplesControl(cc, value); else gmSend([0xBF, cc, value])
@@ -90,8 +93,8 @@ function markActivity(key: string, t: number) {
 }
 
 // ── Sound + light for one key ─────────────────────────────────────────────────
-function soundOn(note: number, vel: number) { if (isNative()) { nativeLiveProgram(liveProgram()); nativeLive(0x90, note, vel) } else if (isSamples()) samplesNoteOn(note, vel); else gmNoteOn(note, vel) }
-function soundOff(note: number) { if (isNative()) nativeLive(0x80, note); else if (isSamples()) samplesNoteOff(note); else gmSend([0x8F, note, 0]) }
+function soundOn(note: number, vel: number) { if (androidPianoMidi(0x90, note, vel)) return; if (isNative()) { nativeLiveProgram(liveProgram()); nativeLive(0x90, note, vel) } else if (isSamples()) samplesNoteOn(note, vel); else gmNoteOn(note, vel) }
+function soundOff(note: number) { androidPianoMidi(0x80, note); if (isNative()) nativeLive(0x80, note); else if (isSamples()) samplesNoteOff(note); else gmSend([0x8F, note, 0]) }
 
 function lightOn(note: number) {
   const { activeKeys, activeKeyColors, midiHeldKeys } = useStore.getState()
@@ -142,7 +145,7 @@ export function onLiveNote(fn: (note: number, vel: number) => void): () => void 
 }
 
 // ── Note on / off ────────────────────────────────────────────────────────────
-function noteOn(key: string, note: number, raw: number, stamp: number, t0: number) {
+function noteOn(key: string, note: number, raw: number, stamp: number, t0: number, nativeHandled = false) {
   // During a Tap Tempo session a key press is a tap, not a note
   if (isTapCapturing()) { registerTap(); return }
   const s = useMidiSettings.getState()
@@ -158,7 +161,7 @@ function noteOn(key: string, note: number, raw: number, stamp: number, t0: numbe
   }
   _lastOn.set(id, t0)
   const vel = shapeVelocity(raw, s)
-  soundOn(note, vel)
+  if (!nativeHandled) soundOn(note, vel)
   recordNote(stamp, t0, performance.now(), note, vel, key)
   heldBy(key).add(note)
   lastNoteStamp = stamp
@@ -169,13 +172,13 @@ function noteOn(key: string, note: number, raw: number, stamp: number, t0: numbe
   _noteListeners.forEach(fn => fn(note, vel))
 }
 
-function noteOff(key: string, note: number) {
+function noteOff(key: string, note: number, nativeHandled = false) {
   const id = `${key}:${note}`
   const sw = _swallow.get(id)
   if (sw) { if (sw > 1) _swallow.set(id, sw - 1); else _swallow.delete(id); return }
   heldBy(key).delete(note)
   if (heldElsewhere(key, note)) return
-  soundOff(note)
+  if (!nativeHandled) soundOff(note)
   lightOff([note])
 }
 
@@ -187,7 +190,7 @@ function detect(kind: ControlKind) {
   useMidiSettings.setState(s => ({ detected: { ...s.detected, [kind]: true } }))
 }
 
-function control(cc: number, value: number) {
+function control(cc: number, value: number, nativeHandled = false) {
   const kind = CC_KIND[cc]
   if (!kind) return            // other knobs/pads are meant for DAWs — not forwarded
   detect(kind)
@@ -197,26 +200,28 @@ function control(cc: number, value: number) {
   }
   if (!useMidiSettings.getState().controls[kind]) return
   _ctrlNow.set(cc, value)
-  sendCtrl(cc, value)
+  if (!nativeHandled) sendCtrl(cc, value)
 }
 
-function pitchBend(lsb: number, msb: number) {
+function pitchBend(lsb: number, msb: number, nativeHandled = false) {
   detect('pitchBend')
   if (!useMidiSettings.getState().controls.pitchBend) return
   _ctrlNow.set(-1, lsb | (msb << 7))
-  sendCtrl(-1, lsb | (msb << 7))
+  if (!nativeHandled) sendCtrl(-1, lsb | (msb << 7))
 }
 
-function channelPressure(value: number) {
+function channelPressure(value: number, nativeHandled = false) {
   detect('channelPressure')
   if (!useMidiSettings.getState().controls.channelPressure) return
   _ctrlNow.set(-2, value)
-  sendCtrl(-2, value)
+  if (!nativeHandled) sendCtrl(-2, value)
 }
 
-function polyPressure(note: number, value: number) {
+function polyPressure(note: number, value: number, nativeHandled = false) {
   detect('polyPressure')
   if (!useMidiSettings.getState().controls.polyPressure) return
+  if (nativeHandled) return
+  if (androidPianoMidi(0xa0, note, value)) return
   if (isNative()) nativeLive(0xA0, note, value); else if (isSamples()) samplesPolyPressure(note, value); else gmSend([0xAF, note, value])
 }
 
@@ -229,16 +234,19 @@ function handleMessage(e: MIDIMessageEvent, portId: string) {
   if (status >= 0xF0) return  // clock / active sensing / sysex: not playing
   const key = _portDevice.get(portId)
   if (!key || !isListening(key)) return
+  // The native receiver has already sounded this device. This independent
+  // Web MIDI delivery updates scoring and the screen only; never echo it.
+  const direct = androidPianoBridge()?.ownsDevice(key) ?? false
   countEvent('messages')
   markActivity(key, t0)
   const type = status & 0xF0
   const d1 = data[1] ?? 0, d2 = data[2] ?? 0
-  if (type === 0x90 && d2 > 0) noteOn(key, d1, d2, e.timeStamp, t0)
-  else if (type === 0x80 || type === 0x90) noteOff(key, d1)
-  else if (type === 0xB0) control(d1, d2)
-  else if (type === 0xE0) pitchBend(d1, d2)
-  else if (type === 0xD0) channelPressure(d1)
-  else if (type === 0xA0) polyPressure(d1, d2)
+  if (type === 0x90 && d2 > 0) noteOn(key, d1, d2, e.timeStamp, t0, direct)
+  else if (type === 0x80 || type === 0x90) noteOff(key, d1, direct)
+  else if (type === 0xB0) control(d1, d2, direct)
+  else if (type === 0xE0) pitchBend(d1, d2, direct)
+  else if (type === 0xD0) channelPressure(d1, direct)
+  else if (type === 0xA0) polyPressure(d1, d2, direct)
   else if (type === 0xC0) programChange(d1)
 }
 
@@ -349,6 +357,7 @@ async function connect(): Promise<void> {
 // Fresh device list from the system, and keyboards held back since their
 // last unplug are listened to again
 export async function rescanMidiDevices(): Promise<void> {
+  androidPianoBridge()?.rescanMidi()
   _waitingForRescan.clear()
   detachAll()
   _portDevice.clear()
@@ -358,10 +367,12 @@ export async function rescanMidiDevices(): Promise<void> {
 // Every key up, pedals up, wheels centred — on both engines (the button:
 // a deliberate full reset of the live channel)
 export function clearStuckNotes(): void {
+  androidPianoBridge()?.resetMidi()
   releaseHeld()
   _swallow.clear()
   _ctrlNow.clear()
   samplesReset(); gmReset()
+  resetAndroidPiano()
   // Native: the live channel only — every key up, pedals up, wheels centred
   if (isNative()) { for (const [cc, v] of [[64, 0], [66, 0], [67, 0], [1, 0], [11, 127], [123, 0]]) nativeLive(0xB0, cc, v); nativeLive(0xE0, 0, 64) }
   const { activeKeyColors, midiHeldKeys } = useStore.getState()
@@ -381,20 +392,41 @@ export async function resetMidiInput(): Promise<void> {
 
 // A keyboard no longer listened to must not leave its keys sounding
 const _unsubListen = useMidiSettings.subscribe((s, prev) => {
+  configureAndroidMidi()
   if (s.listenMode === prev.listenMode && s.selectedDevices === prev.selectedDevices) return
   for (const key of _held.keys()) if (!isListening(key)) releaseHeld(key)
   publishTopBar()
 })
+
+let androidConfig = '', androidProgram = -1
+function configureAndroidMidi() {
+  const api = androidPianoBridge()
+  if (!api) return
+  const m = useMidiSettings.getState()
+  const config = {
+    allowed: m.devices.filter(d => d.connected && isListening(d.key)).map(d => d.key),
+    autoReconnect: m.autoReconnect, followProgramChange: m.followProgramChange,
+    velocityCurve: m.velocityCurve, fixedVelocity: m.fixedVelocity, minVelocity: m.minVelocity,
+    maxVelocity: m.maxVelocity, duplicateFilterMs: m.duplicateFilterMs, controls: m.controls,
+    liveProgram: m.liveProgram,
+    muted: isTapCapturing(),
+  }
+  const json = JSON.stringify(config)
+  if (json !== androidConfig) { androidConfig = json; api.configureMidi(config) }
+  if (m.liveProgram !== androidProgram) { androidProgram = m.liveProgram; api.midi(0xc0, liveProgram(), 0) }
+}
+const _unsubAndroidTap = useStore.subscribe((s, prev) => { if (s.tapSession !== prev.tapSession) configureAndroidMidi() })
 
 // ── Hook: connect once; release everything if the window is hidden ──────────
 // (minimised mid-chord, a note-off can be missed; nothing should hang on return)
 export function useMidiInput() {
   useEffect(() => {
     if (!_accessP) _accessP = connect()
+    configureAndroidMidi()
     const onHide = () => { if (document.visibilityState === 'hidden') { releaseHeld(); settleControls() } }
     document.addEventListener('visibilitychange', onHide)
     return () => document.removeEventListener('visibilitychange', onHide)
   }, [])
 }
 
-if (import.meta.hot) import.meta.hot.dispose(() => { detachAll(); if (_access) _access.onstatechange = null; _unsubListen() })
+if (import.meta.hot) import.meta.hot.dispose(() => { detachAll(); if (_access) _access.onstatechange = null; _unsubListen(); _unsubAndroidTap() })

@@ -416,6 +416,15 @@ export function liveReset(): void {
   } catch {}
 }
 
+export async function releaseGmOutput(): Promise<void> {
+  try { await _jzzInitP } catch {}
+  stopAudio()
+  const context = typeof _port?.getAudioContext === 'function' ? _port.getAudioContext() as AudioContext : null
+  if (context && context.state === 'running') await context.suspend()
+  if (_port) { try { _port.close() } catch {} }
+  _port = null; _tinyPort = null; _jzzReady = false; _jzzInitP = null
+}
+
 function stopAudio() {
   destroyPlayer(); clearLightSchedule(); clearAllKeys()
   if (_port) {

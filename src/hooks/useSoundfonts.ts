@@ -120,9 +120,11 @@ export function useOutputLatency(): number {
   const audioEngine = useStore((s) => s.audioEngine)
   const samplesStatus = useSoundfontState((s) => s.samplesStatus)
   // Native: re-read whenever its output changes (exclusive ↔ shared, a new sound card)
-  const nativeOutput = useNativeAudio((s) => s.status ? `${s.status.mode}:${s.status.bufferFrames}:${s.status.rate}:${s.status.reportedLatencyMs}` : '')
+  const nativeLatency = useNativeAudio((s) => s.status?.rate
+    ? Math.max(s.status.reportedLatencyMs, s.status.bufferFrames * 1000 / s.status.rate) / 1000 : 0)
   const [sec, setSec] = useState(0)
   useEffect(() => {
+    if (audioEngine === 'native') return
     let attempts = 0
     const read = () => measuredOutputLatencySec()
     const id = setInterval(() => {
@@ -130,6 +132,6 @@ export function useOutputLatency(): number {
       if (v > 0 || attempts >= 5) clearInterval(id)
     }, 400)
     return () => clearInterval(id)
-  }, [audioEngine, samplesStatus, nativeOutput])
-  return sec
+  }, [audioEngine, samplesStatus])
+  return audioEngine === 'native' ? nativeLatency : sec
 }

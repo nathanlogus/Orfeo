@@ -230,6 +230,20 @@ export function getSamplesBufferSec(): number {
   return _ctx?.baseLatency ?? 0
 }
 
+/** Android exclusive output needs the browser to release its device handle. */
+export async function releaseSamplesOutput(): Promise<void> {
+  try { await _synthInitP } catch {}
+  try { await _chosenSetLoading } catch {}
+  clearSchedule(); clearAllKeys()
+  for (const timer of _clickNoteOffs.values()) clearTimeout(timer)
+  _clickNoteOffs.clear()
+  if (_agcTimer) { clearInterval(_agcTimer); _agcTimer = null }
+  if (_ctx && _ctx.state !== 'closed') await _ctx.close()
+  _ctx = null; _synth = null; _synthReady = false; _synthInitP = null
+  _activeExtraBankId = null; _liveRoutedDirect = null; _startedStable = null
+  _samplesChanInit.clear()
+}
+
 function ensureLiveChannel() {
   if (!_synth || !_liveProgramDirty) return
   try { _synth.programChange(LIVE_CH, liveProgram()) } catch {}

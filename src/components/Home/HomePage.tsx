@@ -21,7 +21,7 @@ import PliageMark from '../PliageMark'
 import PliageLogo from '../PliageLogo'
 import LearnHome from '../Lessons/LearnHome'
 import FirstRun from './FirstRun'
-import HomeMenu, { GAME_MODES, pageOnTop, type MenuSection } from './HomeMenu'
+import HomeMenu, { GAME_MODES, pageOnTop } from './HomeMenu'
 import type { SongServerList, SongServerSong } from '../../types'
 
 const PAGE = 100
@@ -31,7 +31,6 @@ const COPIED_MS = 1500
 const SERVER_COMMAND = 'npm run android:songs -- "your song folder"'
 
 type Source = 'device' | 'server'
-type Section = 'menu' | MenuSection
 
 // ── Where every session starts: find a song, on this device or the home server ──
 // The page closes while a song is open: going back finds it as you left it
@@ -59,7 +58,8 @@ export default function HomePage() {
   const midiName = useStore(s => s.midiDeviceName)
   const lessonActive = useStore(s => !!s.lessonRun)
 
-  const [section, setSection] = useState<Section>('menu')
+  const section = useStore(s => s.homeSection)
+  const setSection = useStore(s => s.setHomeSection)
   const [source, setSource] = useState<Source>(remembered.source ?? 'device')
   const [view, setView] = useState<'cards' | 'list'>('cards')
   const [progress, setProgress] = useState<Record<string, { mastery?: number; phrases?: PhraseProgress[] }>>({})

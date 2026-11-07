@@ -1,4 +1,8 @@
-import { recordNote, getStats, clearDiagnostics, buildPerformanceLog } from './midiDiagnostics'
+import { recordNote, getStats, clearDiagnostics, buildPerformanceLog, getDelayBreakdown } from './midiDiagnostics'
+import { useAndroidPiano } from '../audio/androidPiano'
+import { useStore } from '../store'
+import { useNativeAudio } from '../audio/nativeClient'
+import { androidNativeStatus } from '../audio/androidNativeEngine'
 
 export function runMidiDiagnosticsTest(): number {
   console.group('[midiDiagnostics] self-check')
@@ -33,6 +37,31 @@ export function runMidiDiagnosticsTest(): number {
   check(s.implausibleInputs === 3, `three Bluetooth notes left out, got ${s.implausibleInputs}`)
   check(s.notes === 5 && s.avgHandleMs === 0.8, `every note still counted and its handling measured, got ${s.notes}/${s.avgHandleMs}`)
   clearDiagnostics()
+
+  const previousAndroid = useAndroidPiano.getState(), previousEngine = useStore.getState().audioEngine
+  try {
+    useStore.setState({ audioEngine: 'samples' })
+    useAndroidPiano.setState({ phase: 'running', status: { running: true, rate: 48000, callbackFrames: 96, outputMs: 14 } })
+    const android = getDelayBreakdown()
+    check(android.synthBlockMs === 2 && android.chainMs === 0 && android.outputMs === 14, 'Native Android live path uses its own callback and output timings')
+    check(buildPerformanceLog().androidPiano.status?.running === true, 'Performance log includes the native Android output')
+    useAndroidPiano.setState({ phase: 'failed', status: null })
+    check(getDelayBreakdown().outputMs !== 14, 'A failed Android output reports the fallback engine timing')
+  } finally {
+    useStore.setState({ audioEngine: previousEngine })
+    useAndroidPiano.setState(previousAndroid)
+  }
+
+  const previousNative = useNativeAudio.getState()
+  try {
+    useStore.setState({ audioEngine: 'native' })
+    useNativeAudio.setState({ phase: 'running', status: androidNativeStatus({ running: true, exclusive: true, directMidi: true, nativeInputNotes: 8, nativeInputMs: .2, nativeInputWorstMs: .7, nativeHandleMs: .03, nativeHandleWorstMs: .1 }, true) })
+    const direct = getStats()
+    check(direct.notes === 8 && direct.avgInputMs === .2 && direct.avgHandleMs === .03, 'Direct MIDI timing excludes the later WebView/scoring notification')
+  } finally {
+    useStore.setState({ audioEngine: previousEngine })
+    useNativeAudio.setState(previousNative)
+  }
 
   console.log(`midiDiagnostics: ${pass} passed, ${fail} failed`)
   console.groupEnd()

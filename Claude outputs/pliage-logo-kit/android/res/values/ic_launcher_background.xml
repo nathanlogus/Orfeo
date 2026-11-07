@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#FFDE3B</color>
+    <color name="pliage_ink">#000000</color>
+    <color name="pliage_sun">#FFDE3B</color>
+    <color name="pliage_paper">#FBF8F5</color>
+</resources>

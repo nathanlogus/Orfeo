@@ -12,6 +12,11 @@ export function metronomeContext(): AudioContext {
   return sharedCtx
 }
 
+export async function releaseMetronomeOutput(): Promise<void> {
+  if (sharedCtx && sharedCtx.state !== 'closed') await sharedCtx.close()
+  sharedCtx = null
+}
+
 // One click at an exact AudioContext time; returns the oscillator so a
 // cancelled count-in can silence clicks already scheduled.
 export function scheduleMetronomeClick(when: number, accent: boolean): OscillatorNode {

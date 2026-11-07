@@ -248,6 +248,9 @@ interface PliageStore {
   // Quick Settings' gear icons / Open settings button / Ctrl + , ──────────
   // Home page: shown over the app while no song is open, or when asked for
   homeOpen: boolean
+  // Keep the browsing destination when HomePage unmounts for practice.
+  homeSection: 'menu' | 'library' | 'learn' | 'arcade' | 'jam'
+  setHomeSection: (section: PliageStore['homeSection']) => void
   // The lesson being taken, and the lessons passed (lessons/session.ts)
   lessonRun: { id: string; step: LessonStep; percent: number | null; clean: number } | null
   lessonPassed: string[]
@@ -925,6 +928,8 @@ export const useStore = create<PliageStore>((set, get) => ({
   keepDrumCountIn: true,
   setKeepDrumCountIn: (keepDrumCountIn) => set({ keepDrumCountIn }),
   homeOpen: false,
+  homeSection: 'menu',
+  setHomeSection: (homeSection) => set({ homeSection }),
   lessonRun: null,
   lessonPassed: [],
   setRun: null,
@@ -1316,8 +1321,8 @@ async function restoreLibraryPrefs() {
     if (typeof prefs.masterCompPreset === 'number') store.setMasterCompPreset(prefs.masterCompPreset)
     if (typeof prefs.autoLevelOnLoad === 'boolean') store.setAutoLevelOnLoad(prefs.autoLevelOnLoad)
     if (prefs.audioEngine === 'samples') store.setAudioEngine('samples')
-    // Native (beta) is Windows-only; elsewhere fall back to Samples
-    if (prefs.audioEngine === 'native') store.setAudioEngine(navigator.userAgent.includes('Windows') ? 'native' : 'samples')
+    // Android supplies its own AAudio adapter for the Native engine.
+    if (prefs.audioEngine === 'native') store.setAudioEngine(navigator.userAgent.includes('Windows') || !!(window as any).androidPiano ? 'native' : 'samples')
     applySamplesIntroducedPref(prefs, store)
     if (typeof prefs.showBarNumbers === 'boolean') store.setShowBarNumbers(prefs.showBarNumbers)
     if (prefs.scoreViewMode === 'roll' || prefs.scoreViewMode === 'both' || prefs.scoreViewMode === 'score') store.setScoreViewMode(prefs.scoreViewMode)

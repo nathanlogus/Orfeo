@@ -17,13 +17,14 @@ import { programTimeline } from './programTimeline'
 import { volumeRatio } from './songVolume'
 import type { ControlEvent, ParsedTrack } from '../types'
 import { isShown } from '../utils/trackShown'
+import { androidPianoBridge } from './androidPiano'
 
 // Brings Native to the Studio engine's loudness at the same master volume.
 // Measured from the speakers at a low master volume, where neither engine's
 // limiter acts (compressor off): matched there, both reach their limiters at
 // the same point, so loud passages keep the same punch. (Matching loudness at
 // a high volume instead hides a hotter engine behind its own limiter.)
-export const NATIVE_BOOST = 1.69
+export const NATIVE_BOOST = androidPianoBridge() ? 1 : 1.69
 
 type Tracks = ReturnType<typeof useStore.getState>['tracks']
 const activeMidiData = (): any => (NES.dirty && NES.editMidi) ? NES.editMidi : useStore.getState().midi
@@ -102,7 +103,7 @@ export function nativeLiveProgram(program: number) {
   // the current song can set it again when it plays or jumps
   _liveChDirty = _songUsesLiveCh
 }
-export function nativeLivePiano() { nativeLiveProgram(0) }
+export function nativeLivePiano() { if (androidPianoBridge()) nativeCall('setPreviewProgram', 0); else nativeLiveProgram(0) }
 
 // ── Song → one flat, time-sorted event list for the engine ──────────────────
 function sendSong() {
@@ -154,6 +155,13 @@ function sendSong() {
 function resendSongKeepingPlace() {
   const s = useStore.getState()
   sendSong(); sendSongClicks()
+  nativeCall('seek', s.currentTime)
+  if (s.playbackState === 'playing') nativeCall('play')
+}
+/** Restore the open practice song after a native Android library preview. */
+export function restoreNativeSongPlayback() {
+  sendTransportSettings(); sendSong(); sendSongClicks(); sendMetronome()
+  const s = useStore.getState()
   nativeCall('seek', s.currentTime)
   if (s.playbackState === 'playing') nativeCall('play')
 }

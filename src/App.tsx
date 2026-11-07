@@ -42,6 +42,7 @@ import {
 import { useMidiFile } from './hooks/useMidiFile'
 import { usePlayback } from './hooks/usePlayback'
 import { useAudioEngine } from './hooks/useAudioEngine'
+import { useAndroidPianoService } from './hooks/useAndroidPiano'
 import { useMetronome } from './hooks/useMetronome'
 import { useChordSequence } from './hooks/useChordSequence'
 import { useMidiInput } from './hooks/useMidiInput'
@@ -101,6 +102,7 @@ export default function App() {
   const { openFile } = useMidiFile()
   const { play, pause, stop } = usePlayback()
   useAudioEngine()
+  useAndroidPianoService()
   useMidiInput()
   useMetronome()
   useCountIn()

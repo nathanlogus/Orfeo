@@ -13,6 +13,7 @@ import { sim, simAvailable } from '../../../utils/midiSimulator'
 import { confirmDialog } from '../../../utils/confirmController'
 import { useNativeAudio } from '../../../audio/nativeClient'
 import { NATIVE_AVAILABLE } from './audio'
+import { androidPianoBridge, useAndroidPiano } from '../../../audio/androidPiano'
 import { GM_GROUPS, GM_NAMES } from '../../../utils/gmInstruments'
 import type { SettingDef } from '../types'
 
@@ -167,16 +168,25 @@ function LiveResponseControl() {
   const started = getStartedStable()  // null until the Studio engine has started
   const nativeExclusive = useMidiSettings(s => s.nativeExclusive)
   const autoLow = useMidiSettings(s => s.autoLowLatency)
+  const androidEnabled = useMidiSettings(s => s.androidNativePiano)
+  const android = useAndroidPiano()
   const heading = (s: string) => <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)', marginBottom: 6 }}>{s}</div>
   return (
     <div style={{ display: 'grid', rowGap: 14 }}>
+      {androidPianoBridge() && engine === 'samples' && <div>
+        <SwitchRow label={t`Native keyboard audio (experimental)`} value={androidEnabled} onChange={v => set({ androidNativePiano: v })} />
+        <HelpText>{t`Play your MIDI keyboard through Android's native audio output using the selected SF2 sound set. Available instruments depend on that set. Song playback keeps its current sound. Reverb, chorus, aftertouch and SoundFont modulators aren't supported on this live path.`}</HelpText>
+        {android.phase === 'starting' && <HelpText>{t`Loading native keyboard audio…`}</HelpText>}
+        {android.phase === 'running' && android.status && <GlanceLine>{t`Native keyboard audio`} · {android.status.rate} Hz · {android.status.bufferFrames} {t`frames`} · {android.status.xruns ?? 0} {t`underruns`}</GlanceLine>}
+        {android.error && <HelpText>{android.error} {t`Your keyboard uses Web Audio until this is resolved.`}</HelpText>}
+      </div>}
       <div style={{ minWidth: 0 }}>
         {heading(engine === 'gm' ? t`With GM` : engine === 'native' ? t`With Native` : t`With Studio`)}
         {engine === 'gm' && <HelpText>{t`GM plays your keys at once: there's nothing between your keys and the synth.`}</HelpText>}
         {engine === 'native' && <HelpText>{nativeExclusive
           ? t`Native is in Exclusive mode: your keys go straight to the sound card, the shortest delay this computer can do.`
-          : t`Native is sharing the sound card with other apps, which adds Windows' usual delay. For the shortest delay choose Exclusive under Settings › Audio › Sound engine.`}</HelpText>}
-        {engine === 'samples' && (
+          : t`Native is sharing the sound card with other apps. For the shortest delay choose Exclusive under Settings › Audio › Sound engine.`}</HelpText>}
+        {engine === 'samples' && android.phase !== 'running' && (
           <>
             <OptionGroup label={t`Playing live`}>
               {RESPONSES.map(r => <OptionBtn key={r.v} active={v === r.v} title={r.hint} oneLine onClick={() => set({ liveResponse: r.v })}>{r.label}</OptionBtn>)}
@@ -210,6 +220,7 @@ function KeyToEarGlance() {
   const b = getDelayBreakdown()
   const st = getStats()
   const style = { fontSize: 'var(--text-sm)', color: 'var(--ui-text-soft)' } as const
+  if (androidPianoBridge() && useStore.getState().audioEngine === 'native' && st.notes === 0) return <span style={style}>{t`Play a few notes to measure the whole trip`}</span>
   if (b.outputMs === null) return <span style={style}>{t`Keyboard → speaker: can't be measured for this sound output`}</span>
   const total = (st.avgInputMs ?? 0) + (st.avgHandleMs ?? 0) + b.synthBlockMs + b.chainMs + b.outputMs
   return <span style={style}>{t`Keyboard → speaker on this computer: about`} <span style={{ color: 'var(--ui-text)' }}>{Math.round(total)} ms</span></span>
@@ -383,10 +394,12 @@ function DelayCheckControl() {
   useDiag()
   useMidiSettings(s => s.liveResponse)
   const engine = useStore(s => s.audioEngine)
+  const androidPhase = useAndroidPiano(s => s.phase)
   const [, tick] = useState(0)
   useEffect(() => { const id = setInterval(() => tick(n => n + 1), 1000); return () => clearInterval(id) }, [])
   const b = getDelayBreakdown()
   const st = getStats()
+  const waitingForNativeInput = !!androidPianoBridge() && engine === 'native' && st.notes === 0
   const nativeMode = useNativeAudio(s => s.status?.mode)
   const shared = engine === 'native' && nativeMode === 'shared'
   // Not Row: its label column can shrink to nothing, so a long value ran over
@@ -408,8 +421,9 @@ function DelayCheckControl() {
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       <div>
-        <div style={{ fontSize: 'var(--text-lg)' }}>{t`Key → speaker, about`}</div>
+        <div style={{ fontSize: 'var(--text-lg)' }}>{waitingForNativeInput ? t`Audio path, about` : t`Key → speaker, about`}</div>
         <div className="set-delay-total">{total === null ? <span className="o-title">{t`not measurable`}</span> : ms(total)}</div>
+        {waitingForNativeInput && <HelpText>{t`Play a few notes to include the native MIDI input timing.`}</HelpText>}
       </div>
       {total !== null && (
         <div className="set-delay-bar" role="img" aria-label={t`Key → speaker, about ${ms(total)}`}>
@@ -421,8 +435,8 @@ function DelayCheckControl() {
           : st.implausibleInputs ? t`not measurable` : '—', 'var(--paint-blue)')}
         {line(t`Pliage handling the key`, st.avgHandleMs === null ? '—' : `${ms(st.avgHandleMs, 1)} (${t`worst`} ${ms(st.worstHandleMs, 1)})`, 'var(--paint-yellow)')}
         {line(t`Synth getting its turn`, b.externalOutput ? t`external` : `≤ ${ms(b.synthBlockMs, 1)}`, 'var(--paint-rose)')}
-        {line(engine === 'samples' ? t`Compressor & limiter` : t`Sound processing`, ms(b.chainMs), 'var(--paint-olive)')}
-        {line(shared ? t`Sound output (shared with other apps)` : t`Sound output (system + sound card)`, b.outputMs === null ? t`not measurable` : ms(b.outputMs), 'var(--paint-lime)')}
+        {line(engine === 'samples' && androidPhase !== 'running' ? t`Compressor & limiter` : t`Sound processing`, ms(b.chainMs), 'var(--paint-olive)')}
+        {line(androidPhase === 'running' ? t`Native Android output (live keyboard)` : shared ? t`Sound output (shared with other apps)` : t`Sound output (system + sound card)`, b.outputMs === null ? t`not measurable` : ms(b.outputMs), 'var(--paint-lime)')}
         {line(t`Notes measured`, st.notes ? String(st.notes) : t`none yet`)}
       </div>
       {st.implausibleInputs > 0 && <HelpText>{t`Notes from a keyboard whose time stamps can't be when its keys arrived (one was over a second old; seen with Bluetooth MIDI on macOS): ${st.implausibleInputs}. They're left out of the time a key takes to reach Pliage; the saved log keeps them.`}</HelpText>}

@@ -49,9 +49,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Hosts the Pliage web app. Everything musical runs in the page: Web MIDI and
- * Web Audio come with the WebView, so this class only supplies what a page
- * can't do itself: files, the system pickers, sharing and big downloads.
+ * Hosts the Pliage interface and its file/download bridge. Native MIDI and
+ * AAudio can run independently of the page for low-latency practice audio.
  */
 public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
@@ -60,6 +59,10 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private File root;
+    private final NativePiano nativePiano = new NativePiano();
+    private NativeMidiInput nativeMidi;
+    private final java.util.concurrent.ExecutorService pianoWorker = java.util.concurrent.Executors.newSingleThreadExecutor();
+    private volatile boolean destroyed;
     private int pendingPick;
     private final Map<Integer, HttpURLConnection> downloads = Collections.synchronizedMap(new HashMap<>());
 
@@ -67,6 +70,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         root = getFilesDir();
+        nativeMidi = new NativeMidiInput(this, nativePiano);
         extractResources();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -114,9 +118,19 @@ public class MainActivity extends Activity {
         c.hide(WindowInsetsCompat.Type.systemBars());
     }
 
-    @Override protected void onResume() { super.onResume(); web.onResume(); hideBars(); }
-    @Override protected void onPause() { web.onPause(); super.onPause(); }
-    @Override protected void onDestroy() { web.destroy(); super.onDestroy(); }
+    @Override protected void onResume() { super.onResume(); nativePiano.setSuspended(false); web.onResume(); hideBars(); }
+    @Override protected void onPause() {
+        nativeMidi.enable(false);
+        nativePiano.setSuspended(true);
+        pianoWorker.execute(nativePiano::stop);
+        web.onPause(); super.onPause();
+    }
+    @Override protected void onDestroy() {
+        destroyed = true; nativePiano.setSuspended(true);
+        nativeMidi.close();
+        pianoWorker.execute(nativePiano::stop); pianoWorker.shutdown();
+        web.destroy(); super.onDestroy();
+    }
 
     /** The page's close path, so unsaved edits get asked about just like on desktop. */
     @Override public void onBackPressed() { web.evaluateJavascript("window.__pliageBack && __pliageBack()", null); }
@@ -266,6 +280,41 @@ public class MainActivity extends Activity {
 
     /** Runs on WebView's bridge thread; a thrown exception becomes a JS exception. */
     private class Bridge {
+        @JavascriptInterface public void pianoStart(int id, String path, double gain, int rate, boolean exclusive) {
+            pianoWorker.execute(() -> {
+                try {
+                    File sf = new File(root, "resources/GeneralUser-GS.sf2");
+                    if (!sf.exists()) {
+                        File temporary = new File(root, "resources/GeneralUser-GS.sf2.tmp");
+                        try (InputStream in = getAssets().open("web/GeneralUser-GS.sf2"); OutputStream out = new FileOutputStream(temporary)) { pump(in, out); }
+                        if (!temporary.renameTo(sf)) throw new IOException("Couldn't prepare the bundled piano sound set.");
+                    }
+                    nativePiano.start(sf.getCanonicalPath(), path.isEmpty() ? "" : safe(path).getCanonicalPath(), (float) gain, rate, exclusive);
+                    nativeMidi.enable(true);
+                    if (!destroyed) answer(id, (Object) null);
+                } catch (Exception e) { if (!destroyed) answer(id, e.getMessage()); }
+            });
+        }
+        @JavascriptInterface public void pianoStop() { nativeMidi.enable(false); nativePiano.stop(); }
+        @JavascriptInterface public void pianoMidi(int status, int a, int b) { nativePiano.midi(status, a, b); }
+        @JavascriptInterface public void pianoGain(double gain) { nativePiano.gain((float) gain); }
+        @JavascriptInterface public String pianoStatus() {
+            try {
+                JSONObject status = new JSONObject(nativePiano.status()), midi = nativeMidi.status();
+                java.util.Iterator<String> keys = midi.keys(); while (keys.hasNext()) { String key = keys.next(); status.put(key, midi.get(key)); }
+                return status.toString();
+            } catch (Exception e) { return "{\"running\":false}"; }
+        }
+        @JavascriptInterface public void pianoMidiConfig(String json) throws Exception { nativeMidi.configure(json); }
+        @JavascriptInterface public boolean pianoOwnsDevice(String key) { return nativeMidi.owns(key); }
+        @JavascriptInterface public void pianoMidiRescan() { nativeMidi.rescan(); }
+        @JavascriptInterface public void pianoMidiReset() { nativeMidi.requestReset(); }
+        @JavascriptInterface public void pianoCommand(String json) {
+            pianoWorker.execute(() -> {
+                try { JSONObject request = new JSONObject(json); nativePiano.command(request.getString("method"), request.getJSONArray("args")); }
+                catch (Exception e) { android.util.Log.e("PliageAudio", "Native audio command failed", e); }
+            });
+        }
         @JavascriptInterface public String dirs() throws Exception {
             return new JSONObject().put("files", root.getCanonicalPath()).put("resources", new File(root, "resources").getCanonicalPath()).toString();
         }

@@ -6,12 +6,14 @@ def (major, minor, patch) = pkg.version.tokenize('.').collect { it.toInteger() }
 android {
     namespace 'com.squarebow.pliage'
     compileSdk 36
+    ndkVersion '27.1.12297006'
     defaultConfig {
         applicationId 'com.squarebow.pliage'
         minSdk 26
         targetSdk 36
         versionCode major * 10000 + minor * 100 + patch
         versionName pkg.version
+        externalNativeBuild { cmake { cppFlags '-std=c++17 -O2' } }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -19,6 +21,7 @@ android {
     }
     // The sound set is read as it plays in: stored, not deflated
     androidResources { noCompress 'sf2' }
+    externalNativeBuild { cmake { path 'src/main/cpp/CMakeLists.txt'; version '3.22.1' } }
 }
 
 dependencies {

@@ -94,8 +94,8 @@ export default function PracticeRail() {
 
   return (
     <nav className="pr-rail app-no-drag touch-hit" aria-label={t`Practice controls`}>
-      <Tooltip title="Home" description={"Find another song.\nYour open song stays as it is."} placement="right" wrapperStyle={{ flexShrink: 0 }}>
-        <button className="pr-rail-home" aria-label={t`Home`} onClick={() => useStore.getState().setHomeOpen(true)}>
+      <Tooltip title="Back to browsing" description={"Return to where you chose your song.\nYour open song stays as it is."} placement="right" wrapperStyle={{ flexShrink: 0 }}>
+        <button className="pr-rail-home" aria-label={t`Back to browsing`} onClick={() => useStore.getState().setHomeOpen(true)}>
           <PliageMark height={24} tone="sun" />
         </button>
       </Tooltip>

@@ -15,6 +15,7 @@ import {
 import { getMeasuredOutputLatencySec as gmOut, getGmOutputName } from '../hooks/useAudioEngine'
 import { useNativeAudio } from '../audio/nativeClient'
 import { nativeMeasuredLatencySec } from '../audio/useNativeEngine'
+import { useAndroidPiano } from '../audio/androidPiano'
 
 interface NoteSample { at: number; inputMs: number | null; handleMs: number; note: number; vel: number; device: string }
 
@@ -60,6 +61,13 @@ export interface TimingStats {
   avgHandleMs: number | null; worstHandleMs: number | null
 }
 export function getStats(): TimingStats {
+  const native = useStore.getState().audioEngine === 'native' ? useNativeAudio.getState().status : useAndroidPiano.getState().status
+  if (native?.directMidi) {
+    const count = native.nativeInputNotes ?? 0
+    return { notes: count, implausibleInputs: 0, lastInputMs: null,
+      avgInputMs: native.nativeInputMs ?? null, worstInputMs: count ? native.nativeInputWorstMs ?? null : null,
+      avgHandleMs: count ? native.nativeHandleMs ?? null : null, worstHandleMs: count ? native.nativeHandleWorstMs ?? null : null }
+  }
   const stale = new Set(_samples.filter(s => s.inputMs !== null && s.inputMs > MAX_PLAUSIBLE_INPUT_MS).map(s => s.device))
   const stamped = _samples.filter(s => s.inputMs !== null)
   const inp = stamped.filter(s => !stale.has(s.device)).map(s => s.inputMs as number)
@@ -85,6 +93,12 @@ export interface DelayBreakdown {
 }
 export function getDelayBreakdown(): DelayBreakdown {
   const engine = useStore.getState().audioEngine
+  const android = useAndroidPiano.getState()
+  if (engine === 'samples' && android.phase === 'running' && android.status?.running) {
+    const s = android.status
+    return { engine, synthBlockMs: s.rate ? Math.min(128, s.callbackFrames || s.burstFrames || 128) * 1000 / s.rate : 0,
+      chainMs: 0, outputMs: s.outputMs !== undefined && s.outputMs >= 0 ? s.outputMs : null, externalOutput: '' }
+  }
   if (engine === 'native') {
     // a key waits at most one engine period for its turn; nothing in Pliage's chain delays it
     const s = useNativeAudio.getState().status
@@ -113,6 +127,7 @@ export function buildPerformanceLog() {
     audioEngine: useStore.getState().audioEngine,
     sampleRate: getSamplesSampleRate() || null,
     nativeOutput: nativeOutputReport(),
+    androidPiano: useAndroidPiano.getState(),
     delay: getDelayBreakdown(),
     timing: getStats(),
     counters: { ...counters },

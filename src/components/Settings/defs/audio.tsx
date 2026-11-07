@@ -13,12 +13,13 @@ import type { SettingDef } from '../types'
 import { useNativeAudio, stopNative } from '../../../audio/nativeClient'
 import { setLowLatency } from '../../../audio/useNativeEngine'
 import { useMidiSettings } from '../../../store/midiSettings'
+import { androidPianoBridge } from '../../../audio/androidPiano'
 
 // Native engine (beta): Windows only for now
-export const NATIVE_AVAILABLE = navigator.userAgent.includes('Windows')
+export const NATIVE_AVAILABLE = navigator.userAgent.includes('Windows') || !!androidPianoBridge()
 
 const pickGm = async () => { if (useStore.getState().audioEngine === 'native') await stopNative(); useStore.getState().setAudioEngine('gm') }
-const pickNative = () => useStore.getState().setAudioEngine('native')
+const pickNative = () => { if (androidPianoBridge()) useMidiSettings.setState({ nativeExclusive: true }); useStore.getState().setAudioEngine('native') }
 
 // Window: three big tiles, each filled with its own colour once chosen. Setup: the pill.
 function SoundEngineControl() {
@@ -151,7 +152,9 @@ function SoundEngineGlance() {
 function SoundEngineDescription() {
   const audioEngine = useStore((s) => s.audioEngine)
   if (audioEngine === 'gm') return <>{t`The simple synth built into Pliage: light, always ready, no sound set needed. It sounds basic — good for slow computers, or for playing through an external instrument (MIDI Keyboard › General MIDI sound).`}</>
-  if (audioEngine === 'native') return <>{t`The same sound sets as Studio, played by Pliage's own engine straight to your sound card: the shortest delay from key to sound. Windows only.`}</>
+  if (audioEngine === 'native') return androidPianoBridge()
+    ? <>{t`Experimental Android audio: native MIDI input, song playback and metronome through AAudio. Exclusive mode requests direct access to the output. Uses SF2 sound sets; SF3, chorus, reverb, aftertouch, tone controls and the master compressor aren't supported. Choose Studio for those features.`}</>
+    : <>{t`The same sound sets as Studio, played by Pliage's own engine straight to your sound card: the shortest delay from key to sound. Windows only.`}</>
   return <>{t`Real recorded instruments from a sound set (choose it under Sound Fonts). Plays through the system's mixer like any other app, with its usual delay.`}</>
 }
 
@@ -177,8 +180,8 @@ function LowLatencyMode() {
     <div className="theme-studio set-strip">
       <div style={{ flex: 1, minWidth: 220 }}>
       <HelpText>{exclusive
-        ? t`Pliage talks to your sound card directly, past Windows' mixer: the shortest delay from key to sound. Recommended when the delay between pressing a key and hearing it feels uncomfortable.`
-        : t`Pliage shares the sound card with everything else, so you still hear YouTube, video calls and other apps alongside it. Windows adds its usual delay between key and sound.`}</HelpText>
+        ? t`Pliage requests direct access to your sound card for the shortest delay from key to sound. The Mode readout above shows whether Exclusive was granted.`
+        : t`Pliage shares the sound card with other apps, which adds system mixing and buffering between key and sound.`}</HelpText>
       {exclusive && <HelpText>{t`Pliage takes over the whole sound card: other apps stay silent while Pliage is open.`}</HelpText>}
       {autoLow && <HelpText>{t`Switches to Exclusive by itself when you plug in a keyboard — change that under MIDI Keyboard › Sound & Latency.`}</HelpText>}
       </div>

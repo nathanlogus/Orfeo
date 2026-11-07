@@ -23,6 +23,7 @@ export interface MidiPrefs {
   autoReconnect: boolean          // a re-plugged keyboard is listened to again without a click
   autoLowLatency: boolean         // Native: a keyboard plugged in switches to Exclusive, the last one out back to Shared
   liveResponse: LiveResponse
+  androidNativePiano: boolean     // experimental native SF2/AAudio live keyboard output
   latencyOffsetMs: number         // manual alignment on top of the measured output delay
   velocityCurve: VelocityCurve
   fixedVelocity: number           // 1-127, used by the 'fixed' curve
@@ -43,6 +44,7 @@ export const MIDI_DEFAULTS: MidiPrefs = {
   autoReconnect: true,
   autoLowLatency: true,
   liveResponse: 'low',
+  androidNativePiano: false,
   latencyOffsetMs: 0,
   velocityCurve: 'normal',
   fixedVelocity: 100,
