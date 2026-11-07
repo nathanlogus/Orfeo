@@ -153,7 +153,7 @@ function SoundEngineDescription() {
   const audioEngine = useStore((s) => s.audioEngine)
   if (audioEngine === 'gm') return <>{t`The simple synth built into Pliage: light, always ready, no sound set needed. It sounds basic — good for slow computers, or for playing through an external instrument (MIDI Keyboard › General MIDI sound).`}</>
   if (audioEngine === 'native') return androidPianoBridge()
-    ? <>{t`Experimental Android audio: native MIDI input, song playback and metronome through AAudio. Exclusive mode requests direct access to the output. Uses SF2 sound sets; SF3, chorus, reverb, aftertouch, tone controls and the master compressor aren't supported. Choose Studio for those features.`}</>
+    ? <>{t`Experimental Android audio: native MIDI input, song playback and metronome through AAudio. Exclusive mode requests direct access to the output. Uses SF2 sound sets, with native master chorus, reverb, tone and compression. These effects keep the dry signal unbuffered. Choose Studio for SF3, per-track FX sends or aftertouch.`}</>
     : <>{t`The same sound sets as Studio, played by Pliage's own engine straight to your sound card: the shortest delay from key to sound. Windows only.`}</>
   return <>{t`Real recorded instruments from a sound set (choose it under Sound Fonts). Plays through the system's mixer like any other app, with its usual delay.`}</>
 }

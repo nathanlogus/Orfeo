@@ -35,6 +35,7 @@ interface Ch { volume: number; pan: number; reverb: number; chorus: number }
 const _ch: Ch[] = Array.from({ length: 16 }, () => ({ volume: 1, pan: 0, reverb: 0, chorus: 0 }))
 let _masterReverb: number | null = null
 let _masterChorus: number | null = null
+let _masterTone = 0
 // Per channel, the track whose volume moves the song plays there: the engine
 // multiplies them by the fader ÷ the song's first volume (songVolume.ts)
 const _volumeTrack: (ParsedTrack | undefined)[] = Array(16).fill(undefined)
@@ -48,9 +49,9 @@ export const nativeSetChannelVolume = (c: number, v: number) => { _ch[c].volume 
 export const nativeSetChannelPan = (c: number, v: number) => { _ch[c].pan = v; pushChannel(c) }
 export const nativeSetChannelReverb = (c: number, v: number) => { _ch[c].reverb = v; pushChannel(c) }
 export const nativeSetChannelChorus = (c: number, v: number) => { _ch[c].chorus = v; pushChannel(c) }
-export const nativeSetMasterReverb = (v: number) => { _masterReverb = v; for (let c = 0; c < 16; c++) pushChannel(c) }
-export const nativeSetMasterChorus = (v: number) => { _masterChorus = v; for (let c = 0; c < 16; c++) pushChannel(c) }
-export const nativeSetMasterTone = (v: number) => nativeCall('setToneDb', v * 12)
+export const nativeSetMasterReverb = (v: number) => { _masterReverb = v; if (androidPianoBridge()) nativeCall('setMasterReverb', v); else for (let c = 0; c < 16; c++) pushChannel(c) }
+export const nativeSetMasterChorus = (v: number) => { _masterChorus = v; if (androidPianoBridge()) nativeCall('setMasterChorus', v); else for (let c = 0; c < 16; c++) pushChannel(c) }
+export const nativeSetMasterTone = (v: number) => { _masterTone = v; nativeCall('setToneDb', v * 12) }
 export const nativeSetMasterCompressor = (enabled: boolean, preset: number) => nativeCall('setCompressor', enabled, preset)
 export const nativeSetMasterPan = (_v: number) => { /* master pan: not in the native mixer yet */ }
 
@@ -213,6 +214,11 @@ function sendTransportSettings() {
   nativeCall('setTranspose', s.detectedKey?.transpose ?? 0)
   nativeCall('setMasterGain', s.masterVolume * NATIVE_BOOST)
   nativeCall('setCompressor', s.masterCompEnabled, s.masterCompPreset)
+  nativeCall('setToneDb', _masterTone * 12)
+  if (androidPianoBridge()) {
+    nativeCall('setMasterReverb', _masterReverb ?? 0)
+    nativeCall('setMasterChorus', _masterChorus ?? 0)
+  }
 }
 
 // ── Screen: key lights + hit effects, rolling 1.5 s ahead ───────────────────
@@ -327,11 +333,12 @@ export function useNativeEngine() {
         if (s.audioEngine === 'native') { void startEngine(); return }
         if (p.audioEngine === 'native') { clearVisuals(); void stopNative(); return }
       }
-      if (s.audioEngine !== 'native' || !isNativeRunning()) return
+      if (s.audioEngine !== 'native') return
+      if (s.selectedSoundfont !== p.selectedSoundfont) { void startEngine(); return }
+      if (!isNativeRunning()) return
 
       if (s.midi !== p.midi) { sendSong(); sendSongClicks(); if (s.playbackState !== 'playing') nativeCall('seek', s.currentTime) }
       if (s.metronomeEnabled !== p.metronomeEnabled || s.metronomeVolume !== p.metronomeVolume) sendMetronome()
-      if (s.selectedSoundfont !== p.selectedSoundfont) { void startEngine(); return }
       if (s.masterVolume !== p.masterVolume) nativeCall('setMasterGain', s.masterVolume * NATIVE_BOOST)
       if (s.masterCompEnabled !== p.masterCompEnabled || s.masterCompPreset !== p.masterCompPreset) nativeCall('setCompressor', s.masterCompEnabled, s.masterCompPreset)
       if (tracksChanged) sendTrackState(s.tracks)

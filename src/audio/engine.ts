@@ -8,6 +8,7 @@ import * as samples from '../hooks/useSamplesEngine'
 import * as gm from '../hooks/useAudioEngine'
 import * as native from './useNativeEngine'
 import { androidPianoBridge } from './androidPiano'
+import { create } from 'zustand'
 
 const engine = () => useStore.getState().audioEngine
 
@@ -32,11 +33,11 @@ export function setChannelChorus(ch: number, v: number) { engine() === 'native' 
 // The master knobs as last turned (the Mixer keeps them in its own state) —
 // Export to audio's "As I hear it" reads them. reverb/chorus null = untouched:
 // each track's own amount plays.
-const _knobs: { reverb: number | null; chorus: number | null; tone: number } = { reverb: null, chorus: null, tone: 0 }
-export const masterKnobs = () => ({ ..._knobs })
-export function setMasterReverb(v: number) { _knobs.reverb = v; engine() === 'native' ? native.nativeSetMasterReverb(v) : samples.setMasterReverb(v) }
-export function setMasterChorus(v: number) { _knobs.chorus = v; engine() === 'native' ? native.nativeSetMasterChorus(v) : samples.setMasterChorus(v) }
-export function setMasterTone(v: number) { _knobs.tone = v; engine() === 'native' ? native.nativeSetMasterTone(v) : samples.setMasterTone(v) }
+export const useMasterFx = create<{ reverb: number | null; chorus: number | null; tone: number }>(() => ({ reverb: null, chorus: null, tone: 0 }))
+export const masterKnobs = () => ({ ...useMasterFx.getState() })
+export function setMasterReverb(v: number) { useMasterFx.setState({ reverb: v }); native.nativeSetMasterReverb(v); samples.setMasterReverb(v) }
+export function setMasterChorus(v: number) { useMasterFx.setState({ chorus: v }); native.nativeSetMasterChorus(v); samples.setMasterChorus(v) }
+export function setMasterTone(v: number) { useMasterFx.setState({ tone: v }); native.nativeSetMasterTone(v); samples.setMasterTone(v) }
 export function setMasterCompressor(enabled: boolean, preset: number) {
   // both keep their state: switching engines later starts from the same setting
   samples.setMasterCompressor(enabled, preset)

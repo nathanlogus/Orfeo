@@ -10,6 +10,7 @@ import {
   setMasterTone,
   setMasterCompressor,
   COMPRESSOR_PRESETS,
+  useMasterFx,
 } from '../../audio/engine'
 import { useDevicePixelRatio } from '../../hooks/useDevicePixelRatio'
 
@@ -251,9 +252,9 @@ export default function MasterStrip() {
   const knobsDisabled = audioEngine === 'gm'
 
   // ── Knob local state ──────────────────────────────────────────────────────
-  const [chorus, setChorusState] = useState(0)
-  const [reverb, setReverbState] = useState(0)
-  const [tone,   setToneState]   = useState(0)
+  const chorus = useMasterFx(s => s.chorus ?? 0)
+  const reverb = useMasterFx(s => s.reverb ?? 0)
+  const tone = useMasterFx(s => s.tone)
 
   // ── Master Volume's live value tooltip — visible on hover OR while dragging ──
   const volumeKnobWrapRef = useRef<HTMLDivElement>(null)
@@ -379,9 +380,9 @@ export default function MasterStrip() {
   }, [vuDisplayMode, vuSegs, vuCanvasH, sectionW, mixerOpen])
 
   // ── Knob handlers ─────────────────────────────────────────────────────────
-  const handleChorus = useCallback((v: number) => { setChorusState(v); setMasterChorus(v) }, [])
-  const handleReverb = useCallback((v: number) => { setReverbState(v); setMasterReverb(v) }, [])
-  const handleTone   = useCallback((v: number) => { setToneState(v);   setMasterTone(v)   }, [])
+  const handleChorus = setMasterChorus
+  const handleReverb = setMasterReverb
+  const handleTone = setMasterTone
 
   // ── Compressor preset knob — snapped to 5 discrete positions (0-1 knob
   // value quantized to the nearest of COMPRESSOR_PRESETS' 5 indices). ──────

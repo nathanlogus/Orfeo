@@ -3,5 +3,6 @@
 https://github.com/schellingb/TinySoundFont
 
 Its MIT license and copyright notices are included at the top of the header.
-Used only by the experimental Android live keyboard synth. SF3, SoundFont
-modulators, chorus and reverb are not supported by this synth.
+Used by the experimental Android SF2 synth. SF3 and SoundFont modulators are
+not supported by TinySoundFont. Pliage's own master FX run after the synth;
+per-channel chorus/reverb sends are available with Studio instead.

@@ -16,8 +16,10 @@ app is not implemented yet.
 
 The first conversion used OpenNord commit
 `19b5f59d4511f5a66ebaae86e0c8cfa29f5a68a3` and EP9 Stockholm Medium 6.0:
-487 regions, 143,500,796 bytes. Conversion completed; listening and native
-playback validation are still pending.
+487 regions, 143,500,796 bytes. TinySoundFont loaded the result and rendered
+low, middle and high notes at three velocities, with nonzero finite audio.
+It was also loaded on the Android tablet through the native exclusive output.
+Subjective listening validation is still pending.
 
 Key ranges, velocity layers, sample rates, stereo channels and valid sustain
 loops are exported. Envelopes and velocity response are approximate. Nord

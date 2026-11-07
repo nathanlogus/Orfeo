@@ -4,6 +4,7 @@ import { useStore } from '../../store'
 import { bringToFront, MODAL_BASE_Z } from '../../utils/modalFocus'
 import ChannelStrip from './ChannelStrip'
 import MasterStrip from './MasterStrip'
+import StagePanel from './StagePanel'
 import { confirmDialog } from '../../utils/confirmController'
 import { parseMidiBuffer } from '../../utils/midiParser'
 import { songKey } from '../../utils/songIdentity'
@@ -267,6 +268,7 @@ export default function MixerConsole() {
       </div>
 
       {/* ── Body ──────────────────────────────────────────────────────────── */}
+      <StagePanel />
       <div className="pr-mixer-body">
 
         {/* ── Scrollable channel strip row ────────────────────────────────── */}

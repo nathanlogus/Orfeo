@@ -4,6 +4,7 @@ import { useStore } from '../../store'
 import { t } from '../../utils/i18n'
 import { useDevicePixelRatio } from '../../hooks/useDevicePixelRatio'
 import MixerKnob from './MixerKnob'
+import { androidPianoBridge } from '../../audio/androidPiano'
 import Tooltip from '../Tooltip'
 import { MarqueeText } from '../MarqueeText'
 import {
@@ -95,6 +96,10 @@ export default function ChannelStrip({ trackIndex, locked, isDragging, onDragSta
   const parsedTrack = midi?.tracks.find((t: any) => t.index === trackIndex)
 
   const knobsDisabled = audioEngine === 'gm'
+  const sendsDisabled = knobsDisabled || (audioEngine === 'native' && !!androidPianoBridge())
+  const sendHint = audioEngine === 'native' && androidPianoBridge()
+    ? 'Android Native uses the master FX panel. Choose Studio for per-track sends.'
+    : 'Switch to the Studio or Native engine to use effects.'
 
   // ── Fallback track color — resolved from var(--track-color-fallback) once on mount ───
   // Canvas 2D fillStyle (VU meter, below) can't consume a var() string directly, so this
@@ -285,16 +290,16 @@ export default function ChannelStrip({ trackIndex, locked, isDragging, onDragSta
         <MixerKnob
           value={chorus} onChange={handleChorus}
           accentColor="var(--paint-lime)" size={52}
-          disabled={knobsDisabled} label="Chorus"
+          disabled={sendsDisabled} label="Chorus"
           title="Chorus" description="Thickens the tone"
-          disabledHint="Switch to the Studio or Native engine to use Chorus."
+          disabledHint={sendHint}
         />
         <MixerKnob
           value={reverb} onChange={handleReverb}
           accentColor="var(--paint-blue)" size={52}
-          disabled={knobsDisabled} label="Reverb"
+          disabled={sendsDisabled} label="Reverb"
           title="Reverb" description="Adds room/space ambience"
-          disabledHint="Switch to the Studio or Native engine to use Reverb."
+          disabledHint={sendHint}
         />
       </div>
 

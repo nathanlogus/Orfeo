@@ -12,6 +12,7 @@
 #include <thread>
 #include <time.h>
 #include "song.h"
+#include "effects.h"
 #define TSF_IMPLEMENTATION
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
@@ -22,6 +23,7 @@ namespace {
 struct Message { int status, a, b, c = 0; double value = 0; };
 constexpr unsigned QUEUE_SIZE = 2048;
 struct Piano {
+    pliage::Effects effects;
     tsf* synth = nullptr;
     tsf* extra = nullptr;
     tsf* channels[18]{};
@@ -155,6 +157,10 @@ struct Piano {
                     break;
                 case 15: midi((m.a & 15) == 15 ? 16 : m.a & 15, m.a, m.b, m.c); break;
                 case 16: program(17, m.a); break;
+                case 17: effects.setReverb(m.value); break;
+                case 18: effects.setChorus(m.value); break;
+                case 19: effects.setTone(m.value); break;
+                case 20: effects.setCompressor(m.a != 0, m.b); break;
             }
         }
         tail.store(t, std::memory_order_release);
@@ -214,8 +220,10 @@ struct Piano {
             const int n = std::min(256, frames - at);
             float* out = p->int16 ? scratch : static_cast<float*>(data) + at * 2;
             p->renderFloat(out, n);
+            for (int i = 0; i < n * 2; ++i) out[i] *= gain;
+            p->effects.process(out, n);
             for (int i = 0; i < n * 2; ++i) {
-                float x = out[i] * gain, a = std::fabs(x);
+                float x = out[i], a = std::fabs(x);
                 out[i] = a <= .8f ? x : std::copysign(.8f + .2f * std::tanh((a - .8f) * 5.f), x);
                 peak = std::max(peak, std::fabs(out[i]));
                 if (p->int16) static_cast<int16_t*>(data)[at * 2 + i] = static_cast<int16_t>(out[i] * 32767);
@@ -287,6 +295,7 @@ Java_com_squarebow_pliage_NativePiano_create(JNIEnv* env, jclass, jstring path, 
     p->exclusive = AAudioStream_getSharingMode(p->stream) == AAUDIO_SHARING_MODE_EXCLUSIVE;
     p->int16 = AAudioStream_getFormat(p->stream) == AAUDIO_FORMAT_PCM_I16;
     p->rate = AAudioStream_getSampleRate(p->stream);
+    p->effects.prepare(p->rate);
     p->burst = AAudioStream_getFramesPerBurst(p->stream);
     // Try one burst only on the exclusive path. The control-side status poll
     // grows it automatically if the driver reports underruns.

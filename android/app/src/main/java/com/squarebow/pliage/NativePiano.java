@@ -99,9 +99,10 @@ final class NativePiano {
             case "noteFor": control(handle, 14, args.getInt(0) == 15 ? 17 : args.getInt(0), args.getInt(1), args.getInt(2), args.getDouble(3)); break;
             case "midi": control(handle, 15, args.getInt(0), args.getInt(1), args.optInt(2), 0); break;
             case "setPreviewProgram": control(handle, 16, args.getInt(0), 0, 0, 0); break;
-            // The Android SF2 engine intentionally has no delay-adding master
-            // compressor or chorus/reverb. The settings surface states this.
-            case "setCompressor": case "setToneDb": break;
+            case "setMasterReverb": control(handle, 17, 0, 0, 0, args.getDouble(0)); break;
+            case "setMasterChorus": control(handle, 18, 0, 0, 0, args.getDouble(0)); break;
+            case "setToneDb": control(handle, 19, 0, 0, 0, args.getDouble(0)); break;
+            case "setCompressor": control(handle, 20, args.getBoolean(0) ? 1 : 0, args.getInt(1), 0, 0); break;
             default: throw new IllegalArgumentException("Unsupported native command: " + name);
           }
         }

@@ -97,6 +97,18 @@ export async function importSoundfont() {
 // every listener, so a second subscriber would cancel the first.
 export function useSoundfontService() {
   const audioEngine = useStore((s) => s.audioEngine)
+  const samplesStatus = useSoundfontState(s => s.samplesStatus)
+  useEffect(() => {
+    if (audioEngine !== 'samples' || samplesStatus !== 'ready') return
+    // Restore the panel's values after Studio recreates its AudioContext.
+    void import('../audio/engine').then(fx => {
+      if (useStore.getState().audioEngine !== 'samples') return
+      const values = fx.masterKnobs()
+      if (values.chorus !== null) fx.setMasterChorus(values.chorus)
+      if (values.reverb !== null) fx.setMasterReverb(values.reverb)
+      fx.setMasterTone(values.tone)
+    })
+  }, [audioEngine, samplesStatus])
   useEffect(() => {
     refreshSoundfonts()
     window.electronAPI.onSoundfontProgress(({ id, progress }) => {
