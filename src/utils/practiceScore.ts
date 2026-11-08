@@ -14,8 +14,36 @@ export const MEMORY_GONE = MEMORY_FADE.length - 1
 
 // `waited`: played while Wait held the song. `slow`: played under 100% tempo.
 export interface Press { midi: number; time: number; waited?: boolean; slow?: boolean }
-export interface ScoredStep { time: number; notes: { midi: number }[] }
+export interface ScoredStep { time: number; notes: { midi: number; hand?: 'L' | 'R' }[] }
 export interface PhraseProgress { level: number; wins: number; best: number; memory?: number }
+
+export interface HandScore { accuracy: number | null; steps: number }
+export interface HandScores { left: HandScore; right: HandScore }
+export interface BarScore { bar: number; accuracy: number; time: number; end: number }
+
+const handOf = (note: { midi: number; hand?: 'L' | 'R' }): 'L' | 'R' => note.hand ?? (note.midi < 60 ? 'L' : 'R')
+
+export function accuracyByHand(steps: ScoredStep[], presses: Press[], windowSec: number): HandScores {
+  const forHand = (hand: 'L' | 'R'): ScoredStep[] => steps.flatMap(step => {
+    const notes = step.notes.filter(n => handOf(n) === hand)
+    return notes.length ? [{ time: step.time, notes }] : []
+  })
+  const left = forHand('L'), right = forHand('R')
+  return {
+    left: { accuracy: accuracy(left, presses, windowSec), steps: left.length },
+    right: { accuracy: accuracy(right, presses, windowSec), steps: right.length },
+  }
+}
+
+export function accuracyByBar(steps: ScoredStep[], presses: Press[], barTimes: number[], duration: number, windowSec: number): BarScore[] {
+  return barTimes.flatMap((from, i) => {
+    const to = barTimes[i + 1] ?? duration
+    const barSteps = steps.filter(step => step.time >= from - 1e-4 && step.time < to - 1e-4)
+    if (!barSteps.length) return []
+    const score = accuracy(barSteps, presses, windowSec)
+    return score === null ? [] : [{ bar: i + 1, accuracy: score, time: from, end: to }]
+  })
+}
 
 export function phraseStarts(barTimes: number[]): number[] {
   return barTimes.length ? barTimes.filter((_, i) => i % BARS_PER_PHRASE === 0) : [0]

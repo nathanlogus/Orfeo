@@ -5,7 +5,7 @@ import { t } from '../../utils/i18n'
 import { songCard, type LastPlayed } from '../../utils/homeSongs'
 import { MENU_KEYS, menuTap, songsInProgress, weakestPhrase, type MenuAction } from '../../utils/homeMenu'
 import { barRange } from '../../utils/practiceResult'
-import type { PhraseProgress } from '../../utils/practiceScore'
+import { LEVEL_UP, type PhraseProgress } from '../../utils/practiceScore'
 import { COURSE } from '../../lessons/courseData'
 import { EXPLORE_TOOLS } from '../Lessons/exploreTools'
 import { nextLesson } from '../../lessons/progress'
@@ -45,6 +45,7 @@ interface Props {
   last: { played: LastPlayed; song: SongServerSong } | null
   songs: SongServerSong[]
   phrases?: PhraseProgress[]
+  handProgress?: { left?: { latest?: number; best?: number }; right?: { latest?: number; best?: number } }
   mastery: number
   masteryOf: (path: string) => number
   homeServer: boolean
@@ -67,6 +68,12 @@ export default function HomeMenu(props: Props) {
   const unit = COURSE.find(u => u.lessons.some(l => l.id === next?.id))
   const inProgress = songsInProgress(songs, masteryOf, IN_PROGRESS)
   const weak = last ? weakestPhrase(phrases) : null
+  const handProgress = props.handProgress
+  const weakerHand = handProgress?.left?.latest != null && handProgress?.right?.latest != null
+    ? (handProgress.left.latest <= handProgress.right.latest ? 'left' : 'right')
+    : handProgress?.left?.latest != null ? 'left' : handProgress?.right?.latest != null ? 'right' : null
+  const firstUnlearned = (phrases ?? []).findIndex(p => !p || p.best < LEVEL_UP)
+  const focusPhrase = last ? (weak ?? (phrases?.length ? (firstUnlearned >= 0 ? firstUnlearned : null) : 0)) : null
 
   const items: { id: 'continue' | MenuSection; name: string; note: string }[] = [
     ...(last ? [{ id: 'continue' as const, name: t`Continue`, note: songCard(last.song).title }] : []),
@@ -171,15 +178,20 @@ export default function HomeMenu(props: Props) {
         </section>
       </div>
 
-      {(weak !== null || next) && <section aria-label={t`Next up`} className="menu-next pliage-rise-in pliage-rise-in-3">
-        <span className="menu-next-head">{t`Next up`}</span>
-        {weak !== null && last && <button className="menu-card" style={{ background: 'var(--paint-rose)' }} onClick={() => onFixPhrase(weak)}>
-          <span className="lib-tag">{t`Fix a phrase`}</span>
-          <span className="menu-card-title lib-ellipsis">{barRange(weak, weak, [], last.played.bars ?? 0, 0).label}</span>
-          <span className="lib-ellipsis">{songCard(last.song).title}</span>
+      {(last || next) && <section aria-label={t`Today's practice`} className="menu-next pliage-rise-in pliage-rise-in-3">
+        <span className="menu-next-head">{t`Today's practice`}<small>{t`About 15 minutes`}</small></span>
+        {last && <button className="menu-card" style={{ background: 'var(--paint-blue)' }} onClick={onResume}>
+          <span className="lib-tag">{t`Warm up · 5 min`}</span>
+          <span className="menu-card-title lib-ellipsis">{songCard(last.song).title}</span>
+          <span className="lib-ellipsis">{t`Continue where you left off`}</span>
+        </button>}
+        {last && focusPhrase !== null && <button className="menu-card" style={{ background: 'var(--paint-rose)' }} onClick={() => onFixPhrase(focusPhrase)}>
+          <span className="lib-tag">{t`Focus · 5 min`}</span>
+          <span className="menu-card-title lib-ellipsis">{barRange(focusPhrase, focusPhrase, [], last.played.bars ?? 0, 0).label}</span>
+          <span className="lib-ellipsis">{weakerHand ? `${weakerHand === 'left' ? t`Left hand` : t`Right hand`} ${handProgress?.[weakerHand]?.latest}% so far · ${songCard(last.song).title}` : songCard(last.song).title}</span>
         </button>}
         {next && <button className="menu-card" style={{ background: 'var(--paint-lime)' }} onClick={() => void startLesson(next.id)}>
-          <span className="lib-tag">{t`Next lesson`}</span>
+          <span className="lib-tag">{t`Learn · 5 min`}</span>
           <span className="menu-card-title lib-ellipsis">{next.title}</span>
           <span className="lib-ellipsis">{unit && `${t`Unit`} ${unit.n} · ${unit.title}`}</span>
         </button>}

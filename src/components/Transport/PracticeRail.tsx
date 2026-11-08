@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { Play, Pause, Repeat, Hourglass, Brain, ListTree, SlidersVertical, Music2, Compass, X, FolderOpen, SlidersHorizontal, Square } from 'lucide-react'
+import { Play, Pause, Repeat, Hourglass, Brain, ListTree, SlidersVertical, Music2, Compass, X, FolderOpen, SlidersHorizontal, Square, Gauge } from 'lucide-react'
 import { useStore } from '../../store'
 import { usePlayback } from '../../hooks/usePlayback'
 import { useMidiFile } from '../../hooks/useMidiFile'
@@ -51,6 +51,7 @@ export default function PracticeRail() {
   const barStarts = useStore((s) => s.barStarts)
   const waitForNotes = useStore((s) => s.waitForNotes)
   const memoryMode = useStore((s) => s.memoryMode)
+  const adaptiveTempo = useStore((s) => s.adaptiveTempoEnabled)
   const metronomeEnabled = useStore((s) => s.metronomeEnabled)
   const countInEnabled = useStore((s) => s.countInEnabled)
   const countInBars = useStore((s) => s.countInBars)
@@ -119,6 +120,10 @@ export default function PracticeRail() {
         title={memoryMode ? t`Memory on` : t`Memory`}
         description={t`Once a phrase is clean at the full level, each clean run fades its notes further until they're gone. A rough run brings them back. Runs count at 100% tempo, without Wait.`}
         onClick={() => useStore.getState().setMemoryMode(!memoryMode)} />
+      <Tile label={t`Auto BPM`} icon={<Gauge size={20} strokeWidth={1.8} />} on={adaptiveTempo} dot={adaptiveTempo} disabled={!midi}
+        title={adaptiveTempo ? t`Adaptive tempo on` : t`Adaptive tempo`}
+        description={t`Raises the tempo after a clean phrase and lowers it after a difficult one. It can rise toward the song's original tempo but never exceeds the tempo you started at.`}
+        onClick={() => useStore.getState().setAdaptiveTempoEnabled(!adaptiveTempo)} />
       <Tile label={t`Click`} on={metronomeEnabled} dot={metronomeEnabled}
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 11.4V9.1" /><path d="m12 17 6.59-6.59" /><path d="m15.05 5.7-.218-.691a3 3 0 0 0-5.663 0L4.418 19.695A1 1 0 0 0 5.37 21h13.253a1 1 0 0 0 .951-1.31L18.45 16.2" /><circle cx="20" cy="9" r="2" /></svg>}
         badge={countInEnabled ? <span className="pr-tile-badge" aria-label={t`Count-in ${countInBars} bars`}>{countInBars}</span> : undefined}

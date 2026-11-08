@@ -72,8 +72,9 @@ export async function openPiece(file: string, title: string) {
   useStore.setState({ scoreViewMode: 'score', homeOpen: false })
 }
 
-export async function startLesson(id: string) {
-  const lesson = lessonById(id)
+export async function startLesson(id: string, modeOverride?: string) {
+  const found = lessonById(id)
+  const lesson = found && modeOverride ? { ...found, mode: modeOverride } : found
   if (!lesson) return
   if (!await confirmDiscardDirtyNoteEdits('Save changes before starting this lesson?')) return
   if (!await confirmDiscardDirtyTempoKey('Save tempo/key changes before starting this lesson?')) return

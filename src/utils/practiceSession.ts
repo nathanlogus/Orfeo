@@ -5,7 +5,7 @@
 // timing window after its end, so a late last note is still in it, and each note
 // is marked hit or missed on the roll as it happens, by the same rule as the score.
 import { useStore } from '../store'
-import { accuracy, afterMemoryRun, afterPhrase, LEVEL_UP, mastery, MEMORY_GONE, memoryMap, missedNotes, phraseOf, phraseStarts, pressHits, type PhraseProgress, type Press, type ScoredStep } from './practiceScore'
+import { accuracy, accuracyByBar, accuracyByHand, afterMemoryRun, afterPhrase, LEVEL_UP, mastery, MEMORY_GONE, memoryMap, missedNotes, phraseOf, phraseStarts, pressHits, type PhraseProgress, type Press, type ScoredStep } from './practiceScore'
 import { buildPracticeResult, type PhraseRun } from './practiceResult'
 import { lastPlayedAt, movedLastPlayed } from './homeSongs'
 import { pushPracticeMark } from './hitEffectQueue'
@@ -35,6 +35,7 @@ let _stepsAt: () => ScoredStep[] = () => []
 // Since the last summary: one result a phrase, the latest
 let _runs = new Map<number, PhraseRun>()
 let _masteryBefore = 0
+let _adaptiveCeiling = 0
 
 export function setPracticeSteps(stepsAt: () => ScoredStep[]) { _stepsAt = stepsAt }
 let _songEnded = () => {}
@@ -75,7 +76,8 @@ function publish() {
 }
 
 function syncSong() {
-  const { midi } = useStore.getState()
+  const state = useStore.getState()
+  const { midi } = state
   if (midi === _song) return
   _song = midi
   _phrase = 0
@@ -85,6 +87,7 @@ function syncSong() {
   _progress = []
   _runs = new Map()
   _masteryBefore = 0
+  _adaptiveCeiling = Math.max(state.originalBpm, state.bpm)
   useStore.setState({ phraseResult: null })
   publish()
   if (!midi) return
@@ -103,13 +106,37 @@ function save(memorized = false) {
   const key = songKey(midi.fileName)
   const phrases = _progress
   const percent = mastery(phrases.filter(Boolean), starts().length)
+  const runHands = [..._runs.values()].flatMap(run => run.hands ? [run.hands] : [])
+  const handUpdate = (hand: 'left' | 'right') => {
+    const scores = runHands.map(row => row[hand]).filter(row => row.accuracy !== null && row.steps > 0)
+    const count = scores.reduce((sum, row) => sum + row.steps, 0)
+    return count ? Math.round(scores.reduce((sum, row) => sum + row.accuracy! * row.steps, 0) / count * 100) : null
+  }
+  const hands = { left: handUpdate('left'), right: handUpdate('right') }
   useStore.setState({ phraseResult: { ...useStore.getState().phraseResult!, mastery: percent } })
   void window.electronAPI.getPrefs().then(p => {
     const saved = p.practiceProgress?.[key]
+    const previous = saved?.handProgress ?? {}
+    const keep = (hand: 'left' | 'right') => hands[hand] === null ? previous[hand] : {
+      latest: hands[hand], best: Math.max(previous[hand]?.best ?? 0, hands[hand]!), updatedAt: Date.now(),
+    }
     return window.electronAPI.setPrefs({
-      practiceProgress: { ...p.practiceProgress, [key]: { ...saved, phrases, mastery: percent, ...(memorized && !saved?.memorized ? { memorized: Date.now() } : {}) } },
+      practiceProgress: { ...p.practiceProgress, [key]: { ...saved, phrases, mastery: percent,
+        handProgress: { left: keep('left'), right: keep('right') },
+        ...(memorized && !saved?.memorized ? { memorized: Date.now() } : {}) } },
     })
   })
+}
+
+function adaptTempo(played: number, uncounted: 'wait' | 'slow' | undefined) {
+  const s = useStore.getState()
+  if (!s.adaptiveTempoEnabled || uncounted === 'wait' || !Number.isFinite(s.originalBpm) || s.originalBpm <= 0) return
+  const floor = Math.max(1, s.originalBpm * 0.4)
+  const ceiling = Math.max(_adaptiveCeiling, s.originalBpm)
+  const step = played >= LEVEL_UP ? Math.max(1, s.originalBpm * 0.03) : played < 0.6 ? Math.max(1, s.originalBpm * 0.08) : 0
+  if (!step) return
+  const next = played >= LEVEL_UP ? Math.min(ceiling, s.bpm + step) : Math.max(floor, s.bpm - step)
+  if (Math.abs(next - s.bpm) > 0.01) useStore.setState({ bpm: next })
 }
 
 function finishPhrase() {
@@ -132,13 +159,16 @@ function finishPhrase() {
   const uncounted = notCounted(own)
   // Wait lands every note on time, so a run under it changes nothing
   const after = uncounted === 'wait' ? before : afterPhrase(before, played, level, auto, uncounted !== 'slow')
+  const handScores = accuracyByHand(phraseSteps, presses, win)
+  const barScores = accuracyByBar(phraseSteps, presses, s.midi?._barTimes ?? [], s.midi?.duration ?? 0, win)
   const memory = before.memory ?? 0
   const memoryOn = s.memoryMode && !s.lessonRun
   while (_progress.length <= _phrase) _progress.push(fresh())
   _progress[_phrase] = memoryOn ? { ...after, memory: afterMemoryRun(memory, played, level, !uncounted) } : after
   const { level: levelAfter, wins } = after
   const unseen = memoryOn && !uncounted && memory >= MEMORY_GONE && played >= LEVEL_UP
-  _runs.set(_phrase, { phrase: _phrase, steps: phraseSteps.length, played, levelBefore: level, levelAfter: auto ? levelAfter : level, wins, auto, partway: false, uncounted, unseen })
+  _runs.set(_phrase, { phrase: _phrase, steps: phraseSteps.length, played, levelBefore: level, levelAfter: auto ? levelAfter : level, wins, auto, partway: false, uncounted, unseen, hands: handScores, bars: barScores })
+  adaptTempo(played, uncounted)
   useStore.setState({ phraseResult: { percent: Math.round(played * 100), level: levelAfter, mastery: 0, moved: levelAfter - before.level } })
   publish()
   save()
@@ -159,7 +189,7 @@ function scorePartway() {
   if (played === null) return
   const auto = s.practiceLevel === AUTO_LEVEL
   const level = auto ? (_progress[_phrase] ?? fresh()).level : s.practiceLevel
-  _runs.set(_phrase, { phrase: _phrase, steps: phraseSteps.length, played, levelBefore: level, levelAfter: level, wins: 0, auto, partway: true, uncounted: notCounted(presses) })
+  _runs.set(_phrase, { phrase: _phrase, steps: phraseSteps.length, played, levelBefore: level, levelAfter: level, wins: 0, auto, partway: true, uncounted: notCounted(presses), hands: accuracyByHand(phraseSteps, presses, windowOf(s)), bars: accuracyByBar(phraseSteps, presses, s.midi?._barTimes ?? [], s.midi?.duration ?? 0, windowOf(s)) })
 }
 
 function showResult() {
@@ -171,6 +201,7 @@ function showResult() {
     song: s.midi.fileName.replace(/\.[^.]+$/, ''), level: s.practiceLevel, tempoPercent: Math.round(s.bpm / s.originalBpm * 100) || 100,
     runs: [..._runs.values()], progress: _progress, starts: list, barCount: s.midi._barTimes?.length ?? 0, duration: s.midi.duration, masteryBefore: _masteryBefore,
   }) : null
+  if (result && _runs.size) save()
   _runs = new Map()
   _masteryBefore = mastery(_progress.filter(Boolean), list.length)
   if (result) useStore.setState({ practiceResult: result })

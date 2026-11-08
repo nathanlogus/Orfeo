@@ -18,7 +18,7 @@ const EPS = 1e-4
 const MIN_MS = 120
 const MAX_MS = 2500
 
-interface StepNote { midi: number; velocity: number; duration: number; channel: number; color: string }
+interface StepNote { midi: number; velocity: number; duration: number; channel: number; color: string; hand?: 'L' | 'R' }
 interface Step { time: number; notes: StepNote[] }
 
 function activeMidi(): any {
@@ -50,7 +50,7 @@ export function buildSteps(
     if (!ts || !isShown(ts, hasSolo)) continue
     for (const n of track.notes) {
       if (!inLevel(track.index, n.midi, n.time)) continue
-      all.push({ time: n.time, midi: n.midi, velocity: n.velocity, duration: n.duration, channel: track.channel, color: ts.color ?? amberHex() })
+      all.push({ time: n.time, midi: n.midi, velocity: n.velocity, duration: n.duration, channel: track.channel, color: ts.color ?? amberHex(), hand: n.hand })
     }
   }
   all.sort((a, b) => a.time - b.time)

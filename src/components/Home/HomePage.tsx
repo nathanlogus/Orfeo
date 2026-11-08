@@ -65,7 +65,7 @@ export default function HomePage() {
   const setSection = useStore(s => s.setHomeSection)
   const [source, setSource] = useState<Source>(remembered.source ?? 'device')
   const [view, setView] = useState<'cards' | 'list'>('cards')
-  const [progress, setProgress] = useState<Record<string, { mastery?: number; phrases?: PhraseProgress[] }>>({})
+  const [progress, setProgress] = useState<Record<string, { mastery?: number; phrases?: PhraseProgress[]; handProgress?: { left?: { latest?: number; best?: number }; right?: { latest?: number; best?: number } } }>>({})
   const [q, setQ] = useState(remembered.q ?? '')
   const [genre, setGenre] = useState<string | null>(remembered.genre ?? null)
   const [artist, setArtist] = useState<string | null>(remembered.artist ?? null)
@@ -423,7 +423,7 @@ export default function HomePage() {
     return (
       <HomeMenu
         last={keepGoing && keepGoingSong ? { played: keepGoing, song: keepGoingSong } : null}
-        songs={allDevice} phrases={saved?.phrases} mastery={saved?.mastery ?? 0} masteryOf={masteryOf}
+        songs={allDevice} phrases={saved?.phrases} handProgress={saved?.handProgress} mastery={saved?.mastery ?? 0} masteryOf={masteryOf}
         homeServer={connected} failed={!!openFailed}
         onResume={resume} onFixPhrase={fixPhrase} onOpenSong={song => void open(song, false)} onOpenSection={setSection} onChooseFolder={() => void pickFolder()}
       />

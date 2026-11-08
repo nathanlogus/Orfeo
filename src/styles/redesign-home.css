@@ -516,6 +516,7 @@ li[data-state='now'] .lesson-step-dot { background: var(--paint-yellow); }
 .menu-song-text { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: var(--text-md); }
 .menu-next { display: flex; align-items: center; gap: 16px; padding: 0 40px 24px; }
 .menu-next-head { font-size: var(--text-lg); white-space: nowrap; }
+.menu-next-head small { display: block; margin-top: 3px; color: var(--ui-text-soft); font-size: var(--text-xs); }
 .menu-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; flex: 0 1 380px; min-width: 0; padding: 12px 16px; border: 1px solid var(--ink); border-radius: var(--radius-md); color: var(--ink); font: inherit; font-size: var(--text-base); text-align: left; cursor: pointer; box-shadow: rgba(0, 0, 0, 0.3) 3px 4px 0; transition: var(--control-transition), translate var(--motion-fast) var(--ease-out); }
 .menu-card .lib-ellipsis:last-child { grid-column: 1 / -1; }
 .menu-card-title { font-size: var(--text-lg); }
@@ -549,3 +550,8 @@ li[data-state='now'] .lesson-step-dot { background: var(--paint-yellow); }
   .menu-item-name { font-size: 1.75rem; }
   .menu-item-note { font-size: var(--text-base); }
 }
+.learn-feature-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 24px}
+.learn-feature-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px;border:1px solid var(--line-600);border-radius:14px;background:var(--paper-card);color:var(--ink)}
+.learn-feature-card>span,.learn-feature-card>small{color:var(--ink-soft);line-height:1.45}
+.learn-feature-card>button{margin-top:auto}
+@media(max-width:850px){.learn-feature-cards{grid-template-columns:1fr}}

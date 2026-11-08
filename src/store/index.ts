@@ -183,6 +183,8 @@ interface PliageStore {
   // 1-5 is a level you chose, 0 is Auto: each phrase's level follows your playing
   practiceLevel: number
   setPracticeLevel: (level: number) => void
+  adaptiveTempoEnabled: boolean
+  setAdaptiveTempoEnabled: (on: boolean) => void
   memoryMode: boolean
   setMemoryMode: (on: boolean) => void
   phraseLevels: number[]
@@ -816,6 +818,8 @@ export const useStore = create<PliageStore>((set, get) => ({
   setWaitForNotes: (waitForNotes) => set({ waitForNotes }),
   practiceLevel: 5,
   setPracticeLevel: (practiceLevel) => set({ practiceLevel }),
+  adaptiveTempoEnabled: false,
+  setAdaptiveTempoEnabled: (adaptiveTempoEnabled) => set({ adaptiveTempoEnabled }),
   memoryMode: false,
   setMemoryMode: (memoryMode) => set({ memoryMode }),
   phraseLevels: [],

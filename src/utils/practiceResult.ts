@@ -1,6 +1,6 @@
 // ── How it went: the summary shown when a song ends, built from the phrases
 // played since the last one. A phrase nobody played isn't in it. ─────────────
-import { BARS_PER_PHRASE, FULL_LEVEL, LEVEL_UP, mastery, type PhraseProgress } from './practiceScore'
+import { BARS_PER_PHRASE, FULL_LEVEL, LEVEL_UP, mastery, type BarScore, type HandScores, type PhraseProgress } from './practiceScore'
 import { t } from './i18n'
 
 export interface PhraseRun {
@@ -14,6 +14,8 @@ export interface PhraseRun {
   partway: boolean          // End came mid-phrase: shown, never scored
   uncounted?: 'wait' | 'slow'   // Wait: nothing moved. Slower: the level can, mastery can't.
   unseen?: boolean          // clean, with none of its notes showing
+  hands?: HandScores
+  bars?: BarScore[]
 }
 
 export interface BarRange { label: string; shortLabel: string; time: number; end: number }
@@ -25,6 +27,8 @@ export interface ResultRow {
   tag: string
   moved: boolean            // up a level: the tag turns lime
 }
+
+export interface WeakBar { bar: number; percent: number; range: BarRange }
 
 export interface PracticeResult {
   song: string
@@ -39,6 +43,8 @@ export interface PracticeResult {
   masteryBefore: number
   again: BarRange
   next: BarRange | null
+  handAccuracy: { left: number | null; right: number | null }
+  weakBars: WeakBar[]
 }
 
 export function barRange(firstPhrase: number, lastPhrase: number, starts: number[], barCount: number, duration: number): BarRange {
@@ -90,6 +96,17 @@ export function buildPracticeResult({ song, level, tempoPercent, runs, progress,
   const unbroken = last - first + 1 === sorted.length
   const ending = sorted.some(r => r.partway) ? t`so far` : t`played through`
   const played = new Set(sorted.map(r => r.phrase))
+  const handAccuracy = (hand: 'left' | 'right') => {
+    const scores = sorted.map(r => r.hands?.[hand])
+      .filter((x): x is NonNullable<typeof x> => !!x && x.accuracy !== null && x.steps > 0)
+    const count = scores.reduce((sum, x) => sum + x.steps, 0)
+    return count ? Math.round(scores.reduce((sum, x) => sum + x.accuracy! * x.steps, 0) / count * 100) : null
+  }
+  const perBar = new Map<number, BarScore>()
+  for (const run of sorted) for (const bar of run.bars ?? []) perBar.set(bar.bar, bar)
+  const weakBars = [...perBar.values()].filter(bar => bar.accuracy < LEVEL_UP)
+    .sort((a, b) => a.accuracy - b.accuracy || a.bar - b.bar).slice(0, 5)
+    .map(bar => ({ bar: bar.bar, percent: Math.round(bar.accuracy * 100), range: { label: t`Bar ${bar.bar}`, shortLabel: String(bar.bar), time: bar.time, end: bar.end } }))
   return {
     song, level, tempoPercent, percent,
     title: `${unbroken ? again.label : t`${sorted.length} phrases`}, ${ending}.`,
@@ -104,5 +121,7 @@ export function buildPracticeResult({ song, level, tempoPercent, runs, progress,
     masteryBefore,
     again,
     next: nextFirst < starts.length ? barRange(nextFirst, Math.min(nextFirst + last - first, starts.length - 1), starts, barCount, duration) : null,
+    handAccuracy: { left: handAccuracy('left'), right: handAccuracy('right') },
+    weakBars,
   }
 }
