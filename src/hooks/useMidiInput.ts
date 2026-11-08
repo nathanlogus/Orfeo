@@ -11,6 +11,7 @@
 // between the key and the synth.
 
 import { useEffect } from 'react'
+import { capturePerformanceMidi } from '../utils/performanceRecording'
 import { useStore } from '../store'
 import { isTapCapturing, registerTap } from '../utils/tapTempoSession'
 import { advanceIfPlayed } from '../utils/stepThrough'
@@ -248,6 +249,7 @@ function handleMessage(e: MIDIMessageEvent, portId: string) {
   else if (type === 0xD0) channelPressure(d1, direct)
   else if (type === 0xA0) polyPressure(d1, d2, direct)
   else if (type === 0xC0) programChange(d1)
+  capturePerformanceMidi(status, d1, d2, t0)
 }
 
 // ── A keyboard's own sound buttons send Program Change: play that instrument

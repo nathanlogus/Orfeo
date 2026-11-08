@@ -14,6 +14,7 @@ import { useNativeAudio, stopNative } from '../../../audio/nativeClient'
 import { setLowLatency } from '../../../audio/useNativeEngine'
 import { useMidiSettings } from '../../../store/midiSettings'
 import { androidPianoBridge } from '../../../audio/androidPiano'
+import { BOSENDORFER_LIBRARY_URL, ROLAND_FP90X_URL } from '../../../audio/soundfontCatalog'
 
 // Native engine (beta): Windows only for now
 export const NATIVE_AVAILABLE = navigator.userAgent.includes('Windows') || !!androidPianoBridge()
@@ -242,6 +243,9 @@ function SoundFontRow({ sf }: { sf: ReturnType<typeof allSoundfonts>[number] }) 
       <span style={{ flex: 1, minWidth: 0 }}>
         <span className="set-font-name">{sf.name}</span>
         <span className="set-font-meta">{progress !== undefined ? t`Downloading… ${percent}%` : `${sf.sizeMB} MB`}</span>
+        {sf.description && <span className="set-font-meta">{sf.description}</span>}
+        {sf.attribution && <span className="set-font-meta">{sf.attribution}</span>}
+        {sf.sourceUrl && <button className="set-font-source" onClick={() => void window.electronAPI.openExternal(sf.sourceUrl!)}>{t`Source & terms`}</button>}
         {progress !== undefined && <span className="o-progress" style={{ maxWidth: 260, marginTop: 4 }}><span style={{ width: `${percent}%` }} /></span>}
       </span>
       {bundled ? <span className="o-tag">{t`Comes with Pliage`}</span>
@@ -264,6 +268,14 @@ function SoundFontsControl() {
       <div role="radiogroup" aria-label={t`Sound font in use`} className="set-fonts">
         {allSoundfonts(extra).map(sf => <SoundFontRow key={sf.id} sf={sf} />)}
       </div>
+      <div className="set-font set-font-external">
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span className="set-font-name">Bösendorfer Imperial · Realistic Piano</span>
+          <span className="set-font-meta">{t`Paid library. Purchase separately, extract the ZIP, then import the .sf2 file.`}</span>
+        </span>
+        <button className="o-btn" onClick={() => void window.electronAPI.openExternal(BOSENDORFER_LIBRARY_URL)}>{t`Get library`}</button>
+      </div>
+      <HelpText>{t`Roland FP-90X uses PureAcoustic Piano Modeling. No verified FP-90X soundfont is available in this catalog.`} <button className="set-font-source" onClick={() => void window.electronAPI.openExternal(ROLAND_FP90X_URL)}>{t`About the FP-90X`}</button></HelpText>
       {error && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--status-error)', marginTop: 6 }}>{error}</div>}
       <HelpText>{t`Make sure you have the rights to use imported soundfonts.`}</HelpText>
     </div>

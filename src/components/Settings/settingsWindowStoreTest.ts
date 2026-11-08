@@ -1,4 +1,4 @@
-import { useStore, applySamplesIntroducedPref } from '../../store'
+import { useStore, applySamplesIntroducedPref, applyAudioEnginePref } from '../../store'
 import { followNeedsPick } from './followPick'
 
 export function runSettingsWindowStoreTest(): number {
@@ -6,6 +6,21 @@ export function runSettingsWindowStoreTest(): number {
   let pass = 0, fail = 0
   const check = (c: boolean, m: string) => { c ? pass++ : (fail++, console.error('FAIL:', m)) }
   const S = () => useStore.getState()
+
+  // A saved GM choice must override a previous Native session, while
+  // unsupported Native restores use Studio.
+  const oldEngine = S().audioEngine
+  applyAudioEnginePref({}, S(), true)
+  check(S().audioEngine === 'native', 'new Windows/Android user defaults to Native')
+  applyAudioEnginePref({ audioEngine: 'gm' }, S(), true)
+  check(S().audioEngine === 'gm', 'explicit GM preference is restored')
+  applyAudioEnginePref({ audioEngine: 'samples' }, S(), true)
+  check(S().audioEngine === 'samples', 'explicit Studio preference is restored')
+  applyAudioEnginePref({ audioEngine: 'native' }, S(), false)
+  check(S().audioEngine === 'samples', 'unsupported Native preference falls back to Studio')
+  applyAudioEnginePref({}, S(), false)
+  check(S().audioEngine === 'gm', 'other platforms keep their supported default')
+  S().setAudioEngine(oldEngine)
 
   check(S().settingsWindowOpen === false && S().settingsWindowGroup === 'audio', 'closed, Audio by default')
   S().openSettingsWindow('keyboard')

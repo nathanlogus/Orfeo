@@ -620,7 +620,7 @@ export function useAudioEngine() {
 // ── Library preview: half a minute of a song that isn't open, from its first note,
 // on the same synth whichever engine is chosen, so it never loads a sound set ──
 const PREVIEW_MS = 30_000
-export async function playPreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
+export async function playPreview(bytes: Uint8Array, onEnd: () => void, maxSeconds = PREVIEW_MS / 1000): Promise<() => void> {
   await initJZZ()
   if (!_port || !_JZZ) throw new Error('No synth for the preview')
   const port = _port
@@ -635,7 +635,7 @@ export async function playPreview(bytes: Uint8Array, onEnd: () => void): Promise
     for (let ch = 0; ch < 16; ch++) try { port.send([0xB0 | ch, 123, 0]) } catch {}
   }
   const finish = () => { stop(); onEnd() }
-  const timer = setTimeout(finish, PREVIEW_MS)
+  const timer = setTimeout(finish, maxSeconds * 1000)
   player.connect(port)
   player.onEnd = finish
   player.play()

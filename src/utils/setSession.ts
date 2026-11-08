@@ -8,6 +8,7 @@ import { confirmPendingImportBeforeSwitch } from './foreignFormatImport'
 import { confirmDiscardDirtyNoteEdits } from './noteEditorState'
 import { confirmDiscardDirtyTempoKey } from './tempoKeySave'
 import { endPractice, onSongEnded } from './practiceSession'
+import type { SavedPractice } from './libraryWorkspace'
 
 const SCORE_MS = 3000
 const LOAD_LIMIT_MS = 15000
@@ -15,7 +16,7 @@ const LOAD_LIMIT_MS = 15000
 const ENGINE_PICKUP_MS = 200
 const ENCORE_AT = 90
 
-export interface SetSong { path: string; title: string; size: number; server?: string; cover?: SongCoverInfo }
+export interface SetSong { path: string; title: string; size: number; server?: string; cover?: SongCoverInfo; sheet?: boolean; practice?: SavedPractice }
 export interface SetResult { title: string; percent: number | null; state: 'played' | 'listened' | 'skipped' | 'failed'; encore: boolean }
 // results[i] is songs[i]: every song that's reached leaves one result
 export interface SetRun { songs: SetSong[]; index: number; stage: 'loading' | 'playing' | 'score' | 'summary'; results: SetResult[]; encore: boolean }
@@ -64,7 +65,7 @@ function songOpens(song: SetSong, load: number) {
     const stopMidi = useStore.subscribe(s => { if (s.midi !== before) finish(!!s.midi?.duration) })
     useFoldersPage.setState({ failed: null })
     const stopFailed = useFoldersPage.subscribe(s => { if (s.failed) finish(false) })
-    const path = song.server ? window.electronAPI.songServerDownload(song.server, song.path, song.size) : Promise.resolve(song.path)
+    const path = song.server ? window.electronAPI.songServerDownload(song.server, song.path, song.size, song.sheet) : Promise.resolve(song.path)
     path.then(p => { if (load === _load) useStore.getState().openSong(p, song.cover) }, () => finish(false))
   })
 }
@@ -77,10 +78,23 @@ async function openAt(index: number) {
   const opened = await songOpens(current()!.songs[index], load)
   if (load !== _load) return
   if (!opened) { record(null, 'failed'); nextSong(); return }
+  const prefs = current()!.songs[index].practice
+  let start = 0
+  if (prefs) {
+    const state = useStore.getState(), duration = state.midi?.duration ?? 0
+    const tempo = Number.isFinite(prefs.tempo) ? Math.max(10, Math.min(300, prefs.tempo)) : 100
+    start = Number.isFinite(prefs.start) ? Math.min(Math.max(0, prefs.start), Math.max(0, duration - .1)) : 0
+    const end = prefs.end !== null && Number.isFinite(prefs.end) ? Math.min(duration, Math.max(start + .1, prefs.end)) : null
+    const wanted = prefs.hand === 'left' ? 'L' : prefs.hand === 'right' ? 'R' : null
+    useStore.setState({ bpm: state.originalBpm * tempo / 100, currentTime: start, loopStart: start, loopEnd: end, loopRegionEnabled: end !== null, loopRegionActive: end !== null,
+      // Hand tracks retain the accompaniment and hide/mute only an opposing
+      // homogeneous hand. Mixed/unlabelled tracks remain available.
+      tracks: state.tracks.map(t => { const notes = state.midi?.tracks.find(p => p.index === t.index)?.notes ?? []; const hands = new Set(notes.map(n => n.hand).filter(Boolean)); return wanted && hands.size === 1 && !hands.has(wanted) ? { ...t, muted: true, visible: false } : t }) })
+  }
   update({ stage: 'playing' })
   await new Promise(r => setTimeout(r, ENGINE_PICKUP_MS))
   if (load !== _load) return
-  if (!startCountIn(true)) useStore.setState({ playbackState: 'playing' })
+  if (!startCountIn(true)) useStore.setState({ playbackState: 'playing', currentTime: start })
 }
 
 function nextSong() {

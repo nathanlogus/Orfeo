@@ -21,6 +21,7 @@ import { touchScreen } from '../../utils/touchScreen'
 import { SongCoverTile, useSongCover } from './SongCover'
 import { allSoundfonts, useSoundfontState } from '../../hooks/useSoundfonts'
 import { useNativeAudio } from '../../audio/nativeClient'
+import RecordTake from './RecordTake'
 
 // NOTE: no more `C` shorthand object — every color below is a literal
 // `var(--token-name)` string written directly at its point of use, so the
@@ -232,6 +233,7 @@ export default function TopBar() {
           <span className="pr-song">{songName}</span>
         </div>
 
+        <RecordTake />
         <div className="pr-readouts topbar-scroll app-no-drag touch-hit">
           {/* ── Tempo ── */}
           <div className="pr-group" data-instant data-tuck>

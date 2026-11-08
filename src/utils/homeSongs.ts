@@ -1,6 +1,7 @@
 // ── Home page: the songs already on this device, in the server's terms ──────
 import type { LibraryFile, SongServerSong } from '../types'
 import { buildCards, type SongCard, type SongSort } from './songCatalog'
+import { BRAZILIAN_GENRES } from './libraryWorkspace'
 
 export interface FilterOption { name: string; count: number }
 
@@ -37,7 +38,7 @@ export function deviceSongs(files: LibraryFile[], libraryFolder: string | null, 
     const c = cards.get(f.path)!
     return {
       path: f.path, title: c.title, artist: c.people[0] ?? folders.slice(1).join(' / '), genre: c.genres[0]?.name ?? folders[0] ?? '',
-      size: 0, local: true, art: c.art, people: c.people.length ? c.people : undefined, genres: c.genres.length ? c.genres : undefined,
+      size: 0, local: true, art: c.art, addedAt: c.addedAt, people: c.people.length ? c.people : undefined, genres: c.genres.length ? c.genres : undefined,
       key: c.key ?? undefined, bpm: c.bpm ?? undefined, meter: c.meter ?? undefined, duration: c.duration ?? undefined,
       arrangement: c.arrangement ?? undefined, difficulty: c.difficulty ?? undefined, busyness: c.busyness ?? undefined, classic: c.classic,
       hands: c.hands ?? undefined,
@@ -48,7 +49,7 @@ export function deviceSongs(files: LibraryFile[], libraryFolder: string | null, 
 // The song browser's card, for a song as the home page lists it
 export function songCard(s: SongServerSong): SongCard {
   return {
-    path: s.path, title: s.title,
+    path: s.path, title: s.title, addedAt: s.addedAt,
     people: s.people ?? (s.artist ? [s.artist] : []),
     genres: s.genres ?? (s.genre ? [{ name: s.genre, guessed: false }] : []),
     art: s.art ?? null, key: s.key ?? null, bpm: s.bpm ?? null, meter: s.meter ?? null,
@@ -64,7 +65,7 @@ type Filter = 'genre' | 'artist' | 'arrangement' | 'difficulty' | 'key' | 'hands
 
 const peopleOf = (s: SongServerSong) => s.people ?? (s.artist ? [s.artist] : [])
 const FILTER_VALUES: Record<Filter, (s: SongServerSong) => (string | number | undefined)[]> = {
-  genre: s => [s.genre], artist: peopleOf, arrangement: s => [s.arrangement], difficulty: s => [s.difficulty], key: s => [s.key], hands: s => [s.hands],
+  genre: s => { const genres = s.genres?.map(g => g.name) ?? [s.genre]; return genres.some(g => BRAZILIAN_GENRES.includes(g)) ? [...new Set([...genres, 'brazilian'])] : genres }, artist: peopleOf, arrangement: s => [s.arrangement], difficulty: s => [s.difficulty], key: s => [s.key], hands: s => [s.hands],
 }
 
 export function filterSongs(songs: SongServerSong[], f: SongFilters, leaveOut?: Filter): SongServerSong[] {
@@ -97,5 +98,6 @@ const SORTS: Record<SongSort, ((a: SongServerSong, b: SongServerSong) => number)
   easiest: (a, b) => byNumber(a.difficulty, b.difficulty) || byNumber(a.busyness, b.busyness),
   tempo: (a, b) => byNumber(a.bpm, b.bpm),
   length: (a, b) => byNumber(a.duration, b.duration),
+  recent: (a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0) || a.title.localeCompare(b.title),
 }
 export const sortSongs = (songs: SongServerSong[], sort: SongSort) => (SORTS[sort] ? [...songs].sort(SORTS[sort]!) : songs)

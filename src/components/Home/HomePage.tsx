@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, FolderOpen, LayoutGrid, List, Loader2, MoreHorizontal, Play, Search, Settings, Wifi, X } from 'lucide-react'
+import { ArrowLeft, Check, FolderOpen, LayoutGrid, List, Loader2, MoreHorizontal, Play, Search, Settings, Wifi, X, RefreshCw, Library } from 'lucide-react'
 import '../../styles/redesign-home.css'
 import { useStore } from '../../store'
 import { useMidiFile } from '../../hooks/useMidiFile'
@@ -23,6 +23,9 @@ import LearnHome from '../Lessons/LearnHome'
 import FirstRun from './FirstRun'
 import HomeMenu, { GAME_MODES, pageOnTop } from './HomeMenu'
 import type { SongServerList, SongServerSong } from '../../types'
+import LibraryTools from './LibraryTools'
+import { BRAZILIAN_GENRES, editSong, isNewSong, librarySongKey, loadLibraryWorkspace, useLibraryWorkspace } from '../../utils/libraryWorkspace'
+import { useImportInbox } from '../../hooks/useImportInbox'
 
 const PAGE = 100
 const SEARCH_DELAY_MS = 200
@@ -96,10 +99,16 @@ export default function HomePage() {
   const [deviceShown, setDeviceShown] = useState(PAGE)
   const [searching, setSearching] = useState(false)
   const [firstRun, setFirstRun] = useState(false)
+  const workspace = useLibraryWorkspace()
+  const pendingImports = useImportInbox(s => s.candidates.length)
+  const [toolsOpen, setToolsOpen] = useState(false)
+  const [toolsSong, setToolsSong] = useState<SongServerSong | undefined>()
+  const [onlyRecent, setOnlyRecent] = useState(false)
   // The menu's first highlight depends on the saved song: nothing shows until that's known
   const [ready, setReady] = useState(false)
   const latestQuery = useRef(0)
   const lookedForServer = useRef(false)
+  useEffect(() => { void loadLibraryWorkspace() }, [])
 
   const findServer = useCallback(async () => {
     lookedForServer.current = true
@@ -162,17 +171,29 @@ export default function HomePage() {
     if (libraryFolder) void window.electronAPI.readSongCatalog(libraryFolder).then(c => { if (current) setCatalog(c) }).catch(() => {})
     return () => { current = false }
   }, [libraryFolder])
+  const refreshDevice = useCallback(async () => {
+    if (libraryFolder) {
+      const [files, details] = await Promise.all([window.electronAPI.scanMidiFolder(libraryFolder), window.electronAPI.readSongCatalog(libraryFolder)])
+      useStore.getState().setLibraryFiles(files); setCatalog(details)
+    }
+  }, [libraryFolder])
 
   const load = useCallback(async (offset: number) => {
     const id = ++latestQuery.current
     setLoading(true)
     try {
-      const r = await window.electronAPI.songServerQuery(address, {
-        q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter, hands: handsFilter,
-        classic: classicOnly ? 1 : '', sort, offset, limit: PAGE,
-      })
+      // Metadata is small; loading the complete index lets personal edits,
+      // offline status and genre families participate in the same filters.
+      const collected: SongServerSong[] = []
+      let r: SongServerList
+      do {
+        r = await window.electronAPI.songServerQuery(address, { offset: collected.length, limit: 200 })
+        if (id !== latestQuery.current) return
+        collected.push(...r.songs)
+        if (!r.songs.length) break
+      } while (collected.length < r.total)
       if (id !== latestQuery.current) return
-      setServerSongs(old => (offset ? [...old, ...r.songs] : r.songs))
+      setServerSongs(collected)
       setServerTotal(r.total)
       setGenres(r.genres)
       setArtists(r.artists)
@@ -188,7 +209,7 @@ export default function HomePage() {
       if (!moved || moved === address) setError(t`Can't reach the server. Check the address and that it's running.`)
     }
     setLoading(false)
-  }, [address, q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly, sort, findServer])
+  }, [address, findServer])
 
   useEffect(() => {
     if (source === 'server' && !connected && !address && !lookedForServer.current) void findServer()
@@ -196,25 +217,44 @@ export default function HomePage() {
 
   useEffect(() => {
     if (source !== 'server' || !connected) return
-    const timer = setTimeout(() => void load(0), SEARCH_DELAY_MS)
+    const timer = setTimeout(() => { if (!document.hidden) void load(0) }, SEARCH_DELAY_MS)
     return () => clearTimeout(timer)
+  }, [source, connected, load])
+  useEffect(() => {
+    if (source !== 'server' || !connected) return
+    const refresh = () => { if (!document.hidden && !useImportInbox.getState().scanning) void load(0) }
+    const timer = setInterval(refresh, 20000)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh) }
   }, [source, connected, load])
 
   // ── The same list, from what's already here ──────────────────────────────
   const allDevice = useMemo(() => {
     const library = hideDemoFolder ? libraryFiles.filter(f => !/[\\/]Demo[\\/]/.test(f.path)) : libraryFiles
     const hidden = new Set(showHiddenFiles ? [] : hiddenFiles)
-    return deviceSongs((library.length || hideDemoFolder ? library : demoFiles).filter(f => !hidden.has(f.path)), libraryFolder, catalog)
-  }, [libraryFiles, demoFiles, hideDemoFolder, hiddenFiles, showHiddenFiles, libraryFolder, catalog])
+    const base = deviceSongs((library.length || hideDemoFolder ? library : demoFiles).filter(f => !hidden.has(f.path)), libraryFolder, catalog)
+    const byPath = new Map(base.map(s => [s.path, s]))
+    for (const entry of Object.values(workspace.offline)) if (!hidden.has(entry.song.path)) byPath.set(entry.song.path, entry.song)
+    return [...byPath.values()].map(s => {
+      const offline = Object.values(workspace.offline).find(e => e.song.path === s.path)
+      return editSong(s, workspace.edits[librarySongKey(s.path)] ?? (offline ? workspace.edits[librarySongKey(offline.remotePath, offline.server)] : undefined))
+    })
+  }, [libraryFiles, demoFiles, hideDemoFolder, hiddenFiles, showHiddenFiles, libraryFolder, catalog, workspace.offline, workspace.edits])
   const deviceFilters = useMemo(() => ({ q, genre: genre ?? '', artist: artist ?? '', arrangement, difficulty, key: songKeyFilter, hands: handsFilter, classic: classicOnly }),
     [q, genre, artist, arrangement, difficulty, songKeyFilter, handsFilter, classicOnly])
-  const filteredDevice = useMemo(() => sortSongs(filterSongs(allDevice, deviceFilters), sort), [allDevice, deviceFilters, sort])
-  const deviceFacets = useMemo(() => songFacets(allDevice, deviceFilters), [allDevice, deviceFilters])
+  const recentDevice = useMemo(() => onlyRecent ? allDevice.filter(s => isNewSong(s.addedAt)) : allDevice, [allDevice, onlyRecent])
+  const filteredDevice = useMemo(() => sortSongs(filterSongs(recentDevice, deviceFilters), sort), [recentDevice, deviceFilters, sort])
+  const deviceFacets = useMemo(() => songFacets(recentDevice, deviceFilters), [recentDevice, deviceFilters])
 
   const isServer = source === 'server'
-  const songs = isServer ? serverSongs : filteredDevice.slice(0, deviceShown)
-  const total = isServer ? serverTotal : filteredDevice.length
-  const shownFacets = isServer ? { ...facets, genres, artists } : deviceFacets
+  const editedServer = useMemo(() => serverSongs.map(s => editSong({ ...s, local: s.local || !!workspace.offline[librarySongKey(s.path, address)] }, workspace.edits[librarySongKey(s.path, address)])), [serverSongs, workspace.edits, workspace.offline, address])
+  const recentServer = useMemo(() => onlyRecent ? editedServer.filter(s => isNewSong(s.addedAt)) : editedServer, [editedServer, onlyRecent])
+  const filteredServer = useMemo(() => sortSongs(filterSongs(recentServer, deviceFilters), sort), [recentServer, deviceFilters, sort])
+  const songs = (isServer ? filteredServer : filteredDevice).slice(0, deviceShown)
+  const total = isServer ? filteredServer.length : filteredDevice.length
+  const rawFacets = isServer ? songFacets(recentServer, deviceFilters) : deviceFacets
+  const shownFacets = rawFacets
   const genreOptions = shownFacets.genres
   const artistOptions = shownFacets.artists.filter(a => matchesSearch(a.name, artistSearch))
   const masteryOf = useCallback((path: string) => progress[songKey(path)]?.mastery ?? 0, [progress])
@@ -232,13 +272,13 @@ export default function HomePage() {
   }
 
   const clearFilters = () => {
-    setGenre(null); setArtist(null); setArrangement(''); setDifficulty(''); setSongKeyFilter(''); setHandsFilter(''); setClassicOnly(false); setSort('title')
+    setQ(''); setOnlyRecent(false); setGenre(null); setArtist(null); setArrangement(''); setDifficulty(''); setSongKeyFilter(''); setHandsFilter(''); setClassicOnly(false); setSort('title')
   }
   const switchSource = (next: Source) => {
     remembered.source = next; setSource(next); clearFilters(); setError(''); setDeviceShown(PAGE)
   }
   const pickGenre = (name: string | null) => { setGenre(name); setArtist(null); setDeviceShown(PAGE) }
-  const filtered = !!(genre || artist || arrangement || difficulty || songKeyFilter || handsFilter || classicOnly || sort !== 'title')
+  const filtered = !!(q || onlyRecent || genre || artist || arrangement || difficulty || songKeyFilter || handsFilter || classicOnly || sort !== 'title')
   const asFacet = (list: { name: string; count: number }[]) => list.map(o => ({ value: o.name, count: o.count }))
 
   // The song on this device, downloading it first if it isn't. Null if that failed.
@@ -320,7 +360,7 @@ export default function HomePage() {
   const playAll = () => {
     stopPreview()
     void playSet(isServer
-      ? serverSongs.map(s => ({ path: s.path, title: s.title, size: s.size, server: address, cover: { art: s.art ?? null, people: s.people ?? [] } }))
+      ? filteredServer.map(s => ({ path: s.path, title: s.title, size: s.size, sheet: s.sheet, server: address, cover: { art: s.art ?? null, people: s.people ?? [] } }))
       : filteredDevice.map(s => ({ path: s.path, title: s.title, size: s.size })))
   }
 
@@ -415,6 +455,7 @@ export default function HomePage() {
           <button role="tab" aria-selected={section === 'learn'} onClick={() => setSection('learn')}>{t`Learn`}</button>
         </div>}
         <span className="o-spacer" />
+        {section === 'library' && <button className="o-btn" onClick={() => { stopPreview(); setToolsSong(undefined); setToolsOpen(true) }}><Library size={16} />Library tools{pendingImports > 0 ? ` (${pendingImports} new)` : ''}</button>}
         {section === 'learn' && midiConnected && <span className="lib-listening"><span className="o-dot o-dot-on" />{t`Lessons listen to ${midiName || t`your keyboard`}`}</span>}
         {section === 'library' && <label className="o-field lib-search">
           <Search size={17} aria-hidden />
@@ -449,6 +490,12 @@ export default function HomePage() {
           </section>}
 
           <div className="lib-tools pliage-rise-in pliage-rise-in-2">
+            <div className="library-filter-summary">
+              <button className="o-btn" aria-pressed={onlyRecent} onClick={() => { clearFilters(); setOnlyRecent(!onlyRecent); setSort('recent'); setDeviceShown(PAGE) }}>Recently added</button>
+              <button className="o-btn" disabled={loading} onClick={() => { if (isServer) void load(0); else void refreshDevice() }}><RefreshCw size={15} />Refresh</button>
+              {filtered && <span>{[q && `Search: ${q}`, genre && `Genre: ${genreLabel(genre)}`, artist && `Artist: ${artist}`, arrangement, difficulty && `Difficulty: ${difficulty}`, songKeyFilter, handsFilter, onlyRecent && 'Added this week'].filter(Boolean).join(' · ')}</span>}
+              {filtered && <button className="o-btn" onClick={clearFilters}>Clear all filters</button>}
+            </div>
             <div className="lib-filters">
               {view === 'cards' && <FilterSelect title={t`Genre`} all={t`All genres`} value={genre ?? ''} options={asFacet(shownFacets.genres)} onChange={v => { setGenre(v || null); setArtist(null) }} label={genreLabel} />}
               {view === 'cards' && <FilterSelect title={t`Composer`} all={t`All composers`} value={artist ?? ''} options={asFacet(shownFacets.artists)} onChange={v => setArtist(v || null)} />}
@@ -507,7 +554,7 @@ export default function HomePage() {
 
             <main className="lib-main">
               {view === 'cards' && songs.length > 0 && <div className="lib-grid">
-                {songs.map((s, i) => <Card key={s.path} card={songCard(s)} index={i} loaded={false} mastery={masteryOf(s.path)} status={statusOf(s)} percent={percent} failure={failure} preview={previewOf(s)} onPreview={() => void togglePreview(s)} onOpen={() => void open(s)} />)}
+                {songs.map((s, i) => <div key={s.path} style={{ position: 'relative' }}><Card card={songCard(s)} index={i} loaded={false} mastery={masteryOf(s.path)} status={statusOf(s)} percent={percent} failure={failure} preview={previewOf(s)} onPreview={() => void togglePreview(s)} onOpen={() => void open(s)} /><button className="o-icon-btn library-card-tools" aria-label={`Edit details for ${s.title}`} onClick={() => { stopPreview(); setToolsSong(s); setToolsOpen(true) }}><MoreHorizontal size={18} /></button></div>)}
               </div>}
               {view === 'list' && songs.length > 0 && <div className="lib-list">
                 {songs.map((s, i) => {
@@ -518,7 +565,7 @@ export default function HomePage() {
                       <PreviewCover card={songCard(s)} preview={previewOf(s)} onToggle={() => void togglePreview(s)} />
                       <button className="lib-row-open" onClick={() => void open(s)} disabled={!!opening}>
                         <span className="lib-row-text">
-                          <span className="lib-row-title">{s.title}</span>
+                          <span className="lib-row-title">{s.title} {isNewSong(s.addedAt) && <span className="library-new">New</span>}</span>
                           <span className="lib-row-sub">{status === 'failed' ? failure : [s.artist, s.genre && genreLabel(s.genre)].filter(Boolean).join(' · ')}</span>
                         </span>
                         <span className="lib-row-state">
@@ -529,6 +576,7 @@ export default function HomePage() {
                       </button>
                       {status === 'failed' && <button className="o-btn" onClick={() => void open(s)}>{t`Try again`}</button>}
                       <button className="o-icon-quiet lib-file-btn" aria-label={t`More for ${s.title}`} onClick={e => void rowMenu(s, e.currentTarget)}><MoreHorizontal size={18} /></button>
+                      <button className="o-btn" onClick={() => { stopPreview(); setToolsSong(s); setToolsOpen(true) }}>Details</button>
                     </div>
                   )
                 })}
@@ -546,12 +594,13 @@ export default function HomePage() {
                 </div>
               </div>}
               {songs.length < total && (
-                <button className="o-btn lib-more" onClick={() => (isServer ? void load(serverSongs.length) : setDeviceShown(n => n + PAGE))}>{t`Show more`}</button>
+                <button className="o-btn lib-more" onClick={() => setDeviceShown(n => n + PAGE)}>{t`Show more`}</button>
               )}
             </main>
           </div>
         </div>
       )}
+      {toolsOpen && <LibraryTools initialSong={toolsSong} songs={isServer ? filteredServer : filteredDevice} server={isServer ? address : ''} onClose={() => setToolsOpen(false)} onRefresh={() => { if (isServer) void load(0); void refreshDevice() }} />}
       {preview && <PreviewDeck card={songCard(preview.song)} playing={preview.state === 'playing'} onStop={stopPreview} />}
       {serverMenu && (
         <ContextMenu ref={serverMenuRef} x={serverMenu.x} y={serverMenu.y} ariaLabel={t`Song actions`}>

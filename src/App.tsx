@@ -66,6 +66,7 @@ import { isExporting } from './audio/exportAudio'
 import { SupportNote } from './components/SupportNote'
 import DropOverlay from './components/DropOverlay'
 import { t } from './utils/i18n'
+import { useImportInboxService } from './hooks/useImportInbox'
 
 export default function App() {
   // ── Update status + sound-set progress: one listener each for the app's
@@ -74,6 +75,7 @@ export default function App() {
   useUpdateService()
   useSoundfontService()
   useSupportNoteService()
+  useImportInboxService()
   const midi = useStore((s) => s.midi)
   const homeOpen = useStore((s) => s.homeOpen)
   const lessonActive = useStore((s) => !!s.lessonRun)

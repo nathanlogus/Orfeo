@@ -1167,7 +1167,7 @@ export function useSamplesEngine() {
 // note, on the sound set. Works whichever engine is chosen: nothing here reads
 // the open song, and the next play sets its own programs and volumes. ───────
 const PREVIEW_SEC = 30
-export async function playSamplesPreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
+export async function playSamplesPreview(bytes: Uint8Array, onEnd: () => void, maxSeconds = PREVIEW_SEC): Promise<() => void> {
   await initSamplesEngine(() => {})
   await _chosenSetLoading
   const synth = _synth as any
@@ -1177,7 +1177,7 @@ export async function playSamplesPreview(bytes: Uint8Array, onEnd: () => void): 
   const tracks = new Midi(bytes).tracks.filter(t => t.notes.length)
   if (!tracks.length) throw new Error('Nothing to preview')
   const from = Math.min(...tracks.map(t => t.notes[0].time))
-  const until = from + PREVIEW_SEC
+  const until = from + maxSeconds
   const events: { at: number; off: boolean; play: () => void }[] = []
   for (const t of tracks) {
     const ch = t.channel
@@ -1207,7 +1207,7 @@ export async function playSamplesPreview(bytes: Uint8Array, onEnd: () => void): 
   timer = setInterval(() => {
     const now = (performance.now() - startedAt) / 1000
     while (next < events.length && events[next].at <= now) { try { events[next].play() } catch {} next++ }
-    if (now >= PREVIEW_SEC) { stop(); onEnd() }
+    if (now >= maxSeconds) { stop(); onEnd() }
   }, 10)
   return stop
 }

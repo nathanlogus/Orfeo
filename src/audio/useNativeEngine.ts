@@ -6,6 +6,7 @@
 // shows (key lights, hit effects), delayed by the engine's real output delay.
 
 import { useEffect } from 'react'
+import { createNativeStartup } from './nativeStartup'
 import { useStore } from '../store'
 import { useMidiSettings, latencyOffsetSec } from '../store/midiSettings'
 import { NES } from '../utils/noteEditorState'
@@ -167,6 +168,36 @@ export function restoreNativeSongPlayback() {
   if (s.playbackState === 'playing') nativeCall('play')
 }
 
+/** Preview or a complete recorded take on the active Native output. */
+export async function playNativePreview(bytes: Uint8Array, onEnd: () => void, maxSeconds = 30): Promise<() => void> {
+  if (!isNativeRunning()) throw new Error('Native audio is still starting. Try again in a moment.')
+  const { Midi } = await import('@tonejs/midi'), midi = new Midi(bytes)
+  const events: [number, number, number, number, number, number][] = []
+  midi.tracks.forEach((t, index) => {
+    const ch = t.channel & 15
+    events.push([0, 1, index, 0xc0 | ch, t.instrument.number, 0])
+    for (const n of t.notes) {
+      events.push([n.time, 2, index, 0x90 | ch, n.midi, Math.max(1, Math.round(n.velocity * 127))])
+      events.push([n.time + n.duration, 0, index, 0x80 | ch, n.midi, 0])
+    }
+    for (const [number, changes] of Object.entries(t.controlChanges)) for (const c of changes ?? []) events.push([c.time, 1, index, 0xb0 | ch, Number(number), Math.round(c.value * 127)])
+    for (const p of t.pitchBends) { const bend = Math.max(0, Math.min(16383, Math.round(p.value * 8192 + 8192))); events.push([p.time, 1, index, 0xe0 | ch, bend & 127, bend >> 7]) }
+  })
+  events.sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  const first = events.find(e => (e[3] & 0xf0) === 0x90)?.[0] ?? 0
+  nativeCall('pause')
+  nativeCall('loadSong', new Float64Array(events.map(e => e[0])), new Uint16Array(events.map(e => e[2])), new Uint8Array(events.flatMap(e => e.slice(3))), midi.tracks.length, midi.duration)
+  nativeCall('setSongClicks', new Float64Array(), new Uint8Array())
+  nativeCall('setAudibleTracks', midi.tracks.map(() => true))
+  for (let ch = 0; ch < 16; ch++) { nativeCall('setChannelProgram', ch, -1); nativeCall('setChannel', ch, 1, 0, 0, 0) }
+  nativeCall('setTempoRatio', 1); nativeCall('setTranspose', 0)
+  nativeCall('setMetronome', false, 0); nativeCall('seek', first); nativeCall('play')
+  let stopped = false
+  const stop = () => { if (stopped) return; stopped = true; clearTimeout(timer); nativeCall('pause'); restoreNativeSongPlayback() }
+  const timer = setTimeout(() => { stop(); onEnd() }, Math.min(maxSeconds, Math.max(.1, midi.duration - first + .1)) * 1000)
+  return stop
+}
+
 export function sendTrackState(tracks: Tracks) {
   const hasSolo = tracks.some(t => t.solo)
   const n = Math.max(0, ...tracks.map(t => t.index + 1))
@@ -300,21 +331,23 @@ function refillVisuals() {
 }
 
 // ── Engine lifetime ─────────────────────────────────────────────────────────
-async function startEngine() {
-  const paths = await window.electronAPI.nativeSoundfontPaths(useStore.getState().selectedSoundfont)
-  const ok = await startNative({ soundfonts: paths, exclusive: useMidiSettings.getState().nativeExclusive })
-  if (!ok) {
-    console.error('[Pliage Native] could not start — falling back to the Samples engine:', useNativeAudio.getState().error)
-    if (useStore.getState().audioEngine === 'native') useStore.getState().setAudioEngine('samples')
-    return
-  }
-  sendTransportSettings()
-  sendSong()
-  sendSongClicks()
-  sendMetronome()
-  const s = useStore.getState()
-  if (s.playbackState === 'playing') { nativeCall('seek', s.currentTime); nativeCall('play'); startVisuals(s.currentTime) }
-}
+const nativeStartup = createNativeStartup({
+  active: () => useStore.getState().audioEngine === 'native',
+  visible: () => !document.hidden,
+  suspended: () => !!androidPianoBridge()?.status().suspended,
+  paths: () => window.electronAPI.nativeSoundfontPaths(useStore.getState().selectedSoundfont),
+  start: paths => startNative({ soundfonts: paths, exclusive: useMidiSettings.getState().nativeExclusive }),
+  failed: () => {
+    console.error('[Pliage Native] could not start; using Studio:', useNativeAudio.getState().error)
+    useStore.getState().setAudioEngine('samples')
+  },
+  ready: () => {
+    sendTransportSettings(); sendSong(); sendSongClicks(); sendMetronome()
+    const state = useStore.getState()
+    if (state.playbackState === 'playing') { nativeCall('seek', state.currentTime); nativeCall('play'); startVisuals(state.currentTime) }
+  },
+})
+const startEngine = () => nativeStartup.start()
 
 export function useNativeEngine() {
   useEffect(() => {
@@ -331,7 +364,7 @@ export function useNativeEngine() {
 
       if (s.audioEngine !== p.audioEngine) {
         if (s.audioEngine === 'native') { void startEngine(); return }
-        if (p.audioEngine === 'native') { clearVisuals(); void stopNative(); return }
+        if (p.audioEngine === 'native') { nativeStartup.cancel(); clearVisuals(); void stopNative(); return }
       }
       if (s.audioEngine !== 'native') return
       if (s.selectedSoundfont !== p.selectedSoundfont) { void startEngine(); return }
@@ -387,7 +420,11 @@ export function useNativeEngine() {
       const s = useStore.getState()
       if (s.playbackState === 'playing') { nativeCall('seek', s.currentTime); nativeCall('play'); startVisuals(s.currentTime) }
     })
-    return () => { unsub(); offRestart(); clearVisuals() }
+    const resume = () => {
+      if (!document.hidden && useStore.getState().audioEngine === 'native' && (!isNativeRunning() || androidPianoBridge()?.status().running === false)) void startEngine()
+    }
+    document.addEventListener('visibilitychange', resume)
+    return () => { nativeStartup.cancel(); unsub(); offRestart(); document.removeEventListener('visibilitychange', resume); clearVisuals() }
   }, [])
 }
 

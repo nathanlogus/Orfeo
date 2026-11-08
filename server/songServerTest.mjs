@@ -24,11 +24,12 @@ add('Jazz/Weimar Solos/Catalogued.mid')
 mkdirSync(join(lib, '.art')); writeFileSync(join(lib, '.art', 'c.jpg'), 'jpeg'); writeFileSync(join(lib, '.art', 'c.txt'), 'x')
 writeFileSync(join(lib, 'catalog.json'), JSON.stringify({ songs: { 'Jazz/Weimar Solos/Catalogued.mid': {
   title: 'Real Title', composers: ['Cole Porter'], performer: null, genres: [{ name: 'swing', guessed: true }],
-  key: 'C major', bpm: null, difficulty: 3, art: { url: '.art/c.jpg' }, hands: 'named', arrangement: 'solo-piano', classic: true, duration: 90,
+  key: 'C major', bpm: null, difficulty: 3, art: { url: '.art/c.jpg' }, hands: 'named', arrangement: 'solo-piano', classic: true, duration: 90, addedAt: 9999999999999,
 }, 'Mozart - Rondo.mid': {
   title: 'Rondo', composers: ['Mozart', 'Haydn'], performer: null, genres: [], key: 'A minor', bpm: 140, difficulty: 1, arrangement: 'band', duration: 200,
 } } }))
 writeFileSync(join(lib, 'metadata.json'), JSON.stringify({ 'Jazz/Doug McKenzie/AfterYou.mid': { title: 'After You, Who?' } }))
+add('Jazz/Weimar Solos/Catalogued.mid.sheet', 'original score')
 
 const server = spawn(process.execPath, [fileURLToPath(new URL('song-server.mjs', import.meta.url)), lib, '18765'])
 await new Promise(r => server.stdout.once('data', r))
@@ -42,6 +43,9 @@ try {
   const c = all.songs.find(s => s.title === 'Real Title')
   same([c.artist, c.genre, c.key, c.difficulty, c.people], ['Cole Porter', 'swing', 'C major', 3, ['Cole Porter']])
   eq(c.bpm, undefined) // an empty catalog field leaves nothing behind
+  eq(c.addedAt, 9999999999999)
+  eq((await list('sort=recent&limit=1')).songs[0].title, 'Real Title')
+  eq(await (await get('/api/sheet?path=' + encodeURIComponent(c.path))).text(), 'original score')
   eq(await (await get(c.art)).text(), 'jpeg')
   eq((await get(c.art)).headers.get('content-type'), 'image/jpeg')
   eq((await get('/api/art?path=' + encodeURIComponent('.art/c.txt'))).status, 404)

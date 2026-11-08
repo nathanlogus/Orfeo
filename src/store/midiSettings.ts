@@ -44,7 +44,7 @@ export const MIDI_DEFAULTS: MidiPrefs = {
   autoReconnect: true,
   autoLowLatency: true,
   liveResponse: 'low',
-  androidNativePiano: false,
+  androidNativePiano: true,
   latencyOffsetMs: 0,
   velocityCurve: 'normal',
   fixedVelocity: 100,

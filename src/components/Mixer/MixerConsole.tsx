@@ -198,39 +198,70 @@ export default function MixerConsole() {
 
   // ── Drag-to-pan state for the channel strip row ───────────────────────────
   const scrollRef    = useRef<HTMLDivElement>(null)
-  const dragStartX   = useRef(0)
-  const dragStartSL  = useRef(0)
+  const panGesture = useRef<{ id: number; x: number; y: number; left: number; dragging: boolean } | null>(null)
+  const suppressClickUntil = useRef(0)
   const [panning, setPanning] = useState(false)
 
   // ── Document-level move/up for strip-row pan drag ─────────────────────────
   useEffect(() => {
-    if (!panning) return
-    const onMove = (e: MouseEvent) => {
-      if (!scrollRef.current) return
-      scrollRef.current.scrollLeft = dragStartSL.current + (dragStartX.current - e.clientX)
+    const onMove = (e: PointerEvent) => {
+      const gesture = panGesture.current, row = scrollRef.current
+      if (!gesture || e.pointerId !== gesture.id || !row) return
+      const dx = e.clientX - gesture.x, dy = e.clientY - gesture.y
+      if (!gesture.dragging) {
+        if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return
+        if (Math.abs(dy) >= Math.abs(dx)) { panGesture.current = null; return }
+        gesture.dragging = true
+        setPanning(true)
+      }
+      row.scrollLeft = gesture.left - dx
+      e.preventDefault()
     }
-    const onUp = () => setPanning(false)
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup',   onUp)
+    const onUp = (e: PointerEvent) => {
+      const gesture = panGesture.current
+      if (!gesture || e.pointerId !== gesture.id) return
+      if (gesture.dragging) { suppressClickUntil.current = Date.now() + 60; setPanning(false) }
+      panGesture.current = null
+    }
+    window.addEventListener('pointermove', onMove, { passive: false })
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
     return () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup',   onUp)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
     }
-  }, [panning])
+  }, [])
 
   // ── Start strip-row pan drag ──────────────────────────────────────────────
-  const handleScrollMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) return
-    dragStartX.current  = e.clientX
-    dragStartSL.current = scrollRef.current.scrollLeft
-    setPanning(true)
+  const handleScrollPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch' || e.button !== 0 || !scrollRef.current) return
+    if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a, [role="slider"], [draggable="true"], [data-no-pan]')) return
+    panGesture.current = { id: e.pointerId, x: e.clientX, y: e.clientY, left: scrollRef.current.scrollLeft, dragging: false }
   }, [])
 
   // ── Horizontal scroll via vertical wheel on strip row ────────────────────
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (!scrollRef.current) return
+    const row = scrollRef.current
+    if (!row) return
+    const raw = e.shiftKey ? (e.deltaY || e.deltaX) : (e.deltaX || e.deltaY)
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? row.clientWidth : 1
+    const next = Math.max(0, Math.min(row.scrollWidth - row.clientWidth, row.scrollLeft + raw * unit))
+    if (next === row.scrollLeft) return
     e.preventDefault()
-    scrollRef.current.scrollLeft += e.deltaY
+    row.scrollLeft = next
+  }, [])
+
+  const handleStripKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== scrollRef.current || !scrollRef.current) return
+    const row = scrollRef.current
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault()
+      row.scrollBy({ left: (e.key === 'ArrowLeft' ? -1 : 1) * Math.max(160, row.clientWidth * .65), behavior: 'smooth' })
+    } else if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault()
+      row.scrollTo({ left: e.key === 'Home' ? 0 : row.scrollWidth, behavior: 'smooth' })
+    }
   }, [])
 
   // ── Close on Escape ───────────────────────────────────────────────────────
@@ -275,7 +306,14 @@ export default function MixerConsole() {
         <div
           ref={scrollRef}
           className="mixer-scroll pr-mixer-strips"
-          onMouseDown={handleScrollMouseDown}
+          role="region"
+          aria-label="Mixer channel strips"
+          tabIndex={0}
+          onPointerDown={handleScrollPointerDown}
+          onClickCapture={e => {
+            if (Date.now() < suppressClickUntil.current) { e.preventDefault(); e.stopPropagation(); suppressClickUntil.current = 0 }
+          }}
+          onKeyDown={handleStripKeyDown}
           onWheel={handleWheel}
           style={{ cursor: panning ? 'grabbing' : 'grab' }}
         >

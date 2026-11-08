@@ -32,7 +32,7 @@
 .lib-chips button[aria-pressed='true'] { background: var(--ui-selected); color: var(--ui-on-selected); }
 
 /* ── Filters ─────────────────────────────────────────────────────────────── */
-.lib-tools { display: flex; flex-direction: column; gap: 8px; padding: 0 40px 12px; }
+.lib-tools { position: sticky; top: 0; z-index: 20; display: flex; flex-direction: column; gap: 8px; padding: 8px 40px 12px; background: var(--ui-floor); box-shadow: 0 8px 14px -14px var(--ink); }
 .lib-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .lib-filter { flex: 1 1 124px; min-width: 124px; max-width: 200px; position: relative; }
 .lib-filter .o-select { min-height: 44px; }

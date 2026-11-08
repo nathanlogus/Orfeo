@@ -23,6 +23,7 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, readdirSync, writeFileSync } from 'node:fs'
 import { networkInterfaces } from 'node:os'
 import { extname, join, relative, resolve, sep } from 'node:path'
+import { spotifyArtwork } from './spotify-artwork.mjs'
 
 const SONG = /\.(mid|midi|kar|musicxml|xml|mxl|gp|gp3|gp4|gp5|gpx|cap)$/i
 // Plain HTTP with no login, so strangers get nothing even through a forwarded port
@@ -56,7 +57,7 @@ function fromCatalog(e) {
     title: e.title, artist: people[0], genre: e.genres?.[0]?.name, people, genres: e.genres,
     key: e.key, bpm: e.bpm, meter: e.meter, duration: e.duration, arrangement: e.arrangement,
     difficulty: e.difficulty, busyness: e.busyness, classic: e.classic, hands: e.hands, sheet: e.sheet,
-    art: e.art?.url && `/api/art?path=${encodeURIComponent(e.art.url)}`,
+    art: e.art?.url && `/api/art?path=${encodeURIComponent(e.art.url)}`, addedAt: e.addedAt,
   }
   return Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined && v !== null))
 }
@@ -87,7 +88,8 @@ function scan(metadata, catalog, dir = root, out = []) {
     if (e.isDirectory()) scan(metadata, catalog, full, out)
     else if (e.isFile() && SONG.test(e.name)) {
       const path = relative(root, full).split(sep).join('/')
-      out.push({ path, size: statSync(full).size, ...describe(path), ...fromCatalog(catalog[path]), ...metadata[path] })
+      const stat = statSync(full)
+      out.push({ path, size: stat.size, addedAt: stat.birthtimeMs || stat.mtimeMs, ...describe(path), ...fromCatalog(catalog[path]), ...metadata[path] })
     }
   }
   return out
@@ -129,6 +131,7 @@ const SORTS = {
   easiest: (a, b) => byNumber(a.difficulty, b.difficulty) || byNumber(a.busyness, b.busyness),
   tempo: (a, b) => byNumber(a.bpm, b.bpm),
   length: (a, b) => byNumber(a.duration, b.duration),
+  recent: (a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0) || a.title.localeCompare(b.title),
 }
 
 function query(params) {
@@ -190,6 +193,8 @@ function find(rel, allowed) {
 }
 
 function sheetOf(rel) {
+  const sibling = find(rel + '.sheet', () => true)
+  if (sibling) return sibling
   for (const ext of ['.musicxml', '.mxl']) {
     try {
       const p = realpathSync(resolve(sheets, rel.replace(/\.[^./]+$/, ext)))
@@ -211,6 +216,13 @@ createServer(async (req, res) => {
   if (!HOME.test(req.socket.remoteAddress ?? '')) { res.writeHead(403).end(); return }
   if (req.method === 'GET' && url.pathname === '/api/songs') {
     res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(query(url.searchParams)))
+    return
+  }
+  if (req.method === 'GET' && url.pathname === '/api/artwork') {
+    try {
+      const covers = await spotifyArtwork(url.searchParams.get('title') ?? '', url.searchParams.get('artist') ?? '')
+      res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(covers))
+    } catch { res.writeHead(503, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'Spotify artwork search is unavailable. Try again later.' })) }
     return
   }
   const rel = url.searchParams.get('path') ?? ''

@@ -7,6 +7,7 @@ import type { LibraryFile } from '../types'
 export interface SongGenre { name: string; guessed: boolean }
 
 export interface SongCard {
+  addedAt?: number
   path: string
   title: string
   people: string[]          // composers, else the performer
@@ -44,7 +45,7 @@ export const NO_FILTERS: SongFilters = {
   classicOnly: false, includeGuessed: true, showSoloLines: false,
 }
 
-export type SongSort = 'title' | 'person' | 'easiest' | 'tempo' | 'length'
+export type SongSort = 'title' | 'person' | 'easiest' | 'tempo' | 'length' | 'recent'
 
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
@@ -89,7 +90,7 @@ export function buildCards(files: LibraryFile[], libraryFolder: string | null, c
       .filter((g: { name: string | null }): g is SongGenre => !!g.name)
     const parts = rel.split('/')
     return {
-      path: file.path, title, people, genres,
+      path: file.path, title, people, genres, addedAt: num(e.addedAt) ?? file.addedAt,
       art: artSource(e.art?.url, libraryFolder),
       key: str(e.key), bpm: num(e.bpm), meter: str(e.meter), duration: num(e.duration),
       arrangement: str(e.arrangement), difficulty: num(e.difficulty), busyness: num(e.busyness), hands: str(e.hands),
@@ -127,6 +128,7 @@ export function sortCards(cards: SongCard[], sort: SongSort): SongCard[] {
     easiest: (a, b) => byNumber(a.difficulty, b.difficulty) || byNumber(a.busyness, b.busyness) || title(a, b),
     tempo: (a, b) => byNumber(a.bpm, b.bpm) || title(a, b),
     length: (a, b) => byNumber(a.duration, b.duration) || title(a, b),
+    recent: (a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0) || title(a, b),
   }
   return [...cards].sort(cmp[sort])
 }

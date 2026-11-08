@@ -119,6 +119,10 @@ your device.
 - **Note Editor** — move, resize, add, delete, and re-velocity individual notes
   on the roll, with marquee / lasso / pen tools and full undo/redo
 - **MIDI library** — browse a folder, star favourites, fuzzy-search, auto-refresh
+- **Library tools** — a reviewed import inbox with duplicate detection and cover
+  lookup, recently added songs, editable metadata, complete offline downloads,
+  named practice setlists, and MIDI performance takes to replay, compare or export.
+  See [Library tools and recordings](docs/library-practice.md).
 - **Edit history embedded in the file** — travels with the `.mid` anywhere,
   survives reinstalls
 
@@ -133,7 +137,8 @@ your device.
 - **Master volume** — a physical-feeling toolbar knob, persists across sessions
 - **Three sound engines** — **GM** (General MIDI: instant, no download),
   **Studio** (SpessaSynth + downloadable SF2/SF3 soundfonts, GeneralUser GS by
-  default) for far richer sound, and **Native** *(beta)*, which plays the same
+  default) for far richer sound, and **Native** *(beta)*, the default on Windows
+  and Android when no engine has been chosen, which plays the same
   soundfonts straight to your sound card so a MIDI keyboard is heard in under
   10 ms. Native mixes songs like Studio and has two modes: **Shared** (other apps
   keep playing) and **Exclusive** (the shortest latency from keyboard to speaker,
@@ -236,10 +241,14 @@ ships inside the installer.
 
 Pliage only goes online when you ask it to, or to check for updates:
 
-- **Extra sound sets** (FluidR3 GM ~142 MB, MuseScore General ~38 MB) are not
+- **Extra sound sets** (FluidR3 GM, MuseScore General, Steinway Model B,
+  Nice Steinway Lite, Fazioli F308, Mason & Hamlin Model A, and Salamander
+  Yamaha C5) are not
   in the installer; each is downloaded once, only when you press its download
   button in Settings → Audio, and kept in `%APPDATA%\Pliage\soundfonts\`
   (your own imported `.sf2` / `.sf3` files go there too).
+  [Piano library sources and terms](docs/soundfonts.md) include a separately
+  purchased Bösendorfer option and explain Roland FP-90X availability.
 - **Updates:** the Windows installer, portable, Mac and Linux versions check
   GitHub for a new release when they start. The installer version then updates
   itself; the others show a dot on the update button that opens the download

@@ -7,6 +7,9 @@ import { mkdir, access, copyFile, readdir, rename, rmdir, writeFile } from 'fs/p
 import { Midi } from '@tonejs/midi'
 import { isOutputFolder, LEGACY_OUTPUT_FOLDER, SAVED_WORD, upgradeMarkers } from '../src/utils/legacyNames'
 import { migrateUserData } from './migrateUserData'
+import { SOUNDFONT_CATALOG } from '../src/audio/soundfontCatalog'
+import { registerLibraryTools } from './libraryTools'
+import { offlineArtworkUrl } from '../src/utils/offlineArtwork'
 import { Chord, Note } from 'tonal'
 import PDFDocument from 'pdfkit'
 import { assignHands } from '../src/utils/handAssignment'
@@ -391,23 +394,8 @@ ipcMain.handle('shell:openFolder', (_e, folderPath: string) => shell.openPath(fo
 ipcMain.handle('shell:showItemInFolder', (_e, filePath: string) => shell.showItemInFolder(filePath))
 
 // ── Downloadable extra soundfonts (Samples engine) ────────────────────────────
-// Both are MIT-licensed GM soundfonts — safe to redistribute. Never bundled at
-// build time (148MB / 38MB would bloat the installer); downloaded on demand
-// into userData/soundfonts/ and loaded at runtime via soundBankManager.
-const SOUNDFONT_CATALOG: Record<string, { name: string; filename: string; sizeMB: number; url: string }> = {
-  'fluidr3-gm': {
-    name: 'FluidR3 GM',
-    filename: 'FluidR3_GM.sf2',
-    sizeMB: 142,
-    url: 'https://github.com/fhunleth/midi_synth/releases/download/v0.1.0/FluidR3_GM.sf2',
-  },
-  'musescore-general': {
-    name: 'MuseScore General',
-    filename: 'MuseScore_General.sf3',
-    sizeMB: 38,
-    url: 'https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General.sf3',
-  },
-}
+// Downloaded on demand into userData/soundfonts/. The catalog retains source
+// links and credits; individual sample licences apply (see docs/soundfonts.md).
 function soundfontsDir() {
   const dir = join(app.getPath('userData'), 'soundfonts')
   if (!existsSync(dir)) require('fs').mkdirSync(dir, { recursive: true })
@@ -477,6 +465,7 @@ app.on('before-quit', () => { try { audioHost?.kill() } catch {} })
 ipcMain.handle('soundfont:list', () => {
   const catalogEntries = Object.entries(SOUNDFONT_CATALOG).map(([id, entry]) => ({
     id, name: entry.name, sizeMB: entry.sizeMB,
+    description: entry.description, sourceUrl: entry.sourceUrl, attribution: entry.attribution,
     downloaded: existsSync(join(soundfontsDir(), entry.filename)),
     custom: false,
   }))
@@ -645,6 +634,15 @@ ipcMain.handle('songServer:discover', () => new Promise<string | null>((resolve)
 }))
 
 let songListCount = 0
+ipcMain.handle('songServer:artwork', async (_e, address: string, title: string, artist: string) => {
+  const query = new URLSearchParams({ title: title.slice(0, 240), artist: artist.slice(0, 240) })
+  const dest = join(app.getPath('userData'), `cover-lookup-${++songListCount}.json`)
+  try {
+    await saveUrl(`${serverUrl(address)}/api/artwork?${query}`, dest)
+    const result = JSON.parse(readFileSync(dest, 'utf8'))
+    return Array.isArray(result) ? result.filter(c => typeof c?.url === 'string' && c.url.startsWith('https://')).slice(0, 5) : []
+  } finally { if (existsSync(dest)) unlinkSync(dest) }
+})
 ipcMain.handle('songServer:query', async (_e, address: string, query: Record<string, string | number>) => {
   const params = new URLSearchParams(Object.entries(query).map(([k, v]) => [k, String(v)]))
   const listPath = join(app.getPath('userData'), `song-list-${++songListCount}.json`)
@@ -665,7 +663,7 @@ ipcMain.handle('songServer:query', async (_e, address: string, query: Record<str
 // way, since the app saves those as new files in Pliage/. The server is read-only,
 // so those stay on this device, and the song opens at its newest saved version.
 // The sheet travels as <song>.sheet, a name the library doesn't list as a song.
-ipcMain.handle('songServer:download', async (e, address: string, path: string, size: number, sheet?: boolean) => {
+async function downloadServerSong(e: any, address: string, path: string, size: number, sheet?: boolean) {
   if (!safeSongPath(path)) throw new Error('not a song path')
   const dest = songServerDest(songServerRoot(), path)
   const stale = !haveSong(dest, size)
@@ -680,7 +678,23 @@ ipcMain.handle('songServer:download', async (e, address: string, path: string, s
   const strippedBase = stripPliageSuffix(basename(dest).replace(/\.[^.]+$/, ''))
   const newest = highestPliageVersion(pliageDir, strippedBase)
   return newest ? join(pliageDir, `${strippedBase}_PLIAGE_v${newest}.mid`) : dest
+}
+ipcMain.handle('songServer:download', downloadServerSong)
+ipcMain.handle('songServer:offline', async (e, address: string, song: import('../src/types').SongServerSong) => {
+  const path = await downloadServerSong(e, address, song.path, song.size, song.sheet)
+  const original = songServerDest(songServerRoot(), song.path)
+  if (song.sheet && !existsSync(`${original}.sheet`)) throw new Error('The score could not be downloaded. Retry when the server is available.')
+  let artPath: string | null = null
+  if (song.art) {
+    const coverUrl = offlineArtworkUrl(song.art)
+    const allowed = coverUrl && (coverUrl.startsWith(`${serverUrl(address)}/api/art?`) || /^https:\/\//i.test(coverUrl))
+    if (!allowed) throw new Error('Invalid cover URL')
+    artPath = original + '.cover.jpg'
+    await saveUrl(coverUrl, artPath)
+  }
+  return { path, artPath }
 })
+registerLibraryTools(() => app.getPath('userData'), loadPrefs, savePrefs, () => app.getPath('home'))
 
 ipcMain.handle('dialog:openMidi', async () => {
   const result = await dialog.showOpenDialog({
@@ -724,15 +738,16 @@ ipcMain.handle('dialog:openFolder', async () => {
   return folderPath
 })
 ipcMain.handle('fs:scanMidiFolder', async (_e, folderPath: string) => {
-  function scanDir(dir: string): { name: string; path: string }[] {
+  function scanDir(dir: string): { name: string; path: string; addedAt?: number }[] {
     try {
-      const results: { name: string; path: string }[] = []
+      const results: { name: string; path: string; addedAt?: number }[] = []
       const entries = readdirSync(dir, { withFileTypes: true })
       for (const e of entries) {
         if (e.isDirectory()) {
           results.push(...scanDir(join(dir, e.name)))
         } else if (e.isFile() && /\.(mid|midi|kar|musicxml|xml|mxl|gp|gp3|gp4|gp5|gpx|cap)$/i.test(e.name)) {
-          results.push({ name: e.name, path: join(dir, e.name) })
+          const stat = statSync(join(dir, e.name))
+          results.push({ name: e.name, path: join(dir, e.name), addedAt: stat.birthtimeMs || stat.mtimeMs })
         }
       }
       return results

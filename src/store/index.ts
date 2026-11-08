@@ -24,6 +24,7 @@ import { TRUST_VERSION, type TrustResult } from '../utils/tempoTrust'
 import { velocityDropRatio, suggestCompressorPreset } from '../utils/velocityAnalysis'
 import { applyHandColors, isHex, handHex, followedHandColor, DEFAULT_HAND_LH, DEFAULT_HAND_RH } from '../utils/handPalette'
 import { HAND_ASSIGN_GROUPS, focusRole } from '../utils/keyboardGroups'
+import { SOUNDFONT_CATALOG } from '../audio/soundfontCatalog'
 
 // ── Focus mode: every track's mute + eye from just before Focus went on, so
 // the second click puts back exactly what you had. Null while Focus is off.
@@ -888,6 +889,8 @@ export const useStore = create<PliageStore>((set, get) => ({
     })
   },
 
+  // Quiet bootstrap until saved preferences select the engine below. This
+  // avoids opening Native before the user's saved sound settings are read.
   audioEngine: 'gm',
   setAudioEngine: (audioEngine) => set({ audioEngine }),
 
@@ -1265,8 +1268,19 @@ export const useStore = create<PliageStore>((set, get) => ({
   }),
 }))
 
-// ── Samples "first time" flag on restore — anyone already on Samples has
-// used it, so they never get the first-time Settings window. ─────────────
+// Resolve the default only after saved sound settings have been restored.
+export function applyAudioEnginePref(
+  prefs: { audioEngine?: unknown },
+  store: { setAudioEngine: (engine: 'gm' | 'samples' | 'native') => void },
+  nativeAvailable: boolean,
+) {
+  const saved = prefs.audioEngine
+  if (saved === 'gm' || saved === 'samples') store.setAudioEngine(saved)
+  else if (saved === 'native') store.setAudioEngine(nativeAvailable ? 'native' : 'samples')
+  else store.setAudioEngine(nativeAvailable ? 'native' : 'gm')
+}
+
+// Samples users never get the first-time Settings window again.
 export function applySamplesIntroducedPref(
   prefs: { audioEngine?: unknown; samplesIntroduced?: unknown },
   store: { setSamplesIntroduced: (v: boolean) => void },
@@ -1320,9 +1334,6 @@ async function restoreLibraryPrefs() {
     if (typeof prefs.masterCompEnabled === 'boolean') store.setMasterCompEnabled(prefs.masterCompEnabled)
     if (typeof prefs.masterCompPreset === 'number') store.setMasterCompPreset(prefs.masterCompPreset)
     if (typeof prefs.autoLevelOnLoad === 'boolean') store.setAutoLevelOnLoad(prefs.autoLevelOnLoad)
-    if (prefs.audioEngine === 'samples') store.setAudioEngine('samples')
-    // Android supplies its own AAudio adapter for the Native engine.
-    if (prefs.audioEngine === 'native') store.setAudioEngine(navigator.userAgent.includes('Windows') || !!(window as any).androidPiano ? 'native' : 'samples')
     applySamplesIntroducedPref(prefs, store)
     if (typeof prefs.showBarNumbers === 'boolean') store.setShowBarNumbers(prefs.showBarNumbers)
     if (prefs.scoreViewMode === 'roll' || prefs.scoreViewMode === 'both' || prefs.scoreViewMode === 'score') store.setScoreViewMode(prefs.scoreViewMode)
@@ -1393,7 +1404,10 @@ async function restoreLibraryPrefs() {
     if (typeof prefs.hitEffectBloomSpread === 'number') store.setHitEffectBloomSpread(prefs.hitEffectBloomSpread)
     if (prefs.hitEffectScope === 'keyboard' || prefs.hitEffectScope === 'all') store.setHitEffectScope(prefs.hitEffectScope)
     if (typeof prefs.hitEffectColor === 'string' || prefs.hitEffectColor === null) store.setHitEffectColor(prefs.hitEffectColor)
-    if (prefs.selectedSoundfont === 'fluidr3-gm' || prefs.selectedSoundfont === 'musescore-general' || String(prefs.selectedSoundfont).startsWith('custom:')) store.setSelectedSoundfont(prefs.selectedSoundfont)
+    if (typeof prefs.selectedSoundfont === 'string' && (Object.hasOwn(SOUNDFONT_CATALOG, prefs.selectedSoundfont) || prefs.selectedSoundfont.startsWith('custom:'))) store.setSelectedSoundfont(prefs.selectedSoundfont)
+    // Start after the piano and all other sound settings are restored, so an
+    // initial load is not immediately superseded by the saved soundfont.
+    applyAudioEnginePref(prefs, store, navigator.userAgent.includes('Windows') || !!(window as any).androidPiano)
   } catch (e) {
     console.error('[Pliage] restoreLibraryPrefs:', e)
   }

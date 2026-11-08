@@ -21,6 +21,9 @@ export interface SoundfontInfo {
   sizeMB: number
   downloaded: boolean
   custom?: boolean
+  description?: string
+  sourceUrl?: string
+  attribution?: string
 }
 
 export interface ParsedNote {
@@ -148,6 +151,7 @@ export interface MidiFileResult {
 }
 
 export interface SongServerSong {
+  addedAt?: number
   path: string
   title: string
   artist: string
@@ -183,6 +187,7 @@ export interface SongServerList {
 }
 
 export interface LibraryFile {
+  addedAt?: number
   name: string
   path: string
 }
@@ -236,6 +241,15 @@ declare global {
       songServerDiscover:  () => Promise<string | null>
       onSongServerProgress:  (fn: (data: { path: string; percent: number }) => void) => void
       offSongServerProgress: () => void
+      downloadOfflineSong: (address: string, song: SongServerSong) => Promise<{ path: string; artPath: string | null }>
+      chooseInboxFolder: (kind: 'source' | 'target') => Promise<string | null>
+      scanImportInbox: () => Promise<{ path: string; name: string; size: number; mtime: number; known: string[] }[]>
+      commitInboxSong: (payload: { source: string; sourceHash: string; midi: string; title: string; artist: string; genre: string; art: string | null }) => Promise<{ duplicate: boolean; path: string | null }>
+      findLibraryArtwork: (title: string, artist: string, address?: string) => Promise<{ title: string; artist: string; album: string; url: string }[]>
+      listPerformanceTakes: () => Promise<import('../utils/performanceRecording').PerformanceTake[]>
+      savePerformanceTake: (take: import('../utils/performanceRecording').PerformanceTake) => Promise<void>
+      deletePerformanceTake: (id: string) => Promise<void>
+      exportPerformanceTake: (id: string) => Promise<string | null>
       // Export to audio: writes to <library>/Pliage/Exports, returns the saved path
       saveExport:          (songPath: string, libraryFolder: string | null, fileName: string, bytes: Uint8Array) => Promise<string>
       statFiles:           (paths: string[]) => Promise<{ path: string; size: number; mtime: number }[]>

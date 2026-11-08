@@ -77,6 +77,9 @@
 .set-font > button[aria-checked='true'] > span { background: var(--accent); }
 .set-font-name { display: block; overflow: hidden; font-size: var(--text-lg); letter-spacing: -0.5px; text-overflow: ellipsis; white-space: nowrap; }
 .set-font-meta { display: block; color: var(--ui-text-soft); font-size: var(--text-sm); }
+.set-font-source { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--text-sm); text-align: left; text-decoration: underline; cursor: pointer; }
+.set-font-external { margin-top: 12px; padding: 12px; }
+.set-font > .o-btn { flex-shrink: 0; }
 
 /* Hand colours */
 .set-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }

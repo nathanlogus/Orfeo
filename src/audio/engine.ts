@@ -51,13 +51,10 @@ export function hasMixerEffects(): boolean { return engine() !== 'gm' }
 // A Library preview plays on the sound set. The native engine can hold the sound
 // card alone, and a set that won't load mustn't leave the preview silent, so
 // both fall back to General MIDI.
-export async function playSongPreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
-  if (engine() === 'native' && androidPianoBridge()) {
-    const { playAndroidNativePreview } = await import('./androidNativeEngine')
-    return playAndroidNativePreview(bytes, onEnd)
-  }
+export async function playSongPreview(bytes: Uint8Array, onEnd: () => void, maxSeconds = 30): Promise<() => void> {
+  if (engine() === 'native') return native.playNativePreview(bytes, onEnd, maxSeconds)
   if (engine() !== 'native') {
-    try { return await samples.playSamplesPreview(bytes, onEnd) } catch (e) { console.warn('[Pliage] sound set preview failed:', e) }
+    try { return await samples.playSamplesPreview(bytes, onEnd, maxSeconds) } catch (e) { console.warn('[Pliage] sound set preview failed:', e) }
   }
-  return gm.playPreview(bytes, onEnd)
+  return gm.playPreview(bytes, onEnd, maxSeconds)
 }

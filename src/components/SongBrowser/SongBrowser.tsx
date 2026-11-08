@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 import { Check, CloudDownload, Loader2, Play, Search, Square, X } from 'lucide-react'
 import { useStore } from '../../store'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { isNewSong } from '../../utils/libraryWorkspace'
 import { t } from '../../utils/i18n'
 import { SettingsDropdown, Switch } from '../Settings/controls'
 import {
@@ -32,6 +33,7 @@ export const ARRANGEMENT_LABEL: Record<string, () => string> = {
 }
 
 export const songSortOptions = (): { value: SongSort; label: string }[] => [
+  { value: 'recent', label: t`Sort: Recently added` },
   { value: 'title', label: t`Sort: Title` },
   { value: 'person', label: t`Sort: Composer` },
   { value: 'easiest', label: t`Sort: Easiest first` },
@@ -133,7 +135,7 @@ export const Card = memo(function Card({ card, index, loaded, mastery, status, p
   if (status === 'failed') return (
     <div className="lib-card lib-card-failed">
       <StatusTag status={status} />
-      <span className="lib-card-title" title={card.title}>{card.title}</span>
+      <span className="lib-card-title" title={card.title}>{card.title} {isNewSong(card.addedAt) && <span className="library-new">New</span>}</span>
       <span className="lib-card-artist">{failure}</span>
       <button className="o-btn lib-retry" onClick={() => onOpen(card.path)}>{t`Try again`}</button>
     </div>

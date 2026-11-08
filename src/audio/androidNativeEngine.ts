@@ -111,7 +111,7 @@ export function callAndroidNative(method: string, args: unknown[]) {
   androidPianoBridge()!.command(method, args.map(a => ArrayBuffer.isView(a) ? Array.from(a as unknown as ArrayLike<number>) : a))
 }
 
-export async function playAndroidNativePreview(bytes: Uint8Array, onEnd: () => void): Promise<() => void> {
+export async function playAndroidNativePreview(bytes: Uint8Array, onEnd: () => void, maxSeconds = 30): Promise<() => void> {
   const api = androidPianoBridge()!
   if (!api.status().running) throw new Error('Native audio is still starting')
   const { Midi } = await import('@tonejs/midi')
@@ -145,6 +145,6 @@ export async function playAndroidNativePreview(bytes: Uint8Array, onEnd: () => v
     stopped = true; clearTimeout(timer)
     callAndroidNative('pause', []); restoreNativeSongPlayback()
   }
-  const timer = setTimeout(() => { stop(); onEnd() }, Math.min(30, Math.max(.1, midi.duration - first)) * 1000)
+  const timer = setTimeout(() => { stop(); onEnd() }, Math.min(maxSeconds, Math.max(.1, midi.duration - first)) * 1000)
   return stop
 }
