@@ -600,7 +600,7 @@ export default function App() {
       >
         {!presentationMode && <SettingsPanel />}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-          {lessonActive && <LessonBanner />}
+          {lessonActive && !homeVisible && <LessonBanner />}
           <div data-piano-roll-area style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
             {showScore && (
               <div className="pr-score-bar">

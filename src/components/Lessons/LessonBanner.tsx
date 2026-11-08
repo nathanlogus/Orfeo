@@ -17,6 +17,11 @@ export default function LessonBanner() {
   // Every step starts from the top, and leaving a lesson stops its music
   useEffect(() => { stop() }, [step, stop])
   useEffect(() => () => stop(), [stop])
+  useEffect(() => () => {
+    // Lessons can leave the app while the score is hidden behind Home. Clear
+    // the lesson-only cursor treatment as the banner unmounts as a safeguard.
+    document.documentElement.classList.remove('lesson-hide-bar')
+  }, [])
 
   const lesson = run && lessonById(run.id)
   if (!lesson || (step !== 'hear' && step !== 'wait' && step !== 'time')) return null

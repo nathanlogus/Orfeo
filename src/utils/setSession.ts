@@ -88,8 +88,17 @@ async function openAt(index: number) {
     const wanted = prefs.hand === 'left' ? 'L' : prefs.hand === 'right' ? 'R' : null
     useStore.setState({ bpm: state.originalBpm * tempo / 100, currentTime: start, loopStart: start, loopEnd: end, loopRegionEnabled: end !== null, loopRegionActive: end !== null,
       // Hand tracks retain the accompaniment and hide/mute only an opposing
-      // homogeneous hand. Mixed/unlabelled tracks remain available.
-      tracks: state.tracks.map(t => { const notes = state.midi?.tracks.find(p => p.index === t.index)?.notes ?? []; const hands = new Set(notes.map(n => n.hand).filter(Boolean)); return wanted && hands.size === 1 && !hands.has(wanted) ? { ...t, muted: true, visible: false } : t }) })
+      // homogeneous hand. Mixed/unlabelled tracks remain available. Reset both
+      // homogeneous sides from any previous one-hand set before applying the
+      // requested side; otherwise switching left ↔ right can leave the chosen
+      // line hidden from the previous song's practice focus.
+      tracks: state.tracks.map(t => {
+        const notes = state.midi?.tracks.find(p => p.index === t.index)?.notes ?? []
+        const hands = new Set(notes.map(n => n.hand).filter(Boolean))
+        if (!wanted || hands.size !== 1) return t
+        if (hands.has(wanted)) return { ...t, muted: false, visible: true }
+        return { ...t, muted: true, visible: false }
+      }) })
   }
   update({ stage: 'playing' })
   await new Promise(r => setTimeout(r, ENGINE_PICKUP_MS))

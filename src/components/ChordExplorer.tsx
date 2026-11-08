@@ -108,6 +108,8 @@ export default function ChordExplorer() {
   const [progPlaying, setProgPlaying] = useState(false)
   const [progStep, setProgStep] = useState(0)
   const [progSpeed, setProgSpeed] = useState<ProgSpeed>('med')
+  const [progBpmText, setProgBpmText] = useState('75')
+  const progBpmRef = useRef(75)
   const [progGenre, setProgGenre] = useState<Genre>('classic')
   // ── Easter egg card open + the timers of its pounding pulse ──────────────
   const [riteOpen, setRiteOpen] = useState(false)
@@ -336,12 +338,11 @@ export default function ChordExplorer() {
   const playStepAt = useCallback((
     step: number,
     run: SeqStep[],
-    speed: ProgSpeed,
     prevMidi: number[] | null,
   ) => {
     if (!progRunningRef.current) return
     const { rootPc: actualRoot, suffix, semis } = run[step]
-    const durationMs = SPEED_MS[speed]
+    const durationMs = 60000 / progBpmRef.current
 
     const midiNotes = nextVoicing(
       prevMidi, actualRoot, semis,
@@ -360,7 +361,7 @@ export default function ChordExplorer() {
 
     const nextStep = (step + 1) % run.length
     progTimerRef.current = setTimeout(() => {
-      playStepAt(nextStep, run, speed, midiNotes)
+      playStepAt(nextStep, run, midiNotes)
     }, durationMs)
   }, [lightKeys, setExplorerChordDisplay, rootLabels, chordNamingStyle])
 
@@ -370,8 +371,24 @@ export default function ChordExplorer() {
     progRunningRef.current = true
     setProgPlaying(true)
     setProgStep(0)
-    playStepAt(0, steps, progSpeed, null)
+    playStepAt(0, steps, null)
   }, [steps, progSpeed, stopProgression, playStepAt])
+
+  const setProgressionSpeed = (speed: ProgSpeed) => {
+    const bpm = Math.round(60000 / SPEED_MS[speed])
+    setProgSpeed(speed)
+    setProgBpmText(String(bpm))
+    progBpmRef.current = bpm
+  }
+  const setProgressionBpm = (value: string) => {
+    setProgBpmText(value)
+    if (!value) return
+    const bpm = Number(value)
+    if (!Number.isFinite(bpm)) return
+    progBpmRef.current = Math.max(20, Math.min(300, bpm))
+    const presets: [ProgSpeed, number][] = [['slow', 40], ['med', 75], ['fast', 150]]
+    setProgSpeed(presets.reduce((best, item) => Math.abs(item[1] - bpm) < Math.abs(best[1] - bpm) ? item : best)[0])
+  }
 
   // ── Spacebar plays/pauses the progression while this modal is open ────────
   useEffect(() => {
@@ -848,7 +865,12 @@ export default function ChordExplorer() {
             )
           })}
         </div>
-        <SpeedControl value={progSpeed} onChange={setProgSpeed} size={11} />
+        <SpeedControl value={progSpeed} onChange={setProgressionSpeed} size={11} />
+        <label className="xp-bpm-control">{t`BPM`}<input aria-label={t`Progression BPM`} type="number" min={20} max={300} step={1} value={progBpmText} onChange={e => setProgressionBpm(e.target.value)} onBlur={() => {
+          const bpm = Math.max(20, Math.min(300, Number(progBpmText) || 75))
+          progBpmRef.current = bpm
+          setProgBpmText(String(bpm))
+        }} /></label>
         {/* Clear — the progression if one is picked, else the added chords */}
         <Tooltip oneLine title={t`Stops playback and clears the sequence`}>
           <button className="o-btn-quiet" disabled={steps.length === 0} onClick={() => { stopProgression(); if (activeProg) setSelectedProg(null); else setSequence([]) }}>{t`Clear`}</button>

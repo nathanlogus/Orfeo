@@ -14,7 +14,7 @@ import { licksFor } from './licks'
 import { startKeyFx } from './keyFx'
 import { scaleLabel, scaleOptions } from './scales'
 import { PRESETS, ROSTER, SLOT_COUNT, instrument } from './roster'
-import { MAX_BPM, MIN_BPM, SPLIT_NOTE, setBand, setBpm, setFeel, setKey, setLeftHand, setRoom, setScale, setSlot, setStyle, startJam, stopJam, useJam } from './jamSession'
+import { MAX_BPM, MIN_BPM, SPLIT_NOTE, setBand, setBpm, setFeel, setKey, setRoom, setScale, setSlot, setSoloHand, setStyle, startJam, stopJam, useJam } from './jamSession'
 import RoomStage from './room/RoomStage'
 import { SCENES, roomFor, sceneChoice, stepScene, type SceneChoice } from './room/roomChoice'
 
@@ -111,13 +111,6 @@ function Tempo() {
   )
 }
 
-// No keyboard, no left hand: the band keeps to its own chords
-const useLeftHandLeads = () => {
-  const leftHand = useJam(s => s.leftHand)
-  const connected = useStore(s => s.midiDeviceConnected)
-  return leftHand && connected
-}
-
 // Before the first chord arrives, the progression's first one stands in
 function useShownChord() {
   const chord = useJam(s => s.chord)
@@ -126,13 +119,16 @@ function useShownChord() {
   return useMemo(() => chord ?? progressionChords(style, keyPc)[0], [chord, style, keyPc])
 }
 
-function LeadChoice() {
-  const leads = useLeftHandLeads()
-  const connected = useStore(s => s.midiDeviceConnected)
+function SoloHandChoice() {
+  const hand = useJam(s => s.soloHand)
   return (
-    <div className="o-seg jam-wide">
-      <button aria-pressed={leads} disabled={!connected} onClick={() => setLeftHand(true)}>{t`My left hand leads`}</button>
-      <button aria-pressed={!leads} onClick={() => setLeftHand(false)}>{t`Fixed chords`}</button>
+    <div className="jam-solo-choice">
+      <span>{t`Solo hand`}</span>
+      <div className="o-seg jam-wide" role="group" aria-label={t`Solo hand`}>
+        <button aria-pressed={hand === 'left'} onClick={() => setSoloHand('left')}>{t`Left`}</button>
+        <button aria-pressed={hand === 'right'} onClick={() => setSoloHand('right')}>{t`Right`}</button>
+      </div>
+      <small>{t`The band advances through the chord progression automatically.`}</small>
     </div>
   )
 }
@@ -248,7 +244,6 @@ function Keys({ target }: { target: number | null }) {
   const keyPc = useJam(s => s.keyPc)
   const held = useJam(s => s.held)
   const live = useJam(s => s.live)
-  const leftHand = useLeftHandLeads()
   const chord = useShownChord()
   const scale = useMemo(() => scalePitchClasses(scaleName, keyPc), [scaleName, keyPc])
   const { whites, blacks } = useMemo(() => miniKeyboardLayout(KEYBOARD_ENDS), [])
@@ -276,7 +271,7 @@ function Keys({ target }: { target: number | null }) {
         aria-label={t`The notes of the chord, lit on the keyboard, under a rail of the scale's notes`}
         keyProps={(midi, black) => ({ ...marks(midi), children: !black && <em>{name(noteName(midi % 12))}</em> })}
       >
-        {leftHand && <span className="jam-split" style={{ left: `${splitAt}%` }} />}
+        <span className="jam-split" style={{ left: `${splitAt}%` }} />
       </PianoKeys>
       <canvas ref={fx} className="jam-keys-fx" aria-hidden />
     </div>
@@ -301,8 +296,11 @@ function Licks({ onTarget }: { onTarget: (midi: number | null) => void }) {
   const style = useJam(s => s.style)
   const scale = useJam(s => s.scale)
   const keyPc = useJam(s => s.keyPc)
+  const soloHand = useJam(s => s.soloHand)
   const name = useChordName()
-  const licks = useMemo(() => licksFor(style, scale, keyPc), [style, scale, keyPc])
+  const licks = useMemo(() => licksFor(style, scale, keyPc).map(lick => soloHand === 'left'
+    ? { ...lick, notes: lick.notes.map(n => ({ ...n, midi: n.midi - 24 })) }
+    : lick), [style, scale, keyPc, soloHand])
   const [picked, setPicked] = useState(0)
   const [step, setStep] = useState(0)
   const hearing = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -316,11 +314,11 @@ function Licks({ onTarget }: { onTarget: (midi: number | null) => void }) {
   useEffect(() => {
     if (!lick) return
     return onLiveNote(note => {
-      if (note < SPLIT_NOTE) return
+      if ((soloHand === 'left' && note >= SPLIT_NOTE) || (soloHand === 'right' && note < SPLIT_NOTE)) return
       stopHearing()
       setStep(s => (note % 12 === lick.notes[s].midi % 12 ? (s + 1) % lick.notes.length : s))
     })
-  }, [lick])
+  }, [lick, soloHand])
   useEffect(() => onTarget(lick?.notes[step]?.midi ?? null), [lick, step, onTarget])
   useEffect(() => () => onTarget(null), [onTarget])
 
@@ -373,10 +371,11 @@ function ChordBoard() {
 }
 
 function Hint() {
-  const leads = useLeftHandLeads()
+  const hand = useJam(s => s.soloHand)
   const connected = useStore(s => s.midiDeviceConnected)
   const hint = !connected ? t`No keyboard connected. The band plays its chords; follow along.`
-    : leads ? t`Play a chord below middle C. The band moves to it on the next beat.` : t`The band plays the chords. Solo over them.`
+    : hand === 'left' ? t`Solo with your left hand below middle C. The band advances through the chords.`
+    : t`Solo with your right hand above middle C. The band advances through the chords.`
   return <p className="jam-hint" role="status">{hint}</p>
 }
 
@@ -399,7 +398,7 @@ function Settings({ open }: { open: boolean }) {
       </div>
       <div className="jam-set">
         <Tempo />
-        {!live && <LeadChoice />}
+        {!live && <SoloHandChoice />}
         <Feel />
       </div>
       <div className="jam-set jam-set-band"><Slots /></div>

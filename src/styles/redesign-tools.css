@@ -54,6 +54,8 @@
 
 /* The black bar along the bottom of an Explorer */
 .xp-seq { flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-height: 76px; box-sizing: border-box; padding: 10px 12px 10px 18px; border-radius: var(--radius-md); background: var(--ink); color: #ffffff; }
+.xp-bpm-control { display: inline-flex; align-items: center; gap: 6px; color: var(--stone); font-size: var(--text-sm); }
+.xp-bpm-control input { width: 64px; height: 34px; box-sizing: border-box; padding: 0 7px; border: 1px solid var(--line-700); border-radius: var(--radius-sm); background: var(--ink-800); color: #ffffff; font: inherit; font-size: var(--text-base); font-variant-numeric: tabular-nums; }
 .xp-seq .xp-note { color: var(--stone); }
 .xp-chips { flex: 1 1 120px; min-width: 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; }
 .xp-chip { flex-shrink: 0; padding: 8px 12px; border: 0; border-radius: var(--radius-md); background: var(--ink-800); color: #ffffff; font: inherit; font-size: var(--text-md); user-select: none; }

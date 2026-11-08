@@ -30,6 +30,9 @@
 .jam-start { align-self: flex-start; }
 .jam-alert { margin: 0; }
 .jam-hint { margin: 0; color: var(--ui-text-soft); font-size: var(--text-base); }
+.jam-solo-choice { display: grid; gap: 6px; max-width: 360px; }
+.jam-solo-choice > span { font-size: var(--text-sm); font-weight: 600; }
+.jam-solo-choice small { color: var(--ui-text-soft); font-size: var(--text-xs); }
 
 .jam-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--ui-line-soft); border-radius: var(--radius-md); background: var(--ui-surface); }
 .jam-board { align-items: center; gap: 4px; }

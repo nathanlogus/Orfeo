@@ -29,6 +29,7 @@ export interface JamSettings {
   keyPc: number
   bpm: number
   leftHand: boolean
+  soloHand: 'left' | 'right'
   scale: string
   feel: JamFeel
   slots: JamSlots
@@ -48,7 +49,7 @@ interface JamState extends JamSettings {
 }
 
 export const useJam = create<JamState>(() => ({
-  style: 'blues', keyPc: 0, bpm: STYLES.blues.bpm, leftHand: true,
+  style: 'blues', keyPc: 0, bpm: STYLES.blues.bpm, leftHand: false, soloHand: 'right',
   scale: STYLES.blues.scale, feel: 'tight', slots: presetSlots(STYLE_PRESET.blues),
   live: false, chord: null, nextChord: null, beat: 0, loud: 0.5, busy: 0.25, level: 1, held: [],
   savedRoom: undefined, scenes: !lowEnd((navigator as any).deviceMemory, navigator.hardwareConcurrency),
@@ -223,6 +224,7 @@ export function setSlot(index: number, id: string | null) {
 export const setBand = (preset: string) => presetSlots(preset).forEach((id, i) => setSlot(i, id))
 export const setScale = (scale: string) => useJam.setState({ scale })
 export const setFeel = (feel: JamFeel) => useJam.setState({ feel })
+export const setSoloHand = (soloHand: 'left' | 'right') => useJam.setState({ soloHand, leftHand: false })
 export const setLeftHand = (leftHand: boolean) => useJam.setState({ leftHand })
 
 export const loadRoom = async () => useJam.setState({ savedRoom: (await window.electronAPI.getPrefs()).jamRoom ?? null })
